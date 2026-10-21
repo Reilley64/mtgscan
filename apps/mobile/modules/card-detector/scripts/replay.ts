@@ -6,6 +6,8 @@ import path from 'node:path';
 import readline from 'node:readline';
 import { parseArgs } from 'node:util';
 
+import type { FrameQuad } from '../index';
+import { heldStillSample } from '../../../test/scanner-evidence/detector/clips';
 import {
   compareReplays,
   replayTable,
@@ -23,6 +25,7 @@ const imagesDirectory = path.resolve(process.env.DETECTOR_IMAGES_DIR ?? path.joi
 const texturesDirectory = path.join(dataDirectory, 'textures');
 const reportsDirectory = path.join(dataDirectory, 'reports');
 const comparedSources = [path.join('ios', 'Detector'), path.join('macos', 'CardDetectorCommand')];
+const photoOutlineSource = path.join(comparedSources[0], 'PhotoOutline.swift');
 
 const { values } = parseArgs({
   options: {
@@ -124,11 +127,13 @@ async function exportBasePackage(commit: string) {
   const unpacked = await run('tar', ['-x', '-f', archive, '-C', packageRoot, '--strip-components', String(modulePath.split(path.sep).length)]);
   if (unpacked.code !== 0) throw new Error('the merge base package did not unpack');
   const baseCommandFile = path.join(packageRoot, comparedSources[1], 'main.swift');
-  if (!existsSync(baseCommandFile) || !(await fs.readFile(baseCommandFile, 'utf8')).includes('case "step"')) {
+  const baseCommand = existsSync(baseCommandFile) ? await fs.readFile(baseCommandFile, 'utf8') : '';
+  if (!baseCommand.includes('case "step"')) {
     await fs.cp(path.join(moduleRoot, 'Package.swift'), path.join(packageRoot, 'Package.swift'));
     await fs.cp(path.join(moduleRoot, comparedSources[1]), path.join(packageRoot, comparedSources[1]), { recursive: true });
+    await fs.cp(path.join(moduleRoot, photoOutlineSource), path.join(packageRoot, photoOutlineSource));
   }
-  return { packageRoot, scratch: path.join(directory, 'build') };
+  return { packageRoot, scratch: path.join(directory, 'build'), refines: baseCommand.includes('case "refine"') };
 }
 
 async function sourceFiles(packageRoot: string) {
@@ -145,26 +150,43 @@ async function sourceFiles(packageRoot: string) {
   return JSON.stringify(files);
 }
 
+type PhotoOutlineRecord = { outline: FrameQuad; outcome: string; durationMs: number };
+
 function startCommand(command: string, frames: string[]) {
   const child = spawn(command, ['step', ...frames], {
     cwd: framesDirectory,
     stdio: ['pipe', 'pipe', 'inherit'],
   });
   const lines = readline.createInterface({ input: child.stdout })[Symbol.asyncIterator]();
+  async function ask(request: string) {
+    child.stdin.write(`${request}\n`);
+    const line = await lines.next();
+    if (line.done) throw new Error(`${command} stopped`);
+    return JSON.parse(line.value) as unknown;
+  }
   return {
-    async detect(index: number) {
-      child.stdin.write(`${index}\n`);
-      const line = await lines.next();
-      if (line.done) throw new Error(`${command} stopped`);
-      return JSON.parse(line.value) as FrameSample;
-    },
+    detect: async (index: number) => (await ask(String(index))) as FrameSample,
+    refine: async (index: number, photo: string, outline: FrameQuad) =>
+      (await ask(JSON.stringify({ refine: index, photo, outline }))) as PhotoOutlineRecord,
     stop: () => child.stdin.end(),
   };
 }
 
-async function detectInterleaved(commands: string[], labels: FrameLabels, rounds: number) {
+async function refinePhotos(side: ReturnType<typeof startCommand>, frames: string[], labels: FrameLabels, samples: FrameSample[]) {
+  const byFrame = new Map(samples.map((sample) => [sample.frame, sample]));
+  const records = new Map<string, PhotoOutlineRecord>();
+  for (const clip of labels.clips) {
+    const heldStill = heldStillSample(clip, clip.frames.map((frame) => byFrame.get(frame.frame)!));
+    if (!heldStill?.sample.corners) continue;
+    const frame = frames.indexOf(clip.frames[heldStill.index].frame);
+    records.set(clip.clip, await side.refine(frame, clip.photo.frame, heldStill.sample.corners));
+  }
+  return records;
+}
+
+async function detectInterleaved(commands: { command: string; refines: boolean }[], labels: FrameLabels, rounds: number) {
   const frames = [...labels.frames, ...labels.clips.flatMap((clip) => clip.frames)].map((frame) => frame.frame);
-  const sides = commands.map((command) => startCommand(command, frames));
+  const sides = commands.map(({ command }) => startCommand(command, frames));
   const samples = sides.map(() => Array.from({ length: rounds }, (): FrameSample[] => []));
   for (let round = 0; round < rounds; round += 1) {
     const roundFrames = round === 0 ? frames.length : labels.frames.length;
@@ -173,8 +195,20 @@ async function detectInterleaved(commands: string[], labels: FrameLabels, rounds
       for (const side of order) samples[side][round].push(await sides[side].detect(index));
     }
   }
+  const photoOutlines = await Promise.all(
+    sides.map((side, index) => (commands[index].refines ? refinePhotos(side, frames, labels, samples[index][0]) : new Map<string, PhotoOutlineRecord>())),
+  );
   sides.forEach((side) => side.stop());
-  return samples;
+  return { samples, photoOutlines };
+}
+
+function photoRefinementLine(name: string, records: Map<string, PhotoOutlineRecord>) {
+  if (records.size === 0) return `Photo refinement on the ${name}: none, its detector command has no refine mode.`;
+  const outcomes = new Map<string, number>();
+  for (const { outcome } of records.values()) outcomes.set(outcome, (outcomes.get(outcome) ?? 0) + 1);
+  const durations = [...records.values()].map((record) => record.durationMs).sort((a, b) => a - b);
+  const counts = [...outcomes].map(([outcome, count]) => `${count} ${outcome.replace('_', ' ')}`).join(', ');
+  return `Photo refinement on the ${name}: ${counts}, of ${records.size} clips that ask for a photo. Median ${durations[Math.floor(durations.length / 2)].toFixed(0)} ms on the Mac.`;
 }
 
 const mismatched = await renderFrames();
@@ -196,14 +230,29 @@ console.error(`Building the detector command on the merge base ${baseCommit.slic
 const basePackage = await exportBasePackage(baseCommit);
 const baseCommand = await buildCommand(basePackage.packageRoot, basePackage.scratch);
 const sameDetector = (await sourceFiles(moduleRoot)) === (await sourceFiles(basePackage.packageRoot));
-const [baseRounds, branchRounds] = await detectInterleaved([baseCommand, branchCommand], labels, Number(values.rounds));
-const base = scoreReplay(labels, baseRounds);
-const branch = scoreReplay(labels, branchRounds);
+const {
+  samples: [baseRounds, branchRounds],
+  photoOutlines: [basePhotos, branchPhotos],
+} = await detectInterleaved(
+  [
+    { command: baseCommand, refines: basePackage.refines },
+    { command: branchCommand, refines: true },
+  ],
+  labels,
+  Number(values.rounds),
+);
+const outlinesOf = (records: Map<string, PhotoOutlineRecord>) => new Map([...records].map(([clip, record]) => [clip, record.outline]));
+const base = scoreReplay(labels, baseRounds, outlinesOf(basePhotos));
+const branch = scoreReplay(labels, branchRounds, outlinesOf(branchPhotos));
 const comparison = compareReplays(base, branch, { sameDetector });
 const report = [
   `The branch at ${await git(['rev-parse', '--short', 'HEAD'])} against the merge base ${baseCommit.slice(0, 7)} with ${values.base}, ${values.rounds} timing rounds.`,
   '',
   replayTable(comparison),
+  photoRefinementLine('merge base', basePhotos),
+  '',
+  photoRefinementLine('branch', branchPhotos),
+  '',
 ].join('\n');
 await fs.mkdir(reportsDirectory, { recursive: true });
 await Promise.all([

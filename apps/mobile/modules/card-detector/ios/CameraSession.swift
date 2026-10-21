@@ -1,6 +1,7 @@
 import AVFoundation
 import CoreMedia
 import ImageIO
+import os
 import simd
 
 enum PhotoFailure: String, Error {
@@ -14,10 +15,22 @@ struct CapturedPhoto: Sendable {
   let outline: [SIMD2<Double>]
 }
 
+private struct AnalyzedFrame: @unchecked Sendable {
+  let pixelBuffer: CVPixelBuffer
+  let outline: [SIMD2<Double>]
+  let time: CMTime
+}
+
+private struct TakenPhoto: Sendable {
+  let url: URL
+  let time: CMTime
+}
+
 final class CameraSession: NSObject, @unchecked Sendable {
   static let displayOrientation = CGImagePropertyOrientation.right
   static let analysisInterval = 0.19
   static let videoDimensions = (width: Int32(1280), height: Int32(720))
+  private static let log = Logger(subsystem: "dev.reilley.mtgscan", category: "card-detector")
 
   let session = AVCaptureSession()
   private let onSample: @Sendable (DetectionSample) -> Void
@@ -28,6 +41,8 @@ final class CameraSession: NSObject, @unchecked Sendable {
   private var configured = false
   private var lastAnalyzedAt = CMTime.invalid
   private var photoCaptures: [Int64: PhotoCapture] = [:]
+  private let lastFrameLock = NSLock()
+  private var lastFrame: AnalyzedFrame?
 
   init(onSample: @escaping @Sendable (DetectionSample) -> Void) {
     self.onSample = onSample
@@ -79,15 +94,36 @@ final class CameraSession: NSObject, @unchecked Sendable {
         settings.isShutterSoundSuppressionEnabled = true
       }
       let id = settings.uniqueID
+      let frame = lastFrameLock.withLock { lastFrame }.flatMap { $0.outline == outline ? $0 : nil }
       let capture = PhotoCapture { [weak self] result in
         if let self {
           sessionQueue.async { self.photoCaptures[id] = nil }
         }
-        completion(result.map { CapturedPhoto(url: $0, outline: outline) })
+        completion(result.map { CapturedPhoto(url: $0.url, outline: Self.photoOutline($0, frame: frame, heldStill: outline)) })
       }
       photoCaptures[id] = capture
       photoOutput.capturePhoto(with: settings, delegate: capture)
     }
+  }
+
+  private static func photoOutline(_ photo: TakenPhoto, frame: AnalyzedFrame?, heldStill: [SIMD2<Double>]) -> [SIMD2<Double>] {
+    guard let frame else {
+      log.info("photo outline: held still, no analyzed frame with this outline")
+      return heldStill
+    }
+    let startedAt = ProcessInfo.processInfo.systemUptime
+    let result = PhotoOutline.refine(
+      photo: photo.url,
+      frame: frame.pixelBuffer,
+      frameOrientation: displayOrientation,
+      heldStill: heldStill
+    )
+    let durationMs = CardQuadDetector.elapsedMilliseconds(since: startedAt)
+    let photoAfterFrameMs = (photo.time - frame.time).seconds * 1_000.0
+    log.info(
+      "photo outline: \(result.outcome.rawValue, privacy: .public) in \(durationMs, format: .fixed(precision: 1), privacy: .public) ms, photo \(photoAfterFrameMs, format: .fixed(precision: 0), privacy: .public) ms after the frame"
+    )
+    return result.outline
   }
 
   static func backCamera() -> AVCaptureDevice? {
@@ -133,6 +169,9 @@ final class CameraSession: NSObject, @unchecked Sendable {
     if let connection = photoOutput.connection(with: .video), connection.isVideoRotationAngleSupported(90) {
       connection.videoRotationAngle = 90
     }
+    Self.log.info(
+      "camera: zero shutter lag supported \(self.photoOutput.isZeroShutterLagSupported, privacy: .public), enabled \(self.photoOutput.isZeroShutterLagEnabled, privacy: .public); geometric distortion correction supported \(device.isGeometricDistortionCorrectionSupported, privacy: .public), enabled \(device.isGeometricDistortionCorrectionEnabled, privacy: .public); photo \(photoDimensions.width, privacy: .public) x \(photoDimensions.height, privacy: .public)"
+    )
     configured = true
     return true
   }
@@ -200,14 +239,16 @@ extension CameraSession: AVCaptureVideoDataOutputSampleBufferDelegate {
       nativeDurationMs: CardQuadDetector.elapsedMilliseconds(since: startedAt),
       sampledAtMs: sampledAtMs
     )
+    let frame = sample.corners.map { AnalyzedFrame(pixelBuffer: pixelBuffer, outline: $0, time: time) }
+    lastFrameLock.withLock { lastFrame = frame }
     onSample(sample)
   }
 }
 
 private final class PhotoCapture: NSObject, AVCapturePhotoCaptureDelegate, @unchecked Sendable {
-  private let completion: @Sendable (Result<URL, PhotoFailure>) -> Void
+  private let completion: @Sendable (Result<TakenPhoto, PhotoFailure>) -> Void
 
-  init(completion: @escaping @Sendable (Result<URL, PhotoFailure>) -> Void) {
+  init(completion: @escaping @Sendable (Result<TakenPhoto, PhotoFailure>) -> Void) {
     self.completion = completion
   }
 
@@ -217,6 +258,6 @@ private final class PhotoCapture: NSObject, AVCapturePhotoCaptureDelegate, @unch
       completion(.failure(.unreadablePhoto))
       return
     }
-    completion(.success(url))
+    completion(.success(TakenPhoto(url: url, time: photo.timestamp)))
   }
 }

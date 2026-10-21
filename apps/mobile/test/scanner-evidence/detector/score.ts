@@ -1,9 +1,7 @@
-import type { DetectionSample } from '../../../modules/card-detector';
+import type { DetectionSample, FrameQuad } from '../../../modules/card-detector';
 import { nearestRank } from '../../../src/scan/capture-log';
 import { compareClips, scoreClip, scoreClipGroups, type ClipGroupScore, type ClipLabel, type ClipScore } from './clips';
-import { median, outlineOnCard, type Point } from './geometry';
-
-type Sides = { top: number; right: number; bottom: number; left: number };
+import { isInside, median, outlineOnCard, sidesInsideMm, type Point, type Sides } from './geometry';
 
 const borderColors = ['black', 'white', 'borderless'] as const;
 
@@ -85,7 +83,6 @@ export type Comparison = {
   pass: boolean;
 };
 
-export const insideOutlineMm = 1;
 export const replayBars = {
   cornerErrorMedianMm: 0.1,
   cornerErrorP90Mm: 0.5,
@@ -108,21 +105,14 @@ function scoreFrame(label: FrameLabel, sample: FrameSample, labels: FrameLabels)
     nativeDurationMs: sample.nativeDurationMs,
   };
   if (!outline || !label.corners) return { ...base, ...unscored };
-  const [width, height] = labels.cardMm;
   const aligned = outlineOnCard(outline, label.corners, labels.cardMm);
-  const [topLeft, topRight, bottomRight, bottomLeft] = aligned.corners;
-  const sides = {
-    top: (topLeft[1] + topRight[1]) / 2,
-    right: width - (topRight[0] + bottomRight[0]) / 2,
-    bottom: height - (bottomRight[1] + bottomLeft[1]) / 2,
-    left: (topLeft[0] + bottomLeft[0]) / 2,
-  };
+  const sides = sidesInsideMm(aligned.corners, labels.cardMm);
   return {
     ...base,
     cornerErrorMm: aligned.errorMm,
     sidesInsideMm: sides,
     sizeErrorMm: { width: (sides.left + sides.right) / 2, height: (sides.top + sides.bottom) / 2 },
-    inside: Math.max(sides.top, sides.right, sides.bottom, sides.left) > insideOutlineMm,
+    inside: isInside(sides),
   };
 }
 
@@ -158,7 +148,7 @@ function scoreGroups(frames: FrameScore[], keyOf: (frame: FrameScore) => GroupKe
   return [...groups.values()].map((group) => scoreGroup(group.key, group.frames));
 }
 
-export function scoreReplay(labels: FrameLabels, rounds: FrameSample[][]): ReplayScore {
+export function scoreReplay(labels: FrameLabels, rounds: FrameSample[][], photoOutlines = new Map<string, FrameQuad>()): ReplayScore {
   const roundsByFrame = rounds.map((samples) => new Map(samples.map((sample) => [sample.frame, sample])));
   const samplesOf = (frame: string, inRounds = roundsByFrame) => {
     const samples = inRounds.map((byFrame) => byFrame.get(frame));
@@ -169,7 +159,9 @@ export function scoreReplay(labels: FrameLabels, rounds: FrameSample[][]): Repla
     const samples = samplesOf(label.frame);
     return { ...scoreFrame(label, samples[0], labels), nativeDurationMs: median(samples.map((sample) => sample.nativeDurationMs)) };
   });
-  const clips = labels.clips.map((clip) => scoreClip(clip, clip.frames.map((frame) => samplesOf(frame.frame, roundsByFrame.slice(0, 1))[0]), labels));
+  const clips = labels.clips.map((clip) =>
+    scoreClip(clip, clip.frames.map((frame) => samplesOf(frame.frame, roundsByFrame.slice(0, 1))[0]), labels, photoOutlines.get(clip.clip)),
+  );
   const conditions = [...new Set(frames.map((frame) => frame.condition))];
   const byBorderColor = frames
     .filter((frame) => frame.borderColor !== null)
@@ -323,6 +315,7 @@ function failingOutline(frame: FrameScore) {
 }
 
 export function replayTable({ bars, clipBars, failingOutlines, clipsWithoutPhoto, pass }: Comparison): string {
+  const clipMetrics = [...new Set(clipBars.map((bar) => bar.metric))];
   const grouped = bars.filter((bar) => bar.metric !== 'False outlines' && (bar.condition ?? bar.borderColor) !== null);
   const byConditionAndTilt = grouped.filter((bar) => bar.condition !== null && bar.tiltBucket !== null);
   const empty = bars.filter((bar) => bar.metric === 'False outlines');
@@ -352,8 +345,8 @@ export function replayTable({ bars, clipBars, failingOutlines, clipsWithoutPhoto
     '',
     'Clips by condition, merge base → branch:',
     '',
-    `| Condition | ${[...new Set(clipBars.map((bar) => bar.metric))].join(' | ')} | Result |`,
-    '| --- | --: | --: | --: | --: | --: | --- |',
+    `| Condition | ${clipMetrics.join(' | ')} | Result |`,
+    `| --- |${' --: |'.repeat(clipMetrics.length)} --- |`,
     ...groupRows(clipBars, true),
     '',
     ...reportedTable(
