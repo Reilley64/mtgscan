@@ -673,7 +673,7 @@ On iOS 26 and later, content that scrolls up under the status bar and the header
 
 - **Copy page**, from a binder tile, shows that copy only (owner decision, spec 4). It is one scrolling page with no segmented control and no list of other copies or printings. Users never see the name "copy page": the page shows the card. From top to bottom:
   - the hero: the card image at 55% of the screen width, with the foil or etched sheen of the copy, over the art crop of the same card printing blurred. A double-faced card printing uses the art crop of its front face. A card printing with no art crop uses its card image blurred. While the art crop loads, the background color shows behind the card image;
-  - the card name in card title type and the type line in text muted;
+  - the card name in card title type, the type line in text muted, and the artist credit in credit type, such as "Illustrated by Greg Staples". A card printing with no artist has no artist credit;
   - chips: **Protected** in warning with a shield symbol when the copy is protected, **Held** in info with the held symbol when a planned swap holds the copy, the set code in capitals, the collector number, the finish when it is not nonfoil, the condition, such as "NM", and the language, such as "English";
   - the deck line, with the deck tag of the deck the copy is in. A held copy shows the deck tag of its planned swap's deck instead. A tap opens the deck on Cards. A copy in no deck that no planned swap holds has no deck line;
   - **User tags**: one disclosure row with the copy's user tags as chips, or "Add user tags" in text muted when it has none, and a chevron. VoiceOver reads it as a button, such as "User tags, signed, trade binder". A tap pushes the user tag picker;
