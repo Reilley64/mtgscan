@@ -1,6 +1,5 @@
 import type { DeckCommander } from '@mtgscan/supabase/decks';
 import { cva } from 'class-variance-authority';
-import { Image } from 'expo-image';
 import type { ComponentProps, ComponentType, ReactNode } from 'react';
 import { StyleSheet, View, type ViewProps } from 'react-native';
 
@@ -9,6 +8,7 @@ import { CommanderAvatar } from '@/components/atoms/commander-avatar';
 import { CountBadge } from '@/components/atoms/count-badge';
 import { dashedOutlineClass } from '@/components/atoms/dashed-outline';
 import { Skeleton } from '@/components/atoms/skeleton';
+import { SkeletonImage } from '@/components/atoms/skeleton-image';
 import { Text } from '@/components/atoms/text';
 import { TileButton } from '@/components/atoms/tile-button';
 import { gradients } from '@/theme';
@@ -30,7 +30,7 @@ export function CommanderCardFrame({ children }: { children: ReactNode }) {
 function CommanderArt({ uri }: { uri: string | null }) {
   return (
     <View accessibilityElementsHidden importantForAccessibility="no-hide-descendants" className="absolute inset-0">
-      <Image source={uri} contentFit="cover" cachePolicy="disk" transition={200} style={StyleSheet.absoluteFill} />
+      <SkeletonImage uri={uri} contentFit="cover" />
       <View style={styles.scrim} />
     </View>
   );

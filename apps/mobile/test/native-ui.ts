@@ -1072,6 +1072,19 @@ export function placeInScrollView(element: HostElement) {
   };
 }
 
+export async function settleImageLoads(element: HostElement, outcome: 'load' | 'error') {
+  for (const image of element.queryAll((instance) => instance.type === 'ViewManagerAdapter_ExpoImage')) {
+    await fireEvent(image, outcome, { nativeEvent: {} });
+  }
+}
+
+export function pulsingBlocks(element: HostElement, color: string) {
+  return element.queryAll((instance) => {
+    const style = StyleSheet.flatten(instance.props.style);
+    return style?.backgroundColor === color && style.opacity === 0.45;
+  }).length;
+}
+
 export function blocksColored(element: HostElement, color: string) {
   return element.queryAll(
     (instance) =>
