@@ -61,6 +61,16 @@ struct OrientationTransform {
     }
   }
 
+  func orientedIntrinsicMatrix(_ bufferMatrix: simd_float3x3) -> simd_double3x3 {
+    let orientedToBuffer = simd_double3x3(rows: [SIMD3(a, b, tx), SIMD3(c, d, ty), SIMD3(0, 0, 1)])
+    let buffer = simd_double3x3(columns: (
+      SIMD3<Double>(bufferMatrix.columns.0),
+      SIMD3<Double>(bufferMatrix.columns.1),
+      SIMD3<Double>(bufferMatrix.columns.2)
+    ))
+    return orientedToBuffer.inverse * buffer
+  }
+
   @inline(__always)
   func bufferPoint(_ oriented: SIMD2<Double>) -> SIMD2<Double> {
     SIMD2(
@@ -127,11 +137,13 @@ struct EdgeLine {
 enum CardQuadGeometry {
   static let cardAspectRatio = 63.0 / 88.0
   static let aspectRatioTolerance = 0.02
+  static let aspectRatioToleranceOnCard = 0.012
   static let minimumAreaRatio = 0.02
 
   struct Metrics {
     let areaRatio: Double
     let aspectRatio: Double
+    let aspectRatioIsOnCard: Bool
     let centerOffset: Double
     let shortSide: Double
   }
@@ -187,7 +199,12 @@ enum CardQuadGeometry {
     }
   }
 
-  static func metrics(_ corners: [SIMD2<Double>], width: Double, height: Double) -> Metrics {
+  static func metrics(
+    _ corners: [SIMD2<Double>],
+    width: Double,
+    height: Double,
+    intrinsicMatrix: simd_double3x3?
+  ) -> Metrics {
     let horizontal = (simd_length(corners[1] - corners[0]) + simd_length(corners[2] - corners[3]))
       / 2.0
     let vertical = (simd_length(corners[3] - corners[0]) + simd_length(corners[2] - corners[1]))
@@ -205,17 +222,32 @@ enum CardQuadGeometry {
     ) / sqrt(2.0)
     return Metrics(
       areaRatio: abs(twiceArea) / 2.0 / (width * height),
-      aspectRatio: min(horizontal, vertical) / max(0.000_001, max(horizontal, vertical)),
+      aspectRatio: intrinsicMatrix.map { aspectRatioOnCard(corners, intrinsicMatrix: $0) }
+        ?? min(horizontal, vertical) / max(0.000_001, max(horizontal, vertical)),
+      aspectRatioIsOnCard: intrinsicMatrix != nil,
       centerOffset: centerOffset,
       shortSide: min(horizontal, vertical)
     )
+  }
+
+  static func aspectRatioOnCard(_ corners: [SIMD2<Double>], intrinsicMatrix: simd_double3x3) -> Double {
+    let points = corners.map { SIMD3($0.x, $0.y, 1.0) }
+    let (topLeft, topRight, bottomRight, bottomLeft) = (points[0], points[1], points[2], points[3])
+    let diagonal = simd_cross(topLeft, bottomRight)
+    let topRightDepth = simd_dot(diagonal, bottomLeft) / simd_dot(simd_cross(topRight, bottomRight), bottomLeft)
+    let bottomLeftDepth = simd_dot(diagonal, topRight) / simd_dot(simd_cross(bottomLeft, bottomRight), topRight)
+    let rays = intrinsicMatrix.inverse
+    let horizontal = simd_length(rays * (topRightDepth * topRight - topLeft))
+    let vertical = simd_length(rays * (bottomLeftDepth * bottomLeft - topLeft))
+    return min(horizontal, vertical) / max(horizontal, vertical)
   }
 
   static func isCardShaped(_ metrics: Metrics) -> Bool {
     metrics.areaRatio.isFinite
       && metrics.areaRatio >= minimumAreaRatio
       && metrics.areaRatio <= 1.0
-      && abs(metrics.aspectRatio - cardAspectRatio) <= aspectRatioTolerance
+      && abs(metrics.aspectRatio - cardAspectRatio)
+      <= (metrics.aspectRatioIsOnCard ? aspectRatioToleranceOnCard : aspectRatioTolerance)
       && metrics.centerOffset.isFinite
       && (0.0 ... 1.0).contains(metrics.centerOffset)
   }

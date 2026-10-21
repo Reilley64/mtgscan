@@ -86,12 +86,14 @@ enum CardEdgeRefiner {
   static func refine(
     proposal: [SIMD2<Double>],
     plane: LumaPlane,
-    transform: OrientationTransform
+    transform: OrientationTransform,
+    intrinsicMatrix: simd_double3x3?
   ) -> Outcome {
     let proposalMetrics = CardQuadGeometry.metrics(
       proposal,
       width: transform.orientedWidth,
-      height: transform.orientedHeight
+      height: transform.orientedHeight,
+      intrinsicMatrix: intrinsicMatrix
     )
     let searchRadius = min(
       maximumSearchPixels,
@@ -134,7 +136,7 @@ enum CardEdgeRefiner {
             let fits = [top, right, bottom, left]
             let signs = Set(fits.map(\.sign).filter { $0 != 0.0 })
             guard signs.count <= 1,
-                  let corners = quadrilateral(fits.map(\.line), transform: transform)
+                  let corners = quadrilateral(fits.map(\.line), transform: transform, intrinsicMatrix: intrinsicMatrix)
             else {
               continue
             }
@@ -166,7 +168,8 @@ enum CardEdgeRefiner {
 
   private static func quadrilateral(
     _ lines: [EdgeLine],
-    transform: OrientationTransform
+    transform: OrientationTransform,
+    intrinsicMatrix: simd_double3x3?
   ) -> [SIMD2<Double>]? {
     var corners: [SIMD2<Double>] = []
     for index in 0 ..< 4 {
@@ -185,7 +188,8 @@ enum CardEdgeRefiner {
         CardQuadGeometry.metrics(
           corners,
           width: transform.orientedWidth,
-          height: transform.orientedHeight
+          height: transform.orientedHeight,
+          intrinsicMatrix: intrinsicMatrix
         )
       )
     else {
