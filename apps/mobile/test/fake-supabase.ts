@@ -1041,6 +1041,7 @@ const copyDefaults = {
   price: null,
   oracle_id: null,
   art_crop_uri: null,
+  artist: null,
   purchase_day_price: null,
   type_line: '',
   faces: [],

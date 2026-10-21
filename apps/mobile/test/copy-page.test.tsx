@@ -139,6 +139,23 @@ describe('the copy page', () => {
     expect(pushedScreenBlursUnderHeader()).toBe(false);
   });
 
+  test('the copy page credits the artist of the card printing under the type line', async () => {
+    ownCopies([copyOf('copy-1')]);
+
+    await openCopyPage(/^Angelic Curator/);
+
+    const credit = screen.getByText('Illustrated by Greg Staples');
+    expect(appearsBefore(screen.getByText('Creature — Angel Spirit'), credit)).toBe(true);
+  });
+
+  test('a card printing with no artist shows no artist credit', async () => {
+    ownCopies([copyOf('copy-1', { artist: null })]);
+
+    await openCopyPage(/^Angelic Curator/);
+
+    expect(screen.queryByText(/^Illustrated by/)).toBeNull();
+  });
+
   test('a card printing with no art crop shows the card image blurred', async () => {
     ownCopies([copyOf('copy-1', { art_crop_uri: null })]);
 

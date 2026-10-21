@@ -183,6 +183,7 @@ export type CopyHeldFor = z.infer<typeof copyHeldFor>;
 
 const copyDetails = collectionCopyRow.omit({ created_at: true }).extend({
   art_crop_uri: z.string().nullable(),
+  artist: z.string().nullable(),
   free: z.boolean(),
   added_at: z.string(),
   purchase_day_price: currentPrice.omit({ stale: true }).nullable(),

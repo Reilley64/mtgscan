@@ -48,6 +48,7 @@ export type ScryfallCard = ScryfallFace & {
   set?: string;
   set_name?: string;
   collector_number?: string;
+  artist?: string;
   lang?: string;
   rarity?: string;
   released_at?: string;

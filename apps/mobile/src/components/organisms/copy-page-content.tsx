@@ -107,6 +107,7 @@ export function CopyPageContent({ copy, priceCurrency, onOpenUserTags, onOpenDec
         <View className="gap-xs">
           <Text variant="card-title">{copy.name}</Text>
           <Text className="text-text-muted">{copy.type_line}</Text>
+          {copy.artist ? <Text variant="credit">{`Illustrated by ${copy.artist}`}</Text> : null}
         </View>
         <View className="flex-row flex-wrap gap-sm">
           {copy.protected ? <Chip tone="warning" symbol="shield.fill" label="Protected" /> : null}

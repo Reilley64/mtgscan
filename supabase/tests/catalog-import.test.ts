@@ -209,6 +209,17 @@ describe('after one catalog import', () => {
   });
 
   test.each([
+    ['a card printing', angelicCurator, 'Greg Staples'],
+    ['a double-faced card printing', '11bf83bb-c95b-4b4f-9a56-ce7a1816307a', 'Nils Hamm'],
+    ['a card printing by two artists', '888fbfaf-dbf9-4045-a79e-d436ef75b3cf', 'Nana Qi & GodMachine'],
+  ])('%s keeps its artist', async (_, printingId, artist) => {
+    const { data, error } = await alice.client.from('card_printings').select('artist').eq('id', printingId).single();
+
+    expect(error).toBeNull();
+    expect(data!.artist).toBe(artist);
+  });
+
+  test.each([
     ['a booster card', roilCartographer, { booster: true, promo: false, variation: false }],
     ['a variant', roilCartographerVariant, { booster: false, promo: false, variation: false }],
     ['a promo', kenrithBuyABoxPromo, { booster: false, promo: true, variation: false }],
@@ -246,6 +257,31 @@ test('a card printing with no art crop has none, and a later run with its art cr
     .single();
 
   expect(later!.art_crop_uri).toBe(curatorArtCrop);
+});
+
+test('a card printing with no artist has none, and a later run with its artist adds it', async () => {
+  await resetCardCatalog();
+  await expectImported(
+    await catalogFixture({
+      defaultCards: (records) =>
+        records.map((record) => {
+          if (record.id !== angelicCurator) {
+            return record;
+          }
+          const { artist: _, ...withoutArtist } = record;
+          return withoutArtist;
+        }),
+    }),
+  );
+
+  const artistOf = async () =>
+    (await alice.client.from('card_printings').select('artist').eq('id', angelicCurator).single()).data!.artist;
+
+  expect(await artistOf()).toBeNull();
+
+  await expectImported(await catalogFixture({ updatedAt: laterSnapshotAt }));
+
+  expect(await artistOf()).toBe('Greg Staples');
 });
 
 test('a reversible card printing whose faces name different cards belongs to its first face', async () => {

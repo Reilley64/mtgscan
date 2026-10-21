@@ -131,14 +131,14 @@ isOneToOne: true
                   ]
                 },"card_printings": {
                   Row: {
-                    "absent_since": string | null,"art_crop_uri": string | null,"booster": boolean,"collector_number": string,"finishes": (Database["public"]['Enums']["card_finish"])[],"id": string,"illustration_id": string | null,"image_uris": (string)[],"lang": string,"oracle_id": string,"promo": boolean,"rarity": Database["public"]['Enums']["card_rarity"],"released_at": string,"set_code": string,"set_name": string,"variation": boolean
+                    "absent_since": string | null,"art_crop_uri": string | null,"artist": string | null,"booster": boolean,"collector_number": string,"finishes": (Database["public"]['Enums']["card_finish"])[],"id": string,"illustration_id": string | null,"image_uris": (string)[],"lang": string,"oracle_id": string,"promo": boolean,"rarity": Database["public"]['Enums']["card_rarity"],"released_at": string,"set_code": string,"set_name": string,"variation": boolean
                   }
                   ComputedFields: never
                   Insert: {
-                    "absent_since"?: string | null,"art_crop_uri"?: string | null,"booster": boolean,"collector_number": string,"finishes": (Database["public"]['Enums']["card_finish"])[],"id": string,"illustration_id"?: string | null,"image_uris": (string)[],"lang": string,"oracle_id": string,"promo": boolean,"rarity": Database["public"]['Enums']["card_rarity"],"released_at": string,"set_code": string,"set_name": string,"variation": boolean
+                    "absent_since"?: string | null,"art_crop_uri"?: string | null,"artist"?: string | null,"booster": boolean,"collector_number": string,"finishes": (Database["public"]['Enums']["card_finish"])[],"id": string,"illustration_id"?: string | null,"image_uris": (string)[],"lang": string,"oracle_id": string,"promo": boolean,"rarity": Database["public"]['Enums']["card_rarity"],"released_at": string,"set_code": string,"set_name": string,"variation": boolean
                   }
                   Update: {
-                    "absent_since"?: string | null,"art_crop_uri"?: string | null,"booster"?: boolean,"collector_number"?: string,"finishes"?: (Database["public"]['Enums']["card_finish"])[],"id"?: string,"illustration_id"?: string | null,"image_uris"?: (string)[],"lang"?: string,"oracle_id"?: string,"promo"?: boolean,"rarity"?: Database["public"]['Enums']["card_rarity"],"released_at"?: string,"set_code"?: string,"set_name"?: string,"variation"?: boolean
+                    "absent_since"?: string | null,"art_crop_uri"?: string | null,"artist"?: string | null,"booster"?: boolean,"collector_number"?: string,"finishes"?: (Database["public"]['Enums']["card_finish"])[],"id"?: string,"illustration_id"?: string | null,"image_uris"?: (string)[],"lang"?: string,"oracle_id"?: string,"promo"?: boolean,"rarity"?: Database["public"]['Enums']["card_rarity"],"released_at"?: string,"set_code"?: string,"set_name"?: string,"variation"?: boolean
                   }
                   Relationships: [
                     {
