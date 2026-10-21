@@ -133,7 +133,12 @@ async function exportBasePackage(commit: string) {
     await fs.cp(path.join(moduleRoot, comparedSources[1]), path.join(packageRoot, comparedSources[1]), { recursive: true });
     await fs.cp(path.join(moduleRoot, photoOutlineSource), path.join(packageRoot, photoOutlineSource));
   }
-  return { packageRoot, scratch: path.join(directory, 'build'), refines: baseCommand.includes('case "refine"') };
+  return {
+    packageRoot,
+    scratch: path.join(directory, 'build'),
+    refines: baseCommand.includes('case "refine"'),
+    takesIntrinsicMatrix: baseCommand.includes('intrinsicMatrix'),
+  };
 }
 
 async function sourceFiles(packageRoot: string) {
@@ -151,9 +156,10 @@ async function sourceFiles(packageRoot: string) {
 }
 
 type PhotoOutlineRecord = { outline: FrameQuad; outcome: string; durationMs: number };
+type ReplayFrame = { frame: string; intrinsicMatrix: number[][] };
 
-function startCommand(command: string, frames: string[]) {
-  const child = spawn(command, ['step', ...frames], {
+function startCommand(command: string, frames: ReplayFrame[], takesIntrinsicMatrix: boolean) {
+  const child = spawn(command, ['step', ...frames.map(({ frame }) => frame)], {
     cwd: framesDirectory,
     stdio: ['pipe', 'pipe', 'inherit'],
   });
@@ -165,28 +171,33 @@ function startCommand(command: string, frames: string[]) {
     return JSON.parse(line.value) as unknown;
   }
   return {
-    detect: async (index: number) => (await ask(String(index))) as FrameSample,
+    detect: async (index: number) =>
+      (await ask(takesIntrinsicMatrix ? `${index} ${frames[index].intrinsicMatrix.flat().join(' ')}` : String(index))) as FrameSample,
     refine: async (index: number, photo: string, outline: FrameQuad) =>
       (await ask(JSON.stringify({ refine: index, photo, outline }))) as PhotoOutlineRecord,
     stop: () => child.stdin.end(),
   };
 }
 
-async function refinePhotos(side: ReturnType<typeof startCommand>, frames: string[], labels: FrameLabels, samples: FrameSample[]) {
+async function refinePhotos(side: ReturnType<typeof startCommand>, frames: ReplayFrame[], labels: FrameLabels, samples: FrameSample[]) {
   const byFrame = new Map(samples.map((sample) => [sample.frame, sample]));
   const records = new Map<string, PhotoOutlineRecord>();
   for (const clip of labels.clips) {
     const heldStill = heldStillSample(clip, clip.frames.map((frame) => byFrame.get(frame.frame)!));
     if (!heldStill?.sample.corners) continue;
-    const frame = frames.indexOf(clip.frames[heldStill.index].frame);
+    const frame = frames.findIndex(({ frame }) => frame === clip.frames[heldStill.index].frame);
     records.set(clip.clip, await side.refine(frame, clip.photo.frame, heldStill.sample.corners));
   }
   return records;
 }
 
-async function detectInterleaved(commands: { command: string; refines: boolean }[], labels: FrameLabels, rounds: number) {
-  const frames = [...labels.frames, ...labels.clips.flatMap((clip) => clip.frames)].map((frame) => frame.frame);
-  const sides = commands.map(({ command }) => startCommand(command, frames));
+async function detectInterleaved(
+  commands: { command: string; refines: boolean; takesIntrinsicMatrix: boolean }[],
+  labels: FrameLabels,
+  rounds: number,
+) {
+  const frames = [...labels.frames, ...labels.clips.flatMap((clip) => clip.frames)];
+  const sides = commands.map(({ command, takesIntrinsicMatrix }) => startCommand(command, frames, takesIntrinsicMatrix));
   const samples = sides.map(() => Array.from({ length: rounds }, (): FrameSample[] => []));
   for (let round = 0; round < rounds; round += 1) {
     const roundFrames = round === 0 ? frames.length : labels.frames.length;
@@ -235,8 +246,8 @@ const {
   photoOutlines: [basePhotos, branchPhotos],
 } = await detectInterleaved(
   [
-    { command: baseCommand, refines: basePackage.refines },
-    { command: branchCommand, refines: true },
+    { command: baseCommand, refines: basePackage.refines, takesIntrinsicMatrix: basePackage.takesIntrinsicMatrix },
+    { command: branchCommand, refines: true, takesIntrinsicMatrix: true },
   ],
   labels,
   Number(values.rounds),

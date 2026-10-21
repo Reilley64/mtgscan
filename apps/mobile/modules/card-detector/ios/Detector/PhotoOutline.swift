@@ -43,7 +43,7 @@ enum PhotoOutline {
     let heldStillPixels = heldStill.map { $0 * size }
     let moved = heldStillPixels.map(motion)
     let refinement = image.withPlane { plane in
-      CardEdgeRefiner.refine(proposal: moved, plane: plane, transform: image.transform)
+      CardEdgeRefiner.refine(proposal: moved, plane: plane, transform: image.transform, intrinsicMatrix: nil)
     }
     let chosen = chosen(refinement, moved: moved, heldStill: heldStillPixels)
     return Result(outline: chosen.outline.map { $0 / size }, outcome: chosen.outcome)

@@ -190,7 +190,7 @@ What it runs:
 
 1. It renders the frames and the clips from `detector/frames.py` into `modules/card-detector/.data/frames`. It checks every frame, clip frame, photo, and `labels.json` against `detector/frames.sha256`. A frame with another hash fails the replay. It skips the render when the frames are already there and match.
 2. It builds the macOS detector command, `card-detector`, on the branch and on the merge base of `HEAD` and `origin/main`. The command is an executable target in `modules/card-detector/Package.swift`. It compiles the Swift files in `ios/Detector` unchanged. When the merge base has no detector command with the `step` mode, the replay builds the branch's command with the merge base's detector files.
-3. Both commands start at the same time in the `step` mode. Each reads every frame and every clip frame, and builds the buffer the phone analyzes. The buffer is a full-range `420f` buffer, landscape, with the `.right` orientation, and its colours are converted with BT.709. The replay then asks for one frame at a time, by its index on the command's input. The command runs the detector on that frame and writes one JSON line: the detection sample fields, with the time of the detector call in `nativeDurationMs`.
+3. Both commands start at the same time in the `step` mode. Each reads every frame and every clip frame, and builds the buffer the phone analyzes. The buffer is a full-range `420f` buffer, landscape, with the `.right` orientation, and its colours are converted with BT.709. The replay then asks for one frame at a time, by its index on the command's input. After the index, it sends the frame's intrinsic matrix from `labels.json`, 9 numbers by row, to a command that takes it. The merge base command takes it when its source names `intrinsicMatrix`, from #499 on. The command turns the matrix of the portrait frame into the matrix the camera gives for the landscape buffer, and passes it to the detector, as the camera session does. The command runs the detector on that frame and writes one JSON line: the detection sample fields, with the time of the detector call in `nativeDurationMs`.
 4. The replay runs each frame on the merge base and on the branch back to back. It swaps which side goes first on each frame and each round. The first round runs every frame and every clip frame. Two more rounds run the frames again, for Mac timing. So a slow moment on the Mac slows both sides. The card outlines and the clips come from the first round.
 5. The scorer compares each card outline with the true corners. It maps the outline onto the card with the homography of the true corners, so every distance is in mm on the card.
 6. The scorer feeds the detection samples of each clip, in order, through `observeSample` in `src/scan/capture.ts`, the automatic capture rule that the app runs. It imports the rule and does not copy it.
@@ -250,9 +250,10 @@ Metrics and pass bars, from #493:
 
 | Metric | What it counts | Bar against the merge base |
 | --- | --- | --- |
-| Detection rate | Detected frames over frames with a card | Not lower by more than 1 frame in 30 |
-| Corner error | The largest corner distance in mm on the card, median and p90 of the detected frames | Median not worse by more than 0.1 mm. p90 not worse by more than 0.5 mm. |
-| Inside outlines | Card outlines with a side more than 1 mm inside the card edge | No new one on any frame |
+| Detection rate | Frames with a correct outline over frames with a card. A correct outline has all four corners within 1 mm of the true corners. | Not lower by more than 1 frame in 30 |
+| Wrong outlines | Card outlines that are not correct | Not more than the merge base |
+| Corner error | The largest corner distance in mm on the card, median and p90 of the correct outlines. Wrong outlines have their own bar. | Median not worse by more than 0.1 mm. p90 not worse by more than 0.5 mm. Both bars compare only the frames with a correct outline on the merge base and on the branch. They apply when a group has at least 10 such frames (`minimumPairedFrames`). A smaller group is reported. The table shows each side's own median and p90. |
+| Inside outlines | Card outlines with a side more than 1 mm inside the card edge | Not more than the merge base plus 1 frame in 30 |
 | Size error | The mean of opposite sides in mm, median of the detected frames. Inside is positive, as in #421. | Reported |
 | False outlines | Card outlines on empty frames | Zero |
 | Mac timing | The median time of the detector call on each frame over the 3 rounds, then the p95 over every frame. Same Mac, same run. | At most 1.2 times the merge base. It is a proxy only: the 20 ms bar is on the iPhone. |
@@ -272,7 +273,7 @@ Clip metrics and pass bars, from #493. Each bar applies to the 5 clips of a cond
 
 The bars apply to each condition and tilt bucket, so an average over the tilt buckets cannot hide a regression. The table has one row for each, with the merge base and the branch side by side. The clips table has one row for each clip condition. Two more tables report each metric by condition and border colour, and by border colour and tilt bucket. They have no bars of their own.
 
-The replay writes `base.json`, `branch.json`, and `comparison.md` to `modules/card-detector/.data/reports`. Under the tables, it lists each new inside outline and each false outline, with its tilt bucket and border colour, the outline's corners in frame pixels, and how far each side is inside the card edge. It also names each clip that asks for a photo on the merge base and not on the branch. It exits 0 when every bar passes, and 1 when a bar fails or a frame hash differs.
+The replay writes `base.json`, `branch.json`, and `comparison.md` to `modules/card-detector/.data/reports`. Under the tables, it lists each new inside outline, for information, and each false outline, with its tilt bucket and border colour, the outline's corners in frame pixels, and how far each side is inside the card edge. It also names each clip that asks for a photo on the merge base and not on the branch. It exits 0 when every bar passes, and 1 when a bar fails or a frame hash differs.
 
 Options:
 
@@ -322,6 +323,7 @@ The Detector workflow runs on pull requests that change the detector module, the
 - A missed bar fails the job.
 - When the runner renders a frame with other bytes than `detector/frames.sha256`, the job fails and names the first such frame. The job checks the hashes on every run, also when it restores the frames from the cache.
 - The job writes the table to its job summary, under a "Detector replay" heading.
+- The job uploads `base.json`, `branch.json`, and `comparison.md` as the `detector-replay-reports` artifact, also when a bar fails. The JSON files hold each frame's outline and corner error, so a failed bar can be traced to its frames. `gh run download <run> -n detector-replay-reports` downloads them.
 - It caches the card images by `detector/cards.json`, the textures by `detector/textures.json`, and the rendered frames by `detector/frames.sha256`. A re-run of a pull request skips the download and the render. The workflow does not run on pushes, so pull requests share no cache, and each new pull request renders the frames once.
 - On a runner, the detector call on a frame takes 45 to 100 ms, about 5 to 10 times as long as on a busy M3. With the 1,080 frames and the 20 clips, the job takes 8.5 to 12.5 minutes. The timeout is 30 minutes. Most of the job is the detector calls: 3 rounds of the 1,080 frames and one round of the clips, on both sides. Without the cache, the render takes about 1.5 minutes, and saving the 1.9 GB of frames takes 25 to 40 seconds. With the cache, restoring the frames takes about 25 to 40 seconds.
 - With the same detector code on both sides, the timing ratio stayed between 0.93 and 1.03 over 13 runs on runners: 7 runs with the first 60 frames, 3 with the 1,080 frames, and 3 with the clips too.

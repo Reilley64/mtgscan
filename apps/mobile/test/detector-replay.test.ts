@@ -86,10 +86,11 @@ function bar(comparison: ReturnType<typeof compareReplays>, metric: string) {
 test('the detector replay measures corner error in mm on the card', () => {
   const shiftedRight = cardAt(200 + 2 * pixelsPerMm, 300)!;
 
-  const [plain] = run(shiftedRight).groups;
+  const replay = run(shiftedRight);
+  const [plain] = replay.groups;
 
   expect(plain.detected).toBe(1);
-  expect(plain.cornerErrorMm?.median).toBeCloseTo(2);
+  expect(replay.frames[0].cornerErrorMm).toBeCloseTo(2);
   expect(plain.insideOutlines).toEqual(['plain-000.png']);
 });
 
@@ -113,6 +114,122 @@ test('an outline less than 1 mm inside the card edge is not an inside outline', 
   const comparison = compareReplays(run(onTheEdge), run(slightlyInside), { sameDetector: false });
 
   expect(bar(comparison, 'Inside outlines')).toMatchObject({ branch: '0', pass: true });
+});
+
+test('a wrong outline does not count toward the detection rate, and fails the wrong outlines bar', () => {
+  const onTheEdge = cardAt(200, 300)!;
+  const outsideByTwoMm = cardAt(200 - 2 * pixelsPerMm, 300)!;
+
+  const comparison = compareReplays(run(onTheEdge), run(outsideByTwoMm), { sameDetector: false });
+
+  expect(bar(comparison, 'Detection rate')).toMatchObject({ base: '1 of 1', branch: '0 of 1', pass: false });
+  expect(bar(comparison, 'Wrong outlines')).toMatchObject({ base: '0', branch: '1', pass: false });
+});
+
+test('an outline with every corner within 1 mm of the true corners is a correct outline', () => {
+  const onTheEdge = cardAt(200, 300)!;
+  const offByLessThanOneMm = cardAt(200 + 0.9 * pixelsPerMm, 300)!;
+
+  const comparison = compareReplays(run(onTheEdge), run(offByLessThanOneMm), { sameDetector: false });
+
+  expect(bar(comparison, 'Detection rate')).toMatchObject({ branch: '1 of 1', pass: true });
+  expect(bar(comparison, 'Wrong outlines')).toMatchObject({ branch: '0', pass: true });
+});
+
+test('refusing a wrong outline passes the detection rate and wrong outlines bars', () => {
+  const outsideByTwoMm = cardAt(200 - 2 * pixelsPerMm, 300)!;
+
+  const comparison = compareReplays(run(outsideByTwoMm), run(null), { sameDetector: false });
+
+  expect(bar(comparison, 'Detection rate')).toMatchObject({ base: '0 of 1', branch: '0 of 1', pass: true });
+  expect(bar(comparison, 'Wrong outlines')).toMatchObject({ base: '1', branch: '0', pass: true });
+  expect(comparison.pass).toBe(true);
+});
+
+test('the inside outlines bar compares the count of each group, and still lists each new inside outline', () => {
+  const onTheEdge = cardAt(200, 300)!;
+  const insideAtTheTop = onTheEdge.map(([x, y], index): [number, number] => [x, index < 2 ? y + 1.5 * pixelsPerMm : y]);
+  const twoFrames: FrameLabels = {
+    ...labels,
+    frames: [label('plain-000.png', onTheEdge), label('plain-001.png', onTheEdge)],
+  };
+  const replay = (first: [number, number][], second: [number, number][]) =>
+    scoreReplay(twoFrames, [[sample('plain-000.png', first), sample('plain-001.png', second)]]);
+
+  const comparison = compareReplays(replay(insideAtTheTop, onTheEdge), replay(onTheEdge, insideAtTheTop), { sameDetector: false });
+
+  expect(bar(comparison, 'Inside outlines')).toMatchObject({ base: '1', branch: '1', pass: true });
+  expect(replayTable(comparison)).toContain('- plain-001.png, tilt 0, black border: outline at');
+});
+
+test('corner error counts correct outlines only, so a wrong outline that gets worse does not move it', () => {
+  const twoFrames: FrameLabels = {
+    ...labels,
+    frames: [label('plain-000.png', cardAt(200, 300)), label('plain-001.png', cardAt(200, 300))],
+  };
+  const replay = (wrongByMm: number) =>
+    scoreReplay(twoFrames, [[
+      sample('plain-000.png', cardAt(200 + 0.2 * pixelsPerMm, 300)),
+      sample('plain-001.png', cardAt(200 - wrongByMm * pixelsPerMm, 300)),
+    ]]);
+
+  const comparison = compareReplays(replay(4), replay(8), { sameDetector: false });
+
+  expect(bar(comparison, 'Corner error median')).toMatchObject({ base: '0.20 mm', branch: '0.20 mm' });
+  expect(bar(comparison, 'Corner error p90')).toMatchObject({ base: '0.20 mm', branch: '0.20 mm' });
+  expect(bar(comparison, 'Wrong outlines')).toMatchObject({ base: '1', branch: '1', pass: true });
+});
+
+function framesOffBy(offsetsMm: number[]) {
+  const frames = offsetsMm.map((_, index) => `plain-${String(index).padStart(3, '0')}.png`);
+  return { frames, labels: { ...labels, frames: frames.map((frame) => label(frame, cardAt(200, 300))) } };
+}
+
+function runOffBy(offsetsMm: number[]) {
+  const { frames, labels: offLabels } = framesOffBy(offsetsMm);
+  return scoreReplay(offLabels, [frames.map((frame, index) => sample(frame, cardAt(200 - offsetsMm[index] * pixelsPerMm, 300)))]);
+}
+
+const tenTimes = (offsetMm: number) => Array.from({ length: 10 }, () => offsetMm);
+
+test('corner error bars compare frames with a correct outline on both sides, so a wrong outline turning correct does not fail them', () => {
+  const comparison = compareReplays(runOffBy([...tenTimes(0.05), 3, 3]), runOffBy([...tenTimes(0.05), 0.71, 0.71]), {
+    sameDetector: false,
+  });
+
+  expect(bar(comparison, 'Corner error p90')).toMatchObject({ base: '0.05 mm', branch: '0.71 mm', pass: true });
+  expect(bar(comparison, 'Corner error median')).toMatchObject({ pass: true });
+});
+
+test('a correct outline that gets worse on the branch fails the corner error bars', () => {
+  const comparison = compareReplays(runOffBy(tenTimes(0.05)), runOffBy(tenTimes(0.95)), { sameDetector: false });
+
+  expect(bar(comparison, 'Corner error median')).toMatchObject({ base: '0.05 mm', branch: '0.95 mm', pass: false });
+  expect(bar(comparison, 'Corner error p90')).toMatchObject({ pass: false });
+});
+
+test('the corner error bars apply from 10 frames with a correct outline on both sides, and smaller groups are reported', () => {
+  const rise = (frames: number) => compareReplays(runOffBy(Array(frames).fill(0.1)), runOffBy(Array(frames).fill(0.25)), { sameDetector: false });
+
+  expect(bar(rise(3), 'Corner error median')).toMatchObject({ base: '0.10 mm', branch: '0.25 mm', bar: 'reported', pass: null });
+  expect(rise(3).pass).toBe(true);
+  expect(bar(rise(10), 'Corner error median')).toMatchObject({ base: '0.10 mm', branch: '0.25 mm', pass: false });
+});
+
+test('the inside outlines bar allows 1 more inside outline in 30 frames than the merge base, and lists it', () => {
+  const onTheEdge = cardAt(200, 300)!;
+  const insideAtTheTop = onTheEdge.map(([x, y], index): [number, number] => [x, index < 2 ? y + 1.5 * pixelsPerMm : y]);
+  const frames = Array.from({ length: 30 }, (_, index) => `plain-${String(index).padStart(3, '0')}.png`);
+  const thirtyFrames: FrameLabels = { ...labels, frames: frames.map((frame) => label(frame, onTheEdge)) };
+  const replay = (insideFrames: number) =>
+    scoreReplay(thirtyFrames, [frames.map((frame, index) => sample(frame, index < insideFrames ? insideAtTheTop : onTheEdge))]);
+
+  const oneMore = compareReplays(replay(0), replay(1), { sameDetector: false });
+  const twoMore = compareReplays(replay(0), replay(2), { sameDetector: false });
+
+  expect(bar(oneMore, 'Inside outlines')).toMatchObject({ base: '0', branch: '1', bar: 'not more than the merge base plus 1', pass: true });
+  expect(replayTable(oneMore)).toContain('- plain-000.png, tilt 0, black border: outline at');
+  expect(bar(twoMore, 'Inside outlines')).toMatchObject({ branch: '2', pass: false });
 });
 
 test('an outline on an empty plain surface fails the false outlines bar', () => {
@@ -216,11 +333,11 @@ test('the replay table has one row per condition and tilt bucket, with the merge
 
   const table = replayTable(compareReplays(replay(onTheEdge), replay(null), { sameDetector: false }));
 
-  expect(table).toContain('| plain | 0 | 1 of 1 → 1 of 1 | 0.00 mm → 0.00 mm | 0.00 mm → 0.00 mm | 0 → 0 | 0.00 x 0.00 mm → 0.00 x 0.00 mm | pass |');
-  expect(table).toContain('| plain | 7.5-15 | 1 of 1 → 0 of 1 | 0.00 mm → none | 0.00 mm → none | 0 → 0 | 0.00 x 0.00 mm → none | fail: detection rate |');
+  expect(table).toContain('| plain | 0 | 1 of 1 → 1 of 1 | 0 → 0 | 0.00 mm → 0.00 mm | 0.00 mm → 0.00 mm | 0 → 0 | 0.00 x 0.00 mm → 0.00 x 0.00 mm | pass |');
+  expect(table).toContain('| plain | 7.5-15 | 1 of 1 → 0 of 1 | 0 → 0 | 0.00 mm → none | 0.00 mm → none | 0 → 0 | 0.00 x 0.00 mm → none | fail: detection rate |');
   expect(table).toContain('| empty-plain | 0 | 0 → 0 | pass |');
-  expect(table).toContain('| white | 7.5-15 | 1 of 1 → 0 of 1 | 0.00 mm → none | 0.00 mm → none | 0 → 0 | 0.00 x 0.00 mm → none |');
-  expect(table).toContain('- Detection rate: not lower by more than 0');
+  expect(table).toContain('| white | 7.5-15 | 1 of 1 → 0 of 1 | 0 → 0 | 0.00 mm → none | 0.00 mm → none | 0 → 0 | 0.00 x 0.00 mm → none |');
+  expect(table).toContain('- Detection rate: correct outlines not lower by more than 0');
 });
 
 test('the detector replay reports each condition per border colour', () => {

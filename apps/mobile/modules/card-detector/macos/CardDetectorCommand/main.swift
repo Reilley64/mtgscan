@@ -3,12 +3,13 @@ import CoreGraphics
 import CoreVideo
 import Foundation
 import ImageIO
+import simd
 
 let displayOrientation = CGImagePropertyOrientation.right
 
 let usage = """
 usage: card-detector frames <image>...
-       card-detector step <image>...
+       card-detector step <image>...  (reads lines of <index> [<intrinsic matrix of the portrait frame, 9 numbers by row>])
        card-detector refine <frame> <photo> <outline JSON>
 """
 
@@ -118,9 +119,27 @@ func emit(_ record: [String: Any]) {
   fflush(stdout)
 }
 
-func detect(_ buffer: CVPixelBuffer) -> DetectionSample {
+func cameraIntrinsicMatrix(ofPortraitFrame matrix: [Double], buffer: CVPixelBuffer) -> simd_float3x3 {
+  let transform = OrientationTransform(
+    displayOrientation: displayOrientation,
+    bufferWidth: Double(CVPixelBufferGetWidth(buffer)),
+    bufferHeight: Double(CVPixelBufferGetHeight(buffer))
+  )!
+  let principalPoint = transform.bufferPoint(SIMD2(matrix[2], matrix[5]))
+  return simd_float3x3(rows: [
+    SIMD3(Float(matrix[4]), 0, Float(principalPoint.x)),
+    SIMD3(0, Float(matrix[0]), Float(principalPoint.y)),
+    SIMD3(0, 0, 1),
+  ])
+}
+
+func detect(_ buffer: CVPixelBuffer, intrinsicMatrix: simd_float3x3?) -> DetectionSample {
   let startedAt = ProcessInfo.processInfo.systemUptime
-  let output = CardQuadDetector.detect(pixelBuffer: buffer, displayOrientation: displayOrientation)
+  let output = CardQuadDetector.detect(
+    pixelBuffer: buffer,
+    displayOrientation: displayOrientation,
+    intrinsicMatrix: intrinsicMatrix
+  )
   return DetectionSample(
     output: output,
     transform: OrientationTransform(
@@ -142,7 +161,7 @@ func portraitBuffer(_ path: String) -> CVPixelBuffer {
 
 func warmedUpBuffers(_ paths: [String]) -> [CVPixelBuffer] {
   let buffers = paths.map(portraitBuffer)
-  _ = detect(buffers[0])
+  _ = detect(buffers[0], intrinsicMatrix: nil)
   return buffers
 }
 
@@ -187,15 +206,15 @@ func decoded<Value: Decodable>(_ type: Value.Type, from text: String) -> Value {
   return value
 }
 
-func emitDetection(_ path: String, _ buffer: CVPixelBuffer) {
+func emitDetection(_ path: String, _ buffer: CVPixelBuffer, intrinsicMatrix: simd_float3x3?) {
   autoreleasepool {
-    emit(detect(buffer).record.merging(["frame": path]) { current, _ in current })
+    emit(detect(buffer, intrinsicMatrix: intrinsicMatrix).record.merging(["frame": path]) { current, _ in current })
   }
 }
 
 func detectFrames(_ paths: [String]) {
   for (path, buffer) in zip(paths, warmedUpBuffers(paths)) {
-    emitDetection(path, buffer)
+    emitDetection(path, buffer, intrinsicMatrix: nil)
   }
 }
 
@@ -208,8 +227,19 @@ func detectFramesOnRequest(_ paths: [String]) {
       emitPhotoOutline(frame: paths[request.refine], buffer: buffers[request.refine], photo: request.photo, outline: request.outline)
       continue
     }
-    guard let index = Int(line), buffers.indices.contains(index) else { fail("no frame at index \(line)") }
-    emitDetection(paths[index], buffers[index])
+    let fields = line.split(separator: " ")
+    guard let index = fields.first.flatMap({ Int($0) }), buffers.indices.contains(index) else {
+      fail("no frame at index \(line)")
+    }
+    let matrix = fields.dropFirst().compactMap { Double($0) }
+    guard [0, 9].contains(matrix.count) else {
+      fail("the intrinsic matrix needs 9 numbers: \(line)")
+    }
+    emitDetection(
+      paths[index],
+      buffers[index],
+      intrinsicMatrix: matrix.isEmpty ? nil : cameraIntrinsicMatrix(ofPortraitFrame: matrix, buffer: buffers[index])
+    )
   }
 }
 

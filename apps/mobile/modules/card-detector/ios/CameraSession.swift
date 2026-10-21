@@ -164,6 +164,9 @@ final class CameraSession: NSObject, @unchecked Sendable {
     ]
     videoOutput.alwaysDiscardsLateVideoFrames = true
     videoOutput.setSampleBufferDelegate(self, queue: analysisQueue)
+    if let connection = videoOutput.connection(with: .video), connection.isCameraIntrinsicMatrixDeliverySupported {
+      connection.isCameraIntrinsicMatrixDeliveryEnabled = true
+    }
     photoOutput.maxPhotoDimensions = photoDimensions
     photoOutput.maxPhotoQualityPrioritization = .balanced
     if let connection = photoOutput.connection(with: .video), connection.isVideoRotationAngleSupported(90) {
@@ -231,8 +234,13 @@ extension CameraSession: AVCaptureVideoDataOutputSampleBufferDelegate {
       onSample(DetectionSample(failure: .unreadableFrame, sampledAtMs: sampledAtMs))
       return
     }
+    let intrinsicMatrix = Self.intrinsicMatrix(of: sampleBuffer)
     let startedAt = ProcessInfo.processInfo.systemUptime
-    let output = CardQuadDetector.detect(pixelBuffer: pixelBuffer, displayOrientation: Self.displayOrientation)
+    let output = CardQuadDetector.detect(
+      pixelBuffer: pixelBuffer,
+      displayOrientation: Self.displayOrientation,
+      intrinsicMatrix: intrinsicMatrix
+    )
     let sample = DetectionSample(
       output: output,
       transform: transform,
@@ -242,6 +250,17 @@ extension CameraSession: AVCaptureVideoDataOutputSampleBufferDelegate {
     let frame = sample.corners.map { AnalyzedFrame(pixelBuffer: pixelBuffer, outline: $0, time: time) }
     lastFrameLock.withLock { lastFrame = frame }
     onSample(sample)
+  }
+
+  private static func intrinsicMatrix(of sampleBuffer: CMSampleBuffer) -> simd_float3x3? {
+    guard let data = CMGetAttachment(
+      sampleBuffer,
+      key: kCMSampleBufferAttachmentKey_CameraIntrinsicMatrix,
+      attachmentModeOut: nil
+    ) as? Data, data.count == MemoryLayout<simd_float3x3>.size else {
+      return nil
+    }
+    return data.withUnsafeBytes { $0.loadUnaligned(as: simd_float3x3.self) }
   }
 }
 
