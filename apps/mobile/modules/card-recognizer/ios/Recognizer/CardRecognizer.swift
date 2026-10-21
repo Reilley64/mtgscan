@@ -21,12 +21,14 @@ public enum CardRecognizer {
     photo: URL,
     outline: CardOutline,
     gallery: Gallery,
+    stageMs initialStageMs: [String: Double] = [:],
     excluded: Set<Int> = [],
     trainingCropDirectory: URL? = nil
   ) throws(RecognitionFailure) -> Recognition {
     var startedAt = ProcessInfo.processInfo.systemUptime
     let card = try CardRectifier.rectifiedCard(photo: photo, outline: outline)
-    let stageMs = ["rectify": elapsed(since: &startedAt)]
+    var stageMs = initialStageMs
+    stageMs["rectify"] = elapsed(since: &startedAt)
     return try recognize(card: card, gallery: gallery, stageMs: stageMs, excluded: excluded, trainingCropDirectory: trainingCropDirectory)
   }
 
@@ -80,23 +82,22 @@ public enum CardRecognizer {
     let preferred = CollectorLineReader.read(card: preferTurned ? turned : uprightCandidate, setCodes: gallery.setCodes)
     var isTurned = preferTurned
     var reading = preferred
-    var readMs = preferred.durationMs
     if !(confident && evidence(preferred) == fullReadingStrength) {
       let other = CollectorLineReader.read(card: preferTurned ? uprightCandidate : turned, setCodes: gallery.setCodes)
-      readMs += other.durationMs
       if evidence(other) > evidence(preferred) {
         isTurned = !preferTurned
         reading = other
       }
     }
     if evidence(reading) < 0 {
-      reading = CollectorLine(lines: reading.lines, durationMs: reading.durationMs)
+      reading = CollectorLine(lines: reading.lines)
     }
-    stageMs["read"] = readMs
+    stageMs["read"] = elapsed(since: &startedAt)
     let scores = isTurned ? turnedScores : uprightScores
     let shortlist = gallery.top(shortlistSize, of: scores)
     let topSimilarity = scores[shortlist[0]]
     guard topSimilarity >= gallery.thresholds.notACard else {
+      stageMs["decide"] = elapsed(since: &startedAt)
       return .notACard(NotACardRecognition(topSimilarity: Double(topSimilarity), stageMs: stageMs))
     }
     var expanded = shortlist
@@ -110,9 +111,15 @@ public enum CardRecognizer {
     }
     expanded.sort { scores[$0] > scores[$1] }
     let choice = choose(ranked: expanded, scores: scores, reading: reading, gallery: gallery, excluded: excluded)
-    let trainingCrop = trainingCropDirectory.flatMap { TrainingCrop.write(isTurned ? turnedSmall : uprightSmall, in: $0) }
+    let candidates = choice.candidates.map { RecognitionCandidate(printing: gallery.printings[$0]) }
+    stageMs["decide"] = elapsed(since: &startedAt)
+    var trainingCrop: URL?
+    if let trainingCropDirectory {
+      trainingCrop = TrainingCrop.write(isTurned ? turnedSmall : uprightSmall, in: trainingCropDirectory)
+      stageMs["trainingCrop"] = elapsed(since: &startedAt)
+    }
     return .card(CardRecognition(
-      candidates: choice.candidates.map { RecognitionCandidate(printing: gallery.printings[$0]) },
+      candidates: candidates,
       decision: choice.decision,
       reading: CollectorLineReading(
         setCode: reading.setCode,
@@ -338,7 +345,7 @@ public enum CardRecognizer {
     String(format: "%.3f", value)
   }
 
-  private static func elapsed(since startedAt: inout TimeInterval) -> Double {
+  public static func elapsed(since startedAt: inout TimeInterval) -> Double {
     let now = ProcessInfo.processInfo.systemUptime
     defer { startedAt = now }
     return ((now - startedAt) * 1000 * 10).rounded() / 10

@@ -9,7 +9,6 @@ public struct CollectorLine: Sendable, Equatable {
   public var numberBeforeRarity = false
   public var premiumMark = false
   public var lines: [String] = []
-  public var durationMs = 0.0
 
   var strength: Int {
     (setCode == nil && setTokens.isEmpty ? 0 : 2) + (collectorNumber == nil ? 0 : 1)
@@ -79,14 +78,10 @@ public enum CollectorLineReader {
     let request = VNRecognizeTextRequest()
     request.recognitionLevel = .accurate
     request.usesLanguageCorrection = false
-    let startedAt = ProcessInfo.processInfo.systemUptime
     try? VNImageRequestHandler(cgImage: strip, options: [:]).perform([request])
-    let durationMs = (ProcessInfo.processInfo.systemUptime - startedAt) * 1000
     let observations = (request.results ?? []).sorted { $0.boundingBox.midY > $1.boundingBox.midY }
     let lines = observations.compactMap { $0.topCandidates(1).first?.string }
-    var result = parse(lines: lines, setCodes: setCodes)
-    result.durationMs = durationMs
-    return result
+    return parse(lines: lines, setCodes: setCodes)
   }
 
   public static func parse(lines: [String], setCodes: Set<String>) -> CollectorLine {

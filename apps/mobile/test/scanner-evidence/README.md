@@ -148,7 +148,7 @@ Pass criteria from #10 and #21:
 - End-to-end p95 below 1.5 s.
 - Gallery parity on the phone: the lowest cosine is at least 0.98 over 24 reference images (`DEVICE_PARITY`). `bun run gallery parity` checks this rule when it records the parity check. The score script copies the `PARITY` line into `DEVICE_PARITY`.
 
-When the end-to-end p95 fails, `phaseMs` in the `RECOGNITION` lines shows where the time goes. `README.md` (Latest scan) lists the phases. The score script does not read them.
+When the end-to-end p95 fails, `phaseMs` in the `RECOGNITION` lines shows where the time goes. `stageMs` splits the `recognizer` phase. `README.md` (Latest scan) lists the phases and the stages. The score script does not read them. In a development build, the `trainingCrop` stage takes about 0.4 s longer than in a release build, because the development build links a libwebp with no compiler optimizations.
 
 Cards per minute is not a recognition gate. It moved to #11.
 
