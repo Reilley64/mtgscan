@@ -45,7 +45,7 @@ export function createCaptureLog() {
       logCaptureEvent('rearmed', { at, reason: detection.detected ? 'card-changed' : 'card-absent' });
     }
     if (step.requestPhoto) {
-      logCaptureEvent('photo-requested', { at });
+      logCaptureEvent('photo-requested', { at, aspectRatio: detection.aspectRatio });
     }
     timing.push({ durationMs: detection.nativeDurationMs, sampledAtMs: at });
     if (timing.length === timingWindowSamples) {
