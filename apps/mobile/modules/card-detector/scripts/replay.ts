@@ -49,7 +49,9 @@ async function git(args: string[]) {
 }
 
 async function frameHashes() {
-  const files = (await fs.readdir(framesDirectory)).filter((file) => file.endsWith('.png') || file === 'labels.json').sort();
+  const files = (await fs.readdir(framesDirectory))
+    .filter((file) => file.endsWith('.png') || file.endsWith('.jpg') || file === 'labels.json')
+    .sort();
   const lines = await Promise.all(
     files.map(async (file) => `${createHash('sha256').update(await fs.readFile(path.join(framesDirectory, file))).digest('hex')}  ${file}`),
   );
@@ -143,8 +145,8 @@ async function sourceFiles(packageRoot: string) {
   return JSON.stringify(files);
 }
 
-function startCommand(command: string, labels: FrameLabels) {
-  const child = spawn(command, ['step', ...labels.frames.map((frame) => frame.frame)], {
+function startCommand(command: string, frames: string[]) {
+  const child = spawn(command, ['step', ...frames], {
     cwd: framesDirectory,
     stdio: ['pipe', 'pipe', 'inherit'],
   });
@@ -161,10 +163,12 @@ function startCommand(command: string, labels: FrameLabels) {
 }
 
 async function detectInterleaved(commands: string[], labels: FrameLabels, rounds: number) {
-  const sides = commands.map((command) => startCommand(command, labels));
+  const frames = [...labels.frames, ...labels.clips.flatMap((clip) => clip.frames)].map((frame) => frame.frame);
+  const sides = commands.map((command) => startCommand(command, frames));
   const samples = sides.map(() => Array.from({ length: rounds }, (): FrameSample[] => []));
   for (let round = 0; round < rounds; round += 1) {
-    for (let index = 0; index < labels.frames.length; index += 1) {
+    const roundFrames = round === 0 ? frames.length : labels.frames.length;
+    for (let index = 0; index < roundFrames; index += 1) {
       const order = (round + index) % 2 === 0 ? sides.keys() : [...sides.keys()].reverse();
       for (const side of order) samples[side][round].push(await sides[side].detect(index));
     }

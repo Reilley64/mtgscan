@@ -1,7 +1,7 @@
 import type { DetectionSample } from '../../../modules/card-detector';
 import { nearestRank } from '../../../src/scan/capture-log';
-
-type Point = [x: number, y: number];
+import { compareClips, scoreClip, scoreClipGroups, type ClipGroupScore, type ClipLabel, type ClipScore } from './clips';
+import { median, outlineOnCard, type Point } from './geometry';
 
 type Sides = { top: number; right: number; bottom: number; left: number };
 
@@ -25,6 +25,7 @@ export type FrameLabels = {
   frameHeight: number;
   cardMm: Point;
   frames: FrameLabel[];
+  clips: ClipLabel[];
 };
 
 export type FrameSample = DetectionSample & { frame: string };
@@ -60,6 +61,8 @@ export type GroupScore = {
 export type ReplayScore = {
   groups: GroupScore[];
   frames: FrameScore[];
+  clips: ClipScore[];
+  clipGroups: ClipGroupScore[];
   macP95Ms: number;
 };
 
@@ -76,7 +79,9 @@ export type Bar = {
 
 export type Comparison = {
   bars: Bar[];
+  clipBars: Bar[];
   failingOutlines: FrameScore[];
+  clipsWithoutPhoto: string[];
   pass: boolean;
 };
 
@@ -87,41 +92,6 @@ export const replayBars = {
   detectionDropPerFrame: 1 / 30,
   macTimingRatio: 1.2,
 } as const;
-
-function homography(from: Point[], to: Point[]) {
-  const rows = from.flatMap(([x, y], index) => {
-    const [u, v] = to[index];
-    return [
-      [x, y, 1, 0, 0, 0, -u * x, -u * y, u],
-      [0, 0, 0, x, y, 1, -v * x, -v * y, v],
-    ];
-  });
-  for (let column = 0; column < 8; column += 1) {
-    let pivot = column;
-    for (let row = column + 1; row < 8; row += 1) {
-      if (Math.abs(rows[row][column]) > Math.abs(rows[pivot][column])) pivot = row;
-    }
-    [rows[column], rows[pivot]] = [rows[pivot], rows[column]];
-    for (let row = 0; row < 8; row += 1) {
-      if (row === column) continue;
-      const factor = rows[row][column] / rows[column][column];
-      for (let entry = column; entry < 9; entry += 1) rows[row][entry] -= factor * rows[column][entry];
-    }
-  }
-  const h = rows.map((row, index) => row[8] / row[index]);
-  return ([x, y]: Point): Point => {
-    const w = h[6] * x + h[7] * y + 1;
-    return [(h[0] * x + h[1] * y + h[2]) / w, (h[3] * x + h[4] * y + h[5]) / w];
-  };
-}
-
-function distance(a: Point, b: Point) {
-  return Math.hypot(a[0] - b[0], a[1] - b[1]);
-}
-
-function median(values: number[]) {
-  return nearestRank([...values].sort((a, b) => a - b), 0.5);
-}
 
 function scoreFrame(label: FrameLabel, sample: FrameSample, labels: FrameLabels): FrameScore {
   const outline =
@@ -139,12 +109,7 @@ function scoreFrame(label: FrameLabel, sample: FrameSample, labels: FrameLabels)
   };
   if (!outline || !label.corners) return { ...base, ...unscored };
   const [width, height] = labels.cardMm;
-  const card: Point[] = [[0, 0], [width, 0], [width, height], [0, height]];
-  const onCard = outline.map(homography(label.corners, card));
-  const aligned = [0, 1, 2, 3]
-    .map((shift) => card.map((_, corner) => onCard[(corner + shift) % 4]))
-    .map((corners) => ({ corners, error: Math.max(...corners.map((corner, index) => distance(corner, card[index]))) }))
-    .reduce((best, candidate) => (candidate.error < best.error ? candidate : best));
+  const aligned = outlineOnCard(outline, label.corners, labels.cardMm);
   const [topLeft, topRight, bottomRight, bottomLeft] = aligned.corners;
   const sides = {
     top: (topLeft[1] + topRight[1]) / 2,
@@ -154,7 +119,7 @@ function scoreFrame(label: FrameLabel, sample: FrameSample, labels: FrameLabels)
   };
   return {
     ...base,
-    cornerErrorMm: aligned.error,
+    cornerErrorMm: aligned.errorMm,
     sidesInsideMm: sides,
     sizeErrorMm: { width: (sides.left + sides.right) / 2, height: (sides.top + sides.bottom) / 2 },
     inside: Math.max(sides.top, sides.right, sides.bottom, sides.left) > insideOutlineMm,
@@ -195,11 +160,16 @@ function scoreGroups(frames: FrameScore[], keyOf: (frame: FrameScore) => GroupKe
 
 export function scoreReplay(labels: FrameLabels, rounds: FrameSample[][]): ReplayScore {
   const roundsByFrame = rounds.map((samples) => new Map(samples.map((sample) => [sample.frame, sample])));
+  const samplesOf = (frame: string, inRounds = roundsByFrame) => {
+    const samples = inRounds.map((byFrame) => byFrame.get(frame));
+    if (!samples.every((sample) => sample !== undefined)) throw new Error(`no detection sample for ${frame}`);
+    return samples;
+  };
   const frames = labels.frames.map((label) => {
-    const samples = roundsByFrame.map((byFrame) => byFrame.get(label.frame));
-    if (!samples.every((sample) => sample !== undefined)) throw new Error(`no detection sample for ${label.frame}`);
+    const samples = samplesOf(label.frame);
     return { ...scoreFrame(label, samples[0], labels), nativeDurationMs: median(samples.map((sample) => sample.nativeDurationMs)) };
   });
+  const clips = labels.clips.map((clip) => scoreClip(clip, clip.frames.map((frame) => samplesOf(frame.frame, roundsByFrame.slice(0, 1))[0]), labels));
   const conditions = [...new Set(frames.map((frame) => frame.condition))];
   const byBorderColor = frames
     .filter((frame) => frame.borderColor !== null)
@@ -212,6 +182,8 @@ export function scoreReplay(labels: FrameLabels, rounds: FrameSample[][]): Repla
       ...scoreGroups(byBorderColor, ({ borderColor, tiltBucket }) => ({ condition: null, borderColor, tiltBucket })),
     ],
     frames,
+    clips,
+    clipGroups: scoreClipGroups(clips),
     macP95Ms: nearestRank(frames.map((frame) => frame.nativeDurationMs).sort((a, b) => a - b), 0.95),
   };
 }
@@ -220,8 +192,8 @@ const decimals = (value: number, digits = 2) => Number(value.toFixed(digits)).to
 const millimetres = (value: number | undefined) => (value === undefined ? 'none' : `${decimals(value)} mm`);
 const sizeError = (size: GroupScore['sizeErrorMm']) => (size ? `${decimals(size.width)} x ${decimals(size.height)} mm` : 'none');
 
-function withoutTiming({ groups, frames }: ReplayScore) {
-  return JSON.stringify({ groups, frames: frames.map(({ nativeDurationMs: _, ...frame }) => frame) });
+function withoutTiming({ groups, frames, clips }: ReplayScore) {
+  return JSON.stringify({ groups, frames: frames.map(({ nativeDurationMs: _, ...frame }) => frame), clips });
 }
 
 function groupBars(base: GroupScore, branch: GroupScore): Bar[] {
@@ -313,11 +285,15 @@ export function compareReplays(base: ReplayScore, branch: ReplayScore, { sameDet
       pass: same,
     });
   }
+  const clipBars = compareClips(base.clipGroups, branch.clipGroups);
+  const branchPhotos = new Set(branch.clips.filter((clip) => clip.photoAskedFor).map((clip) => clip.clip));
   const baseInside = new Set(base.frames.filter((frame) => frame.inside).map((frame) => frame.frame));
   return {
     bars,
+    clipBars,
     failingOutlines: branch.frames.filter((frame) => (frame.inside && !baseInside.has(frame.frame)) || (!frame.hasCard && frame.detected)),
-    pass: bars.every((bar) => bar.pass !== false),
+    clipsWithoutPhoto: base.clips.filter((clip) => clip.photoAskedFor && !branchPhotos.has(clip.clip)).map((clip) => clip.clip),
+    pass: [...bars, ...clipBars].every((bar) => bar.pass !== false),
   };
 }
 
@@ -346,7 +322,7 @@ function failingOutline(frame: FrameScore) {
   return `- ${frame.frame}, tilt ${frame.tiltBucket}${card}: outline at ${corners}${sides}`;
 }
 
-export function replayTable({ bars, failingOutlines, pass }: Comparison): string {
+export function replayTable({ bars, clipBars, failingOutlines, clipsWithoutPhoto, pass }: Comparison): string {
   const grouped = bars.filter((bar) => bar.metric !== 'False outlines' && (bar.condition ?? bar.borderColor) !== null);
   const byConditionAndTilt = grouped.filter((bar) => bar.condition !== null && bar.tiltBucket !== null);
   const empty = bars.filter((bar) => bar.metric === 'False outlines');
@@ -374,6 +350,12 @@ export function replayTable({ bars, failingOutlines, pass }: Comparison): string
     '| --- | --- | --: | --- |',
     ...groupRows(empty, true),
     '',
+    'Clips by condition, merge base → branch:',
+    '',
+    `| Condition | ${[...new Set(clipBars.map((bar) => bar.metric))].join(' | ')} | Result |`,
+    '| --- | --: | --: | --: | --: | --: | --- |',
+    ...groupRows(clipBars, true),
+    '',
     ...reportedTable(
       'Card frames by condition and border colour, reported:',
       'Condition | Border colour',
@@ -394,8 +376,13 @@ export function replayTable({ bars, failingOutlines, pass }: Comparison): string
     '',
     ...gatedBars,
     '',
+    'Bars for each clip condition:',
+    '',
+    ...[...new Set(clipBars.filter((bar) => bar.pass !== null).map((bar) => `- ${bar.metric}: ${bar.bar}`))],
+    '',
     pass ? 'Every bar passes.' : 'A bar failed.',
     ...(failingOutlines.length > 0 ? ['', 'Failing outlines, in frame pixels:', '', ...failingOutlines.map(failingOutline)] : []),
+    ...(clipsWithoutPhoto.length > 0 ? ['', `Clips that ask for a photo on the merge base and not on the branch: ${clipsWithoutPhoto.join(', ')}`] : []),
     '',
   ].join('\n');
 }
