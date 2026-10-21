@@ -252,7 +252,7 @@ Metrics and pass bars, from #493:
 | --- | --- | --- |
 | Detection rate | Frames with a correct outline over frames with a card. A correct outline has all four corners within 1 mm of the true corners. | Not lower by more than 1 frame in 30 |
 | Wrong outlines | Card outlines that are not correct | Not more than the merge base |
-| Corner error | The largest corner distance in mm on the card, median and p90 of the correct outlines. Wrong outlines have their own bar. | Median not worse by more than 0.1 mm. p90 not worse by more than 0.5 mm. |
+| Corner error | The largest corner distance in mm on the card, median and p90 of the correct outlines. Wrong outlines have their own bar. | Median not worse by more than 0.1 mm. p90 not worse by more than 0.5 mm. Both bars compare only the frames with a correct outline on the merge base and on the branch. The table shows each side's own median and p90. |
 | Inside outlines | Card outlines with a side more than 1 mm inside the card edge | Not more than the merge base plus 1 frame in 30 |
 | Size error | The mean of opposite sides in mm, median of the detected frames. Inside is positive, as in #421. | Reported |
 | False outlines | Card outlines on empty frames | Zero |

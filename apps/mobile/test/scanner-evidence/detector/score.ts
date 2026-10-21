@@ -51,6 +51,7 @@ export type GroupScore = {
   cardFrames: number;
   detected: number;
   correct: number;
+  correctOutlinesMm: Record<string, number>;
   cornerErrorMm: { median: number; p90: number } | null;
   sizeErrorMm: { width: number; height: number } | null;
   insideOutlines: string[];
@@ -125,16 +126,15 @@ type GroupKey = Pick<GroupScore, 'condition' | 'borderColor' | 'tiltBucket'>;
 function scoreGroup(key: GroupKey, frames: FrameScore[]): GroupScore {
   const cardFrames = frames.filter((frame) => frame.hasCard);
   const fitted = cardFrames.filter((frame) => frame.cornerErrorMm !== null && frame.sizeErrorMm !== null);
-  const errors = fitted
-    .map((frame) => frame.cornerErrorMm!)
-    .filter((error) => error <= correctOutlineMm)
-    .sort((a, b) => a - b);
+  const correctOutlines = fitted.filter((frame) => frame.cornerErrorMm! <= correctOutlineMm);
+  const errors = correctOutlines.map((frame) => frame.cornerErrorMm!).sort((a, b) => a - b);
   return {
     ...key,
     frames: frames.length,
     cardFrames: cardFrames.length,
     detected: cardFrames.filter((frame) => frame.detected).length,
     correct: errors.length,
+    correctOutlinesMm: Object.fromEntries(correctOutlines.map((frame) => [frame.frame, frame.cornerErrorMm!])),
     cornerErrorMm: errors.length > 0 ? { median: nearestRank(errors, 0.5), p90: nearestRank(errors, 0.9) } : null,
     sizeErrorMm:
       fitted.length > 0
@@ -213,8 +213,10 @@ function groupBars(base: GroupScore, branch: GroupScore): Bar[] {
     ];
   }
   const allowance = branch.cardFrames * replayBars.frameAllowance;
-  const worse = (metric: 'median' | 'p90', limit: number) =>
-    base.cornerErrorMm === null || branch.cornerErrorMm === null || branch.cornerErrorMm[metric] - base.cornerErrorMm[metric] <= limit;
+  const paired = Object.keys(branch.correctOutlinesMm).filter((frame) => frame in base.correctOutlinesMm);
+  const pairedErrors = (side: GroupScore) => paired.map((frame) => side.correctOutlinesMm[frame]).sort((a, b) => a - b);
+  const worse = (fraction: number, limit: number) =>
+    paired.length === 0 || nearestRank(pairedErrors(branch), fraction) - nearestRank(pairedErrors(base), fraction) <= limit;
   const bar = (text: string, pass: boolean) => (gated ? { bar: text, pass } : { bar: 'reported', pass: null });
   return [
     {
@@ -236,14 +238,20 @@ function groupBars(base: GroupScore, branch: GroupScore): Bar[] {
       metric: 'Corner error median',
       base: millimetres(base.cornerErrorMm?.median),
       branch: millimetres(branch.cornerErrorMm?.median),
-      ...bar(`not worse by more than ${replayBars.cornerErrorMedianMm} mm`, worse('median', replayBars.cornerErrorMedianMm)),
+      ...bar(
+        `not worse by more than ${replayBars.cornerErrorMedianMm} mm, on frames with a correct outline on both sides`,
+        worse(0.5, replayBars.cornerErrorMedianMm),
+      ),
     },
     {
       ...key,
       metric: 'Corner error p90',
       base: millimetres(base.cornerErrorMm?.p90),
       branch: millimetres(branch.cornerErrorMm?.p90),
-      ...bar(`not worse by more than ${replayBars.cornerErrorP90Mm} mm`, worse('p90', replayBars.cornerErrorP90Mm)),
+      ...bar(
+        `not worse by more than ${replayBars.cornerErrorP90Mm} mm, on frames with a correct outline on both sides`,
+        worse(0.9, replayBars.cornerErrorP90Mm),
+      ),
     },
     {
       ...key,
