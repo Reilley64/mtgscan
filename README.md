@@ -59,7 +59,7 @@ A card result also has:
 
 The recognizer makes feature prints with the Core ML model of the installed gallery version, on all compute units. It scales the straightened card to 488 x 680, It then pads the card to the model's input size with the model's mean color, 0.5 gray, so the card keeps its aspect ratio. It L2-normalizes the vector that the model returns. A model that returns NaN, or a vector of another size than the gallery version's, makes the scan fail as an unreadable photo.
 
-The recognizer reads the recognizer thresholds from the installed gallery version: not a card, orientation margin, and art margin. It also reads the model's input size and the vector size there. A gallery installed before gallery format 2 has no model, so it does not load, and the recognizer throws `gallery_not_ready`.
+The recognizer reads the recognizer thresholds from the installed gallery version: not a card, orientation margin, and art margin. It takes the vector size from the model block there, and the input size from the shape of the gallery version's model. A gallery installed before gallery format 2 has no model, so it does not load, and the recognizer throws `gallery_not_ready`.
 
 The module also exports `recognizerVersion` for the evidence record of a training crop. It is the app version and build number, such as `1.0.0 (7)`. A production build has a new build number, and release-please raises the app version, so each release sends a higher recognizer version. `installedGallery()` returns the installed gallery version, its built time, and the name of its model, such as `pe-core-s16-384`.
 
