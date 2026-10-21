@@ -138,7 +138,16 @@ The four corners of a detected card. The Scan tab draws it in magenta, and the r
 _Avoid_: Guide
 
 **Photo refinement**:
-After automatic capture takes the photo, the card detector moves the held-still card outline by the camera motion between the last analyzed frame and the photo, and refines it on the photo with the edge refiner. A size check and a motion check refuse a refined outline that could be on the inner frame. The recognizer straightens the photo along the result, the photo outline.
+After automatic capture takes the photo, the card detector moves the held-still outline by the camera motion between its analyzed frame and the photo, and refines it on the photo with the edge refiner. A size check and a motion check refuse a refined outline that could be on the inner frame. On a refusal, the result is the moved outline. The recognizer straightens the photo along the result, the photo outline.
+
+**Held-still outline**:
+The card outline of the detection sample that automatic capture took the photo for. It is in fractions of the analyzed frame.
+
+**Photo outline**:
+The card outline that the recognizer straightens the photo along. Photo refinement makes it from the held-still outline. When photo refinement cannot run, it is the held-still outline.
+
+**Card aspect**:
+The card's width over its height, 63:88. The card detector checks the aspect of an outline on the card, with the camera's intrinsic matrix, so a tilted card keeps its aspect. A frame with no intrinsic matrix checks the aspect in the frame.
 
 **Inside outline**:
 A card outline with a side more than 1 mm inside the card edge. On a black-bordered card it is often the inner frame. A training crop of an inside outline loses the border and can lose the collector line.

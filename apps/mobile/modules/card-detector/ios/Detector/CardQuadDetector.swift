@@ -38,7 +38,8 @@ enum CardQuadDetector {
     guard let transform = OrientationTransform(
       displayOrientation: displayOrientation,
       bufferWidth: Double(CVPixelBufferGetWidth(pixelBuffer)),
-      bufferHeight: Double(CVPixelBufferGetHeight(pixelBuffer))
+      bufferHeight: Double(CVPixelBufferGetHeight(pixelBuffer)),
+      bufferIntrinsicMatrix: intrinsicMatrix.map(simd_double3x3.init)
     ) else {
       output.failure = .unsupportedFrame
       return output
@@ -111,24 +112,13 @@ enum CardQuadDetector {
       bytesPerRow: CVPixelBufferGetBytesPerRowOfPlane(pixelBuffer, 0)
     )
 
-    let orientedIntrinsicMatrix = intrinsicMatrix.map(transform.orientedIntrinsicMatrix)
-    switch CardEdgeRefiner.refine(
-      proposal: proposal,
-      plane: plane,
-      transform: transform,
-      intrinsicMatrix: orientedIntrinsicMatrix
-    ) {
+    switch CardEdgeRefiner.refine(proposal: proposal, plane: plane, transform: transform) {
     case let .refined(corners, supportMin, _, _, fallbackEdges):
       guard fallbackEdges == 0 || output.confidence >= minimumFallbackConfidence else {
         output.edgeSupportMin = supportMin
         break
       }
-      let metrics = CardQuadGeometry.metrics(
-        corners,
-        width: transform.orientedWidth,
-        height: transform.orientedHeight,
-        intrinsicMatrix: orientedIntrinsicMatrix
-      )
+      let metrics = CardQuadGeometry.metrics(corners, in: transform)
       output.refined = corners.map { normalized($0, transform) }
       output.areaRatio = metrics.areaRatio
       output.aspectRatio = metrics.aspectRatio

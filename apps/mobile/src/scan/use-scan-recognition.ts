@@ -4,15 +4,16 @@ import { deletePhoto, type CapturedPhoto } from '../../modules/card-detector';
 import { recognize, type Recognition } from '../../modules/card-recognizer';
 import { errorCode } from '@/lib/error-code';
 import { useScanBatch } from './scan-batch-state';
-import { logRecognition } from './recognition-log';
+import { logRecognition, logTimedRecognition } from './recognition-log';
 import { preloadScanSounds } from './scan-sounds';
 import { useScanSounds } from './scan-sounds-setting';
 import type { PhotoHandlers } from './use-automatic-capture';
 
 async function recognizePhoto(photo: CapturedPhoto, photoRequestedAt: number): Promise<Recognition | 'failed'> {
+  const recognizeCalledAt = Date.now();
   try {
-    const recognition = await recognize(photo.uri, photo.outline);
-    logRecognition(photoRequestedAt, recognition);
+    const { recognition, times } = await recognize(photo.uri, photo.outline);
+    logTimedRecognition({ photoRequestedAt, photo, recognizeCalledAt, recognizer: times }, recognition);
     return recognition;
   } catch (error) {
     logRecognition(photoRequestedAt, { kind: 'failed', error: errorCode(error) });

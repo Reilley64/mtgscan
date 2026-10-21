@@ -1,20 +1,32 @@
 import type { DetectionSample, FrameQuad } from '../../../modules/card-detector';
 import { nearestRank } from '../../../src/scan/capture-log';
-import { compareClips, scoreClip, scoreClipGroups, type ClipGroupScore, type ClipLabel, type ClipScore } from './clips';
-import { isInside, median, outlineOnCard, sidesInsideMm, type Point, type Sides } from './geometry';
+import {
+  compareClips,
+  photoOutlineBar,
+  scoreClip,
+  scoreClipGroups,
+  type ClipGroupScore,
+  type ClipLabel,
+  type ClipScore,
+} from './clips';
+import { decimals, inPixels, isInside, median, millimetres, outlineOnCard, sidesInsideMm, type Point, type Sides } from './geometry';
 
-const borderColors = ['black', 'white', 'borderless'] as const;
+export const conditions = ['plain', 'patterned', 'shadow', 'sleeve', 'glare', 'motion-blur', 'hand', 'empty-plain', 'empty-patterned'] as const;
+export const tiltBuckets = ['0', '0-7.5', '7.5-15', '15-25'] as const;
+export const borderColors = ['black', 'white', 'borderless'] as const;
 
-type BorderColor = (typeof borderColors)[number];
+export type Condition = (typeof conditions)[number];
+export type TiltBucket = (typeof tiltBuckets)[number];
+export type BorderColor = (typeof borderColors)[number];
 
 export type FrameLabel = {
   frame: string;
-  condition: string;
+  condition: Condition;
   scryfallId: string | null;
   borderColor: BorderColor | null;
   corners: Point[] | null;
   tiltDegrees: number;
-  tiltBucket: string;
+  tiltBucket: TiltBucket;
   intrinsicMatrix: number[][];
 };
 
@@ -30,8 +42,8 @@ export type FrameSample = DetectionSample & { frame: string };
 
 export type FrameScore = {
   frame: string;
-  condition: string;
-  tiltBucket: string;
+  condition: Condition;
+  tiltBucket: TiltBucket;
   borderColor: BorderColor | null;
   hasCard: boolean;
   detected: boolean;
@@ -43,10 +55,9 @@ export type FrameScore = {
   nativeDurationMs: number;
 };
 
-export type GroupScore = {
-  condition: string | null;
-  borderColor: BorderColor | null;
-  tiltBucket: string | null;
+type GroupKey = { condition: Condition | null; borderColor: BorderColor | null; tiltBucket: TiltBucket | null };
+
+export type GroupScore = GroupKey & {
   frames: number;
   cardFrames: number;
   detected: number;
@@ -67,20 +78,20 @@ export type ReplayScore = {
   macP95Ms: number;
 };
 
-export type Bar = {
-  condition: string | null;
-  borderColor: BorderColor | null;
-  tiltBucket: string | null;
+export type Bar = GroupKey & {
   metric: string;
   base: string;
   branch: string;
   bar: string;
   pass: boolean | null;
+  listed: string[];
 };
 
 export type Comparison = {
   bars: Bar[];
   clipBars: Bar[];
+  frames: FrameScore[];
+  clips: ClipScore[];
   newInsideAndFalseOutlines: FrameScore[];
   clipsWithoutPhoto: string[];
   pass: boolean;
@@ -96,9 +107,31 @@ export const replayBars = {
   macTimingRatio: 1.2,
 } as const;
 
+export const metrics = {
+  detectionRate: 'Detection rate',
+  wrongOutlines: 'Wrong outlines',
+  cornerErrorMedian: 'Corner error median',
+  cornerErrorP90: 'Corner error p90',
+  insideOutlines: 'Inside outlines',
+  sizeError: 'Size error, width x height',
+  falseOutlines: 'False outlines',
+  macTiming: 'Mac timing p95',
+  sameDetector: 'Same detector code',
+} as const;
+
+const groupMetrics = [
+  metrics.detectionRate,
+  metrics.wrongOutlines,
+  metrics.cornerErrorMedian,
+  metrics.cornerErrorP90,
+  metrics.insideOutlines,
+  metrics.sizeError,
+];
+
+const wholeRun = { condition: null, borderColor: null, tiltBucket: null };
+
 function scoreFrame(label: FrameLabel, sample: FrameSample, labels: FrameLabels): FrameScore {
-  const outline =
-    sample.detected && sample.corners ? sample.corners.map(({ x, y }): Point => [x * labels.frameWidth, y * labels.frameHeight]) : null;
+  const outline = sample.detected && sample.corners ? inPixels(sample.corners, labels.frameWidth, labels.frameHeight) : null;
   const unscored = { cornerErrorMm: null, sidesInsideMm: null, sizeErrorMm: null, inside: false };
   const base = {
     frame: label.frame,
@@ -121,8 +154,6 @@ function scoreFrame(label: FrameLabel, sample: FrameSample, labels: FrameLabels)
     inside: isInside(sides),
   };
 }
-
-type GroupKey = Pick<GroupScore, 'condition' | 'borderColor' | 'tiltBucket'>;
 
 function scoreGroup(key: GroupKey, frames: FrameScore[]): GroupScore {
   const cardFrames = frames.filter((frame) => frame.hasCard);
@@ -172,7 +203,6 @@ export function scoreReplay(labels: FrameLabels, rounds: FrameSample[][], photoO
   const clips = labels.clips.map((clip) =>
     scoreClip(clip, clip.frames.map((frame) => samplesOf(frame.frame, roundsByFrame.slice(0, 1))[0]), labels, photoOutlines.get(clip.clip)),
   );
-  const conditions = [...new Set(frames.map((frame) => frame.condition))];
   const byBorderColor = frames
     .filter((frame) => frame.borderColor !== null)
     .sort((a, b) => borderColors.indexOf(a.borderColor!) - borderColors.indexOf(b.borderColor!));
@@ -190,12 +220,10 @@ export function scoreReplay(labels: FrameLabels, rounds: FrameSample[][], photoO
   };
 }
 
-const decimals = (value: number, digits = 2) => Number(value.toFixed(digits)).toFixed(digits);
-const millimetres = (value: number | undefined) => (value === undefined ? 'none' : `${decimals(value)} mm`);
 const sizeError = (size: GroupScore['sizeErrorMm']) => (size ? `${decimals(size.width)} x ${decimals(size.height)} mm` : 'none');
 
-function withoutTiming({ groups, frames, clips }: ReplayScore) {
-  return JSON.stringify({ groups, frames: frames.map(({ nativeDurationMs: _, ...frame }) => frame), clips });
+function withoutTiming({ nativeDurationMs: _, ...frame }: FrameScore) {
+  return JSON.stringify(frame);
 }
 
 function groupBars(base: GroupScore, branch: GroupScore): Bar[] {
@@ -205,11 +233,12 @@ function groupBars(base: GroupScore, branch: GroupScore): Bar[] {
     return [
       {
         ...key,
-        metric: 'False outlines',
+        metric: metrics.falseOutlines,
         base: String(base.falseOutlines.length),
         branch: String(branch.falseOutlines.length),
         bar: 'zero',
         pass: branch.falseOutlines.length === 0,
+        listed: branch.falseOutlines,
       },
     ];
   }
@@ -218,61 +247,70 @@ function groupBars(base: GroupScore, branch: GroupScore): Bar[] {
   const pairedErrors = (side: GroupScore) => paired.map((frame) => side.correctOutlinesMm[frame]).sort((a, b) => a - b);
   const worse = (fraction: number, limit: number) =>
     nearestRank(pairedErrors(branch), fraction) - nearestRank(pairedErrors(base), fraction) <= limit;
-  const bar = (text: string, pass: boolean) => (gated ? { bar: text, pass } : { bar: 'reported', pass: null });
-  const cornerErrorBar = (text: string, pass: boolean) =>
-    paired.length >= replayBars.minimumPairedFrames ? bar(text, pass) : { bar: 'reported', pass: null };
+  const worsePairs = (limit: number) => paired.filter((frame) => branch.correctOutlinesMm[frame] - base.correctOutlinesMm[frame] > limit);
+  const reported = { bar: 'reported', pass: null, listed: [] };
+  const bar = (text: string, pass: boolean, listed: string[]) => (gated ? { bar: text, pass, listed } : reported);
+  const cornerErrorBar = (text: string, pass: boolean, listed: string[]) =>
+    paired.length >= replayBars.minimumPairedFrames ? bar(text, pass, listed) : reported;
+  const newOf = (before: string[], after: string[]) => after.filter((frame) => !before.includes(frame));
   return [
     {
       ...key,
-      metric: 'Detection rate',
+      metric: metrics.detectionRate,
       base: `${base.correct} of ${base.cardFrames}`,
       branch: `${branch.correct} of ${branch.cardFrames}`,
-      ...bar(`correct outlines not lower by more than ${allowance.toFixed(0)}`, base.correct - branch.correct <= allowance),
+      ...bar(
+        `correct outlines not lower by more than ${allowance.toFixed(0)}`,
+        base.correct - branch.correct <= allowance,
+        newOf(Object.keys(branch.correctOutlinesMm), Object.keys(base.correctOutlinesMm)),
+      ),
     },
     {
       ...key,
-      metric: 'Wrong outlines',
+      metric: metrics.wrongOutlines,
       base: String(base.wrongOutlines.length),
       branch: String(branch.wrongOutlines.length),
-      ...bar('not more than the merge base', branch.wrongOutlines.length <= base.wrongOutlines.length),
+      ...bar('not more than the merge base', branch.wrongOutlines.length <= base.wrongOutlines.length, newOf(base.wrongOutlines, branch.wrongOutlines)),
     },
     {
       ...key,
-      metric: 'Corner error median',
-      base: millimetres(base.cornerErrorMm?.median),
-      branch: millimetres(branch.cornerErrorMm?.median),
+      metric: metrics.cornerErrorMedian,
+      base: millimetres(base.cornerErrorMm?.median ?? null),
+      branch: millimetres(branch.cornerErrorMm?.median ?? null),
       ...cornerErrorBar(
         `not worse by more than ${replayBars.cornerErrorMedianMm} mm, on frames with a correct outline on both sides`,
         worse(0.5, replayBars.cornerErrorMedianMm),
+        worsePairs(replayBars.cornerErrorMedianMm),
       ),
     },
     {
       ...key,
-      metric: 'Corner error p90',
-      base: millimetres(base.cornerErrorMm?.p90),
-      branch: millimetres(branch.cornerErrorMm?.p90),
+      metric: metrics.cornerErrorP90,
+      base: millimetres(base.cornerErrorMm?.p90 ?? null),
+      branch: millimetres(branch.cornerErrorMm?.p90 ?? null),
       ...cornerErrorBar(
         `not worse by more than ${replayBars.cornerErrorP90Mm} mm, on frames with a correct outline on both sides`,
         worse(0.9, replayBars.cornerErrorP90Mm),
+        worsePairs(replayBars.cornerErrorP90Mm),
       ),
     },
     {
       ...key,
-      metric: 'Inside outlines',
+      metric: metrics.insideOutlines,
       base: String(base.insideOutlines.length),
       branch: String(branch.insideOutlines.length),
       ...bar(
         `not more than the merge base plus ${allowance.toFixed(0)}`,
         branch.insideOutlines.length <= base.insideOutlines.length + allowance,
+        newOf(base.insideOutlines, branch.insideOutlines),
       ),
     },
     {
       ...key,
-      metric: 'Size error, width x height',
+      metric: metrics.sizeError,
       base: sizeError(base.sizeErrorMm),
       branch: sizeError(branch.sizeErrorMm),
-      bar: 'reported',
-      pass: null,
+      ...reported,
     },
   ];
 }
@@ -286,127 +324,244 @@ export function compareReplays(base: ReplayScore, branch: ReplayScore, { sameDet
     if (!before) throw new Error(`the merge base has no frames for ${group.condition ?? group.borderColor} at tilt ${group.tiltBucket}`);
     return groupBars(before, group);
   });
-  const run = { condition: null, borderColor: null, tiltBucket: null };
   bars.push({
-    ...run,
-    metric: 'Mac timing p95',
+    ...wholeRun,
+    metric: metrics.macTiming,
     base: `${base.macP95Ms.toFixed(1)} ms`,
     branch: `${branch.macP95Ms.toFixed(1)} ms`,
     bar: `at most ${replayBars.macTimingRatio} times the merge base`,
     pass: branch.macP95Ms <= replayBars.macTimingRatio * base.macP95Ms,
+    listed: [],
   });
   if (sameDetector) {
-    const same = withoutTiming(base) === withoutTiming(branch);
+    const baseFrames = new Map(base.frames.map((frame) => [frame.frame, withoutTiming(frame)]));
+    const otherFrames = branch.frames.filter((frame) => baseFrames.get(frame.frame) !== withoutTiming(frame)).map((frame) => frame.frame);
+    const otherClips = branch.clips
+      .filter((clip, index) => JSON.stringify(clip) !== JSON.stringify(base.clips[index]))
+      .map((clip) => clip.clip);
+    const same = otherFrames.length === 0 && otherClips.length === 0;
     bars.push({
-      ...run,
-      metric: 'Same detector code',
+      ...wholeRun,
+      metric: metrics.sameDetector,
       base: 'same',
       branch: same ? 'same numbers' : 'other numbers',
       bar: 'same numbers',
       pass: same,
+      listed: [...otherFrames, ...otherClips],
     });
   }
-  const clipBars = compareClips(base.clipGroups, branch.clipGroups);
+  bars.push(photoOutlineBar(base.clips, branch.clips));
+  const clipBars = compareClips(base, branch);
   const branchPhotos = new Set(branch.clips.filter((clip) => clip.photoAskedFor).map((clip) => clip.clip));
   const baseInside = new Set(base.frames.filter((frame) => frame.inside).map((frame) => frame.frame));
   return {
     bars,
     clipBars,
+    frames: branch.frames,
+    clips: branch.clips,
     newInsideAndFalseOutlines: branch.frames.filter((frame) => (frame.inside && !baseInside.has(frame.frame)) || (!frame.hasCard && frame.detected)),
     clipsWithoutPhoto: base.clips.filter((clip) => clip.photoAskedFor && !branchPhotos.has(clip.clip)).map((clip) => clip.clip),
     pass: [...bars, ...clipBars].every((bar) => bar.pass !== false),
   };
 }
 
-const groupMetrics = ['Detection rate', 'Wrong outlines', 'Corner error median', 'Corner error p90', 'Inside outlines', 'Size error, width x height'];
+export const branchAloneLimits = {
+  plainInsideOutlinesAtNoTilt: 1,
+  macP95Ms: 20,
+} as const;
 
-function groupRows(bars: Bar[], withResult: boolean) {
+export function branchAloneBars(branch: ReplayScore): Bar[] {
+  const falseOutlines = branch.frames.filter((frame) => !frame.hasCard && frame.detected).map((frame) => frame.frame);
+  const plainAtNoTilt = branch.groups.find((group) => group.condition === 'plain' && group.tiltBucket === '0' && group.borderColor === null);
+  const plainInside = plainAtNoTilt?.insideOutlines ?? [];
+  const limits = branchAloneLimits;
+  return [
+    {
+      ...wholeRun,
+      metric: metrics.falseOutlines,
+      base: 'none',
+      branch: String(falseOutlines.length),
+      bar: 'zero',
+      pass: falseOutlines.length === 0,
+      listed: falseOutlines,
+    },
+    {
+      ...wholeRun,
+      condition: 'plain',
+      tiltBucket: '0',
+      metric: metrics.insideOutlines,
+      base: 'none',
+      branch: String(plainInside.length),
+      bar: `at most ${limits.plainInsideOutlinesAtNoTilt}, the one in the merge base table`,
+      pass: plainInside.length <= limits.plainInsideOutlinesAtNoTilt,
+      listed: plainInside,
+    },
+    {
+      ...wholeRun,
+      metric: metrics.macTiming,
+      base: 'none',
+      branch: `${branch.macP95Ms.toFixed(1)} ms`,
+      bar: `below ${limits.macP95Ms} ms`,
+      pass: branch.macP95Ms < limits.macP95Ms,
+      listed: [],
+    },
+  ];
+}
+
+function groupRows(bars: Bar[], { withResult, cell }: { withResult: boolean; cell: (bar: Bar) => string }) {
   const groups = new Map<string, Bar[]>();
   for (const bar of bars) {
     const id = [bar.condition, bar.borderColor, bar.tiltBucket].filter((value) => value !== null).join(' | ');
     groups.set(id, [...(groups.get(id) ?? []), bar]);
   }
   return [...groups].map(([id, group]) => {
-    const cells = group.map((bar) => `${bar.base} → ${bar.branch}`);
+    const cells = group.map(cell);
     const failed = group.filter((bar) => bar.pass === false).map((bar) => bar.metric.toLowerCase());
     const result = failed.length > 0 ? `fail: ${failed.join(', ')}` : 'pass';
     return `| ${id} | ${cells.join(' | ')} |${withResult ? ` ${result} |` : ''}`;
   });
 }
 
+const corners = (outline: Point[]) => outline.map(([x, y]) => `(${x.toFixed(0)}, ${y.toFixed(0)})`).join(' ');
+
 function listedOutline(frame: FrameScore) {
-  const corners = frame.outline!.map(([x, y]) => `(${x.toFixed(0)}, ${y.toFixed(0)})`).join(' ');
+  const card = frame.borderColor ? `, ${frame.borderColor} border` : '';
+  if (!frame.outline) return `- ${frame.frame}, tilt ${frame.tiltBucket}${card}: no outline`;
   const sides = frame.sidesInsideMm
     ? `, sides inside ${Object.entries(frame.sidesInsideMm).map(([side, value]) => `${side} ${decimals(value, 1)} mm`).join(', ')}`
     : '';
-  const card = frame.borderColor ? `, ${frame.borderColor} border` : '';
-  return `- ${frame.frame}, tilt ${frame.tiltBucket}${card}: outline at ${corners}${sides}`;
+  const error = frame.cornerErrorMm === null ? '' : `, corner error ${millimetres(frame.cornerErrorMm)}`;
+  return `- ${frame.frame}, tilt ${frame.tiltBucket}${card}: outline at ${corners(frame.outline)}${sides}${error}`;
 }
 
-export function replayTable({ bars, clipBars, newInsideAndFalseOutlines, clipsWithoutPhoto, pass }: Comparison): string {
-  const clipMetrics = [...new Set(clipBars.map((bar) => bar.metric))];
-  const grouped = bars.filter((bar) => bar.metric !== 'False outlines' && (bar.condition ?? bar.borderColor) !== null);
+function listedClip(clip: ClipScore) {
+  if (!clip.photoOutline) return `- ${clip.clip}: no photo asked for`;
+  const jitter = clip.jitterMm === null ? '' : `, jitter ${millimetres(clip.jitterMm)}`;
+  return `- ${clip.clip}: photo outline at ${corners(clip.photoOutline)} on the photo, corner error ${millimetres(clip.photoOutlineMm)}, settle time ${clip.settleTimeMs} ms${jitter}`;
+}
+
+function failingLines(bars: Bar[], frames: FrameScore[], clips: ClipScore[]) {
+  const byFrame = new Map(frames.map((frame) => [frame.frame, frame]));
+  const byClip = new Map(clips.map((clip) => [clip.clip, clip]));
+  const failing = bars.filter((bar) => bar.pass === false && bar.listed.length > 0);
+  if (failing.length === 0) return [];
+  return [
+    '',
+    'Frames and clips behind each failing bar, outlines in frame or photo pixels:',
+    ...failing.flatMap((bar) => {
+      const group = [bar.condition, bar.borderColor, bar.tiltBucket].filter((value) => value !== null).join(' | ');
+      return [
+        '',
+        `${group ? `${group}, ` : ''}${bar.metric.toLowerCase()}:`,
+        '',
+        ...bar.listed.map((name) => {
+          const frame = byFrame.get(name);
+          return frame ? listedOutline(frame) : listedClip(byClip.get(name)!);
+        }),
+      ];
+    }),
+  ];
+}
+
+const sideBySide = (bar: Bar) => `${bar.base} → ${bar.branch}`;
+const branchOnly = (bar: Bar) => bar.branch;
+
+function tables(
+  bars: Bar[],
+  clipBars: Bar[],
+  { cell, withResult, sides }: { cell: (bar: Bar) => string; withResult: boolean; sides: string },
+) {
+  const clipColumns = [...new Set(clipBars.map((bar) => bar.metric))];
+  const grouped = bars.filter((bar) => bar.metric !== metrics.falseOutlines && (bar.condition ?? bar.borderColor) !== null);
   const byConditionAndTilt = grouped.filter((bar) => bar.condition !== null && bar.tiltBucket !== null);
-  const empty = bars.filter((bar) => bar.metric === 'False outlines');
-  const run = bars.filter((bar) => bar.condition === null && bar.borderColor === null);
-  const gatedBars = [...new Set([...byConditionAndTilt, ...empty].filter((bar) => bar.pass !== null).map((bar) => `- ${bar.metric}: ${bar.bar}`))];
+  const empty = bars.filter((bar) => bar.metric === metrics.falseOutlines);
+  const result = withResult ? ' Result |' : '';
+  const resultRule = withResult ? ' --- |' : '';
   const metricColumns = groupMetrics.join(' | ');
   const reportedTable = (title: string, columns: string, rows: Bar[]) => [
     title,
     '',
     `| ${columns} | ${metricColumns} |`,
-    '| --- | --- | --: | --: | --: | --: | --: | --: |',
-    ...groupRows(rows, false),
+    `| --- | --- |${' --: |'.repeat(groupMetrics.length)}`,
+    ...groupRows(rows, { withResult: false, cell }),
     '',
   ];
   return [
-    'Card frames by condition and tilt in degrees, merge base → branch:',
+    `Card frames by condition and tilt in degrees, ${sides}:`,
     '',
-    `| Condition | Tilt | ${metricColumns} | Result |`,
-    '| --- | --- | --: | --: | --: | --: | --: | --: | --- |',
-    ...groupRows(byConditionAndTilt, true),
+    `| Condition | Tilt | ${metricColumns} |${result}`,
+    `| --- | --- |${' --: |'.repeat(groupMetrics.length)}${resultRule}`,
+    ...groupRows(byConditionAndTilt, { withResult, cell }),
     '',
     'Empty frames:',
     '',
-    '| Condition | Tilt | False outlines | Result |',
-    '| --- | --- | --: | --- |',
-    ...groupRows(empty, true),
+    `| Condition | Tilt | ${metrics.falseOutlines} |${result}`,
+    `| --- | --- | --: |${resultRule}`,
+    ...groupRows(empty, { withResult, cell }),
     '',
-    'Clips by condition, merge base → branch:',
+    `Clips by condition, ${sides}:`,
     '',
-    `| Condition | ${clipMetrics.join(' | ')} | Result |`,
-    `| --- |${' --: |'.repeat(clipMetrics.length)} --- |`,
-    ...groupRows(clipBars, true),
+    `| Condition | ${clipColumns.join(' | ')} |${result}`,
+    `| --- |${' --: |'.repeat(clipColumns.length)}${resultRule}`,
+    ...groupRows(clipBars, { withResult, cell }),
     '',
     ...reportedTable(
-      'Card frames by condition and border colour, reported:',
-      'Condition | Border colour',
+      'Card frames by condition and border color, reported:',
+      'Condition | Border color',
       grouped.filter((bar) => bar.condition !== null && bar.borderColor !== null),
     ),
-    ...reportedTable(
-      'Card frames by border colour and tilt, reported:',
-      'Border colour | Tilt',
-      grouped.filter((bar) => bar.condition === null),
-    ),
+    ...reportedTable('Card frames by border color and tilt, reported:', 'Border color | Tilt', grouped.filter((bar) => bar.condition === null)),
+  ];
+}
+
+export function replayTable({ bars, clipBars, frames, clips, newInsideAndFalseOutlines, clipsWithoutPhoto, pass }: Comparison): string {
+  const wholeRunBars = bars.filter((bar) => bar.condition === null && bar.borderColor === null);
+  const byConditionAndTilt = bars.filter((bar) => bar.condition !== null && bar.tiltBucket !== null);
+  const gatedBars = (rows: Bar[]) => [...new Set(rows.filter((bar) => bar.pass !== null).map((bar) => `- ${bar.metric}: ${bar.bar}`))];
+  return [
+    ...tables(bars, clipBars, { cell: sideBySide, withResult: true, sides: 'merge base → branch' }),
     'The whole run:',
     '',
     '| Metric | Merge base | Branch | Bar | Result |',
     '| --- | --: | --: | --- | --- |',
-    ...run.map((bar) => `| ${bar.metric} | ${bar.base} | ${bar.branch} | ${bar.bar} | ${bar.pass ? 'pass' : 'fail'} |`),
+    ...wholeRunBars.map((bar) => `| ${bar.metric} | ${bar.base} | ${bar.branch} | ${bar.bar} | ${bar.pass ? 'pass' : 'fail'} |`),
     '',
     'Bars for each condition and tilt:',
     '',
-    ...gatedBars,
+    ...gatedBars(byConditionAndTilt),
     '',
     'Bars for each clip condition:',
     '',
-    ...[...new Set(clipBars.filter((bar) => bar.pass !== null).map((bar) => `- ${bar.metric}: ${bar.bar}`))],
+    ...gatedBars(clipBars),
     '',
     pass ? 'Every bar passes.' : 'A bar failed.',
+    ...failingLines([...bars, ...clipBars], frames, clips),
     ...(newInsideAndFalseOutlines.length > 0
       ? ['', 'New inside outlines and false outlines, in frame pixels:', '', ...newInsideAndFalseOutlines.map(listedOutline)]
       : []),
     ...(clipsWithoutPhoto.length > 0 ? ['', `Clips that ask for a photo on the merge base and not on the branch: ${clipsWithoutPhoto.join(', ')}`] : []),
     '',
   ].join('\n');
+}
+
+export function branchAloneTable(branch: ReplayScore): { table: string; pass: boolean } {
+  const reported = compareReplays(branch, branch, { sameDetector: false });
+  const limits = branchAloneBars(branch);
+  const pass = limits.every((bar) => bar.pass);
+  const table = [
+    ...tables(reported.bars, reported.clipBars, { cell: branchOnly, withResult: false, sides: 'branch' }),
+    'Fixed limits for a branch with no merge base replay:',
+    '',
+    '| Metric | Branch | Bar | Result |',
+    '| --- | --: | --- | --- |',
+    ...limits.map((bar) => {
+      const group = [bar.condition, bar.tiltBucket].filter((value) => value !== null).join(' ');
+      return `| ${bar.metric}${group ? `, ${group}` : ''} | ${bar.branch} | ${bar.bar} | ${bar.pass ? 'pass' : 'fail'} |`;
+    }),
+    '',
+    pass ? 'Every fixed limit passes.' : 'A fixed limit failed.',
+    ...failingLines(limits, branch.frames, branch.clips),
+    '',
+  ].join('\n');
+  return { table, pass };
 }

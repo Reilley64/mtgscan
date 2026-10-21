@@ -2,6 +2,10 @@ import { nearestRank } from '../../../src/scan/capture-log';
 
 export type Point = [x: number, y: number];
 
+export function inPixels(quad: readonly { x: number; y: number }[], width: number, height: number): Point[] {
+  return quad.map(({ x, y }): Point => [x * width, y * height]);
+}
+
 export function homography(from: Point[], to: Point[]) {
   const rows = from.flatMap(([x, y], index) => {
     const [u, v] = to[index];
@@ -66,3 +70,7 @@ export const insideOutlineMm = 1;
 export function isInside(sides: Sides) {
   return Math.max(sides.top, sides.right, sides.bottom, sides.left) > insideOutlineMm;
 }
+
+export const decimals = (value: number, digits = 2) => Number(value.toFixed(digits)).toFixed(digits);
+
+export const millimetres = (value: number | null) => (value === null ? 'none' : `${decimals(value)} mm`);

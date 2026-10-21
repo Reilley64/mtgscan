@@ -9,12 +9,18 @@ import type {
   InstalledGallery,
   Recognition,
   RecognitionErrorCode,
+  TimedRecognition,
 } from '../modules/card-recognizer';
+import type { ScanPhases } from '../src/scan/recognition-log';
 import { galleryPrintings } from './card-printings';
 import { putFile } from './fake-file-system';
 import { publishedGalleryVersion } from './fake-supabase';
 
 type Listener = (status: GalleryDownloadStatus) => void;
+
+type RecognizerPhases = Pick<ScanPhases, 'recognizerCall' | 'recognizer' | 'recognitionHandOff'>;
+
+const instantRecognizer: RecognizerPhases = { recognizerCall: 0, recognizer: 0, recognitionHandOff: 0 };
 
 export const galleryBuiltAt = '2026-10-12T09:30:00.000Z';
 export const galleryModel = 'pe-core-s16-384';
@@ -29,10 +35,20 @@ let holdingNextRecognition = false;
 let downloads: GalleryDownload[] = [];
 let galleryParity: GalleryParity | RecognitionErrorCode = 'gallery_not_ready';
 const listeners = new Set<Listener>();
+let recognizerPhases = instantRecognizer;
+
+function recognizerTimes() {
+  const startedAt = Date.now() + recognizerPhases.recognizerCall;
+  const endedAt = startedAt + recognizerPhases.recognizer;
+  if (recognizerPhases !== instantRecognizer) {
+    jest.setSystemTime(endedAt + recognizerPhases.recognitionHandOff);
+  }
+  return { startedAt, endedAt };
+}
 
 export const fakeCardRecognizer = {
   recognizerVersion: '1.0.0 (7)',
-  recognize: async (photoUri: string): Promise<Recognition> => {
+  recognize: async (photoUri: string): Promise<TimedRecognition> => {
     recognizedPhotos = [...recognizedPhotos, photoUri];
     if (holdingNextRecognition) {
       holdingNextRecognition = false;
@@ -47,7 +63,7 @@ export const fakeCardRecognizer = {
     if (next.kind === 'card' && next.trainingCrop) {
       putFile(next.trainingCrop, 'training crop');
     }
-    return next;
+    return { recognition: next, times: recognizerTimes() };
   },
   searchCardNames: async (text: string) => {
     cardNameSearches = [...cardNameSearches, text];
@@ -152,6 +168,10 @@ export function nextPhotosAre(...recognitions: (Recognition | RecognitionErrorCo
   nextRecognitions = [...nextRecognitions, ...recognitions];
 }
 
+export function recognitionsTake(phases: RecognizerPhases) {
+  recognizerPhases = phases;
+}
+
 export function holdNextRecognition() {
   holdingNextRecognition = true;
   return {
@@ -184,4 +204,5 @@ export function resetFakeCardRecognizer() {
   trainingCrops = 0;
   heldRecognition = null;
   holdingNextRecognition = false;
+  recognizerPhases = instantRecognizer;
 }

@@ -1,8 +1,8 @@
 import { cva } from 'class-variance-authority';
-import { Image } from 'expo-image';
 import { StyleSheet, View } from 'react-native';
 
 import { Grayscale } from '@/components/atoms/grayscale';
+import { SkeletonImage } from '@/components/atoms/skeleton-image';
 import { Text } from '@/components/atoms/text';
 import { aspectRatios, gradients } from '@/theme';
 
@@ -10,7 +10,7 @@ export const cardHeightPerWidth = 1 / aspectRatios.cardImage;
 
 export type CardSheen = 'foil' | 'etched';
 
-const imageVariants = cva('aspect-card-image overflow-hidden rounded-sm bg-line', {
+const imageVariants = cva('aspect-card-image overflow-hidden rounded-sm', {
   variants: {
     dimmed: { true: 'opacity-dimmed' },
   },
@@ -26,7 +26,7 @@ type CardImageProps = {
 export function CardImage({ uri, quantity, sheen, dimmed }: CardImageProps) {
   return (
     <View className={imageVariants({ dimmed })}>
-      <Image source={uri} recyclingKey={uri} cachePolicy="disk" transition={200} style={StyleSheet.absoluteFill} />
+      <SkeletonImage uri={uri} recyclingKey={uri} />
       {sheen && <View pointerEvents="none" className="absolute inset-0 opacity-sheen" style={sheenStyles[sheen]} />}
       {dimmed && <Grayscale />}
       {quantity !== undefined && (

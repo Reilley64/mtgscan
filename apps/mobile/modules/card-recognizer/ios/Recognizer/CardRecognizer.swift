@@ -12,6 +12,7 @@ public enum CardRecognizer {
   static let fullReadingStrength = 3
   static let titleCandidates = 10
   static let machineReadableFrame = "2015"
+  static let framesWithoutSetCode: Set<String> = ["1993", "1997", "2003"]
   static let listSet = "plst"
   static let artCheckDepth = 5
   static let candidateCount = 5
@@ -20,12 +21,14 @@ public enum CardRecognizer {
     photo: URL,
     outline: CardOutline,
     gallery: Gallery,
+    stageMs initialStageMs: [String: Double] = [:],
     excluded: Set<Int> = [],
     trainingCropDirectory: URL? = nil
   ) throws(RecognitionFailure) -> Recognition {
     var startedAt = ProcessInfo.processInfo.systemUptime
     let card = try CardRectifier.rectifiedCard(photo: photo, outline: outline)
-    let stageMs = ["rectify": elapsed(since: &startedAt)]
+    var stageMs = initialStageMs
+    stageMs["rectify"] = elapsed(since: &startedAt)
     return try recognize(card: card, gallery: gallery, stageMs: stageMs, excluded: excluded, trainingCropDirectory: trainingCropDirectory)
   }
 
@@ -79,23 +82,22 @@ public enum CardRecognizer {
     let preferred = CollectorLineReader.read(card: preferTurned ? turned : uprightCandidate, setCodes: gallery.setCodes)
     var isTurned = preferTurned
     var reading = preferred
-    var readMs = preferred.durationMs
     if !(confident && evidence(preferred) == fullReadingStrength) {
       let other = CollectorLineReader.read(card: preferTurned ? uprightCandidate : turned, setCodes: gallery.setCodes)
-      readMs += other.durationMs
       if evidence(other) > evidence(preferred) {
         isTurned = !preferTurned
         reading = other
       }
     }
     if evidence(reading) < 0 {
-      reading = CollectorLine(lines: reading.lines, durationMs: reading.durationMs)
+      reading = CollectorLine(lines: reading.lines)
     }
-    stageMs["read"] = readMs
+    stageMs["read"] = elapsed(since: &startedAt)
     let scores = isTurned ? turnedScores : uprightScores
     let shortlist = gallery.top(shortlistSize, of: scores)
     let topSimilarity = scores[shortlist[0]]
     guard topSimilarity >= gallery.thresholds.notACard else {
+      stageMs["decide"] = elapsed(since: &startedAt)
       return .notACard(NotACardRecognition(topSimilarity: Double(topSimilarity), stageMs: stageMs))
     }
     var expanded = shortlist
@@ -109,9 +111,15 @@ public enum CardRecognizer {
     }
     expanded.sort { scores[$0] > scores[$1] }
     let choice = choose(ranked: expanded, scores: scores, reading: reading, gallery: gallery, excluded: excluded)
-    let trainingCrop = trainingCropDirectory.flatMap { TrainingCrop.write(isTurned ? turnedSmall : uprightSmall, in: $0) }
+    let candidates = choice.candidates.map { RecognitionCandidate(printing: gallery.printings[$0]) }
+    stageMs["decide"] = elapsed(since: &startedAt)
+    var trainingCrop: URL?
+    if let trainingCropDirectory {
+      trainingCrop = TrainingCrop.write(isTurned ? turnedSmall : uprightSmall, in: trainingCropDirectory)
+      stageMs["trainingCrop"] = elapsed(since: &startedAt)
+    }
     return .card(CardRecognition(
-      candidates: choice.candidates.map { RecognitionCandidate(printing: gallery.printings[$0]) },
+      candidates: candidates,
       decision: choice.decision,
       reading: CollectorLineReading(
         setCode: reading.setCode,
@@ -177,23 +185,23 @@ public enum CardRecognizer {
     let top = ranked[0]
     let topOracleId = gallery.printings[top].oracleId
     let shortlistOracleIds = Set(ranked.prefix(illustrationExpansion).map { gallery.printings[$0].oracleId })
-    let setCode = reading.setCode ?? reading.setToken.flatMap { token in
-      let nearby = Set(ranked.compactMap { index -> String? in
-        let printing = gallery.printings[index]
-        guard shortlistOracleIds.contains(printing.oracleId),
-              oneCharacterApart(printing.set, token)
-        else { return nil }
-        return printing.set
-      })
-      return nearby.count == 1 ? nearby.first : nil
+    let imageArts = Set(ranked.prefix(artCheckDepth).compactMap { gallery.printings[$0].illustrationId })
+    let setCode = reading.setCode(among: Set(ranked.compactMap { index in
+      shortlistOracleIds.contains(gallery.printings[index].oracleId) ? gallery.printings[index].set : nil
+    }))
+    var collectorNumber = reading.collectorNumber
+    if reading.numberBeforeRarity, let setCode, let number = collectorNumber,
+       let read = gallery.index(set: setCode, collectorNumber: number), !excluded.contains(read),
+       !(shortlistOracleIds.contains(gallery.printings[read].oracleId)
+         && gallery.printings[read].illustrationId.map(imageArts.contains) == true) {
+      collectorNumber = nil
     }
-    let readLabel = [setCode?.uppercased(), reading.collectorNumber].compactMap { $0 }.joined(separator: " ")
+    let readLabel = [setCode?.uppercased(), collectorNumber].compactMap { $0 }.joined(separator: " ")
 
-    if let setCode, let number = reading.collectorNumber {
+    if let setCode, let number = collectorNumber {
       guard let read = gallery.index(set: setCode, collectorNumber: number), !excluded.contains(read) else {
         return abstain("collector line \(readLabel) names no printing in the gallery")
       }
-      let imageArts = Set(ranked.prefix(artCheckDepth).compactMap { gallery.printings[$0].illustrationId })
       if shortlistOracleIds.contains(gallery.printings[read].oracleId),
          let readArt = gallery.printings[read].illustrationId, !imageArts.contains(readArt) {
         return abstain("collector line \(readLabel) names a printing whose art the image does not match", shownFirst: [ranked[0]])
@@ -229,7 +237,7 @@ public enum CardRecognizer {
     func contradicts(_ index: Int) -> Bool {
       let printing = gallery.printings[index]
       if let setCode, printing.set != setCode { return true }
-      if let number = reading.collectorNumber,
+      if let number = collectorNumber,
          Gallery.key(set: printing.set, collectorNumber: printing.collectorNumber)
            != Gallery.key(set: printing.set, collectorNumber: number) {
         return true
@@ -242,7 +250,23 @@ public enum CardRecognizer {
         gallery.printings[$0].set == setCode && gallery.printings[$0].oracleId == topOracleId
       }
       if matches.count == 1 {
-        return accept(matches[0], .setCode, "set \(setCode.uppercased()) leaves one printing of the top card")
+        let reason = "set \(setCode.uppercased()) leaves one printing of the top card"
+        let printingsInSet = (gallery.printingsByOracle[topOracleId] ?? []).filter { gallery.printings[$0].set == setCode }.count
+        if printingsInSet > 1 {
+          return abstain(
+            "set \(setCode.uppercased()) has \(printingsInSet) printings of the top card and no collector number was read",
+            shownFirst: matches
+          )
+        }
+        if let rival = ranked.dropFirst().first(where: { gallery.printings[$0].oracleId != topOracleId }),
+           scores[top] - scores[rival] < gallery.thresholds.artMargin {
+          let required = format(gallery.thresholds.artMargin)
+          return abstain(
+            "\(reason), but the next card is \(format(scores[top] - scores[rival])) behind; at least \(required) is required",
+            shownFirst: matches
+          )
+        }
+        return accept(matches[0], .setCode, reason)
       }
       if matches.count > 1 {
         return abstain("set \(setCode.uppercased()) leaves \(matches.count) printings of the top card", shownFirst: [matches[0]])
@@ -253,7 +277,22 @@ public enum CardRecognizer {
       .filter { !excluded.contains($0) }
     if siblings.count > 1 {
       let note = readLabel.isEmpty ? "no collector line was read" : "collector line read only \(readLabel)"
-      return abstain("\(siblings.count) printings share this art and \(note)")
+      let reason = "\(siblings.count) printings share this art and \(note)"
+      guard setCode == nil, let number = collectorNumber else { return abstain(reason) }
+      let numbered = ranked.filter { index in
+        let printing = gallery.printings[index]
+        return printing.oracleId == topOracleId
+          && printing.illustrationId.map(imageArts.contains) == true
+          && Gallery.key(set: printing.set, collectorNumber: printing.collectorNumber)
+            == Gallery.key(set: printing.set, collectorNumber: number)
+      }
+      guard numbered.count == 1 else { return abstain(reason) }
+      let printing = gallery.printings[numbered[0]]
+      return abstain(
+        reason,
+        "\(printing.set.uppercased()) \(printing.collectorNumber) is the only printing of the top card with that collector number",
+        shownFirst: numbered
+      )
     }
     guard let margin = artMargin(ranked: ranked, scores: scores, gallery: gallery) else {
       return abstain("only printing of its art, but no other art was compared")
@@ -267,6 +306,9 @@ public enum CardRecognizer {
     if margin < gallery.thresholds.artMargin {
       let required = format(gallery.thresholds.artMargin)
       return abstain("only printing of its art, but the next art is \(format(margin)) behind; at least \(required) is required")
+    }
+    if framesWithoutSetCode.contains(gallery.printings[top].frame), reading.setCode != nil || !reading.setTokens.isEmpty {
+      return abstain("only printing of its art, but a set code was read and its frame prints none")
     }
     return accept(top, .uniqueArt, "only printing of its art, next art \(format(margin)) behind")
   }
@@ -303,7 +345,7 @@ public enum CardRecognizer {
     String(format: "%.3f", value)
   }
 
-  private static func elapsed(since startedAt: inout TimeInterval) -> Double {
+  public static func elapsed(since startedAt: inout TimeInterval) -> Double {
     let now = ProcessInfo.processInfo.systemUptime
     defer { startedAt = now }
     return ((now - startedAt) * 1000 * 10).rounded() / 10

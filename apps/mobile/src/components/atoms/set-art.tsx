@@ -2,6 +2,8 @@ import { Image } from 'expo-image';
 import { StyleSheet, View } from 'react-native';
 
 import { Grayscale } from '@/components/atoms/grayscale';
+import { Skeleton } from '@/components/atoms/skeleton';
+import { imageSkeletonClass, useImageLoading } from '@/components/atoms/skeleton-image';
 import { gradients } from '@/theme';
 
 type SetArtProps = {
@@ -10,10 +12,12 @@ type SetArtProps = {
 };
 
 export function SetArt({ uri, share }: SetArtProps) {
+  const { loading, onLoadEnd } = useImageLoading(uri);
   return (
     <View accessibilityElementsHidden importantForAccessibility="no-hide-descendants" className="absolute inset-0">
+      {loading ? <Skeleton className={imageSkeletonClass} /> : null}
       <View className="absolute inset-0 opacity-dimmed">
-        <Image source={uri} contentFit="cover" cachePolicy="disk" transition={200} style={StyleSheet.absoluteFill} />
+        <Image source={uri} contentFit="cover" cachePolicy="disk" transition={200} onLoadEnd={onLoadEnd} style={StyleSheet.absoluteFill} />
         <Grayscale />
       </View>
       {share > 0 && (

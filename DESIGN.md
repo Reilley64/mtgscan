@@ -633,7 +633,7 @@ Sets lists every released set that has a card printing in the card catalog, with
 The app shows the sign-in screen whenever there is no session. It is the binder wall design (prototype `prototypes/sign-in/index.html?variant=D`, commit 4b31c79 on `prototype/first-release`).
 
 - **Binder wall.** Three columns of card images fill the screen behind everything else. The wall is tilted 6 degrees, dimmed to half opacity, and darkened at the top and bottom. Some tiles carry a quantity badge. Each column drifts slowly upward at its own speed, between 70 and 90 seconds per loop. With Reduce Motion on, the wall stands still.
-- **Card images** are 18 fixed Commander staples and commanders from Scryfall's image CDN. They are cached on the device. Until an image loads, its tile is a dark line-colored card shape, so the screen works offline.
+- **Card images** are 18 fixed Commander staples and commanders from Scryfall's image CDN. They are cached on the device. Until an image loads, its tile is an image skeleton. When an image fails, such as offline, its tile stays a dark line-colored card shape.
 - **Brand.** The brand mark and the mtgscan name sit at the top left.
 - **Sheet.** A bottom sheet with a grabber holds the copy and the actions: the title "Every card you own, in one binder.", the line "Scan your cards, see what each one is worth, and build Commander decks from them.", the sign-in buttons, "Your collection and decks stay private." with a **Privacy policy** link, and the credit "Card images from Scryfall". The link opens https://mtgscan.reilley.dev/privacy in the system browser.
 - **Sign-in buttons** stack in one column with 8 px gaps: **Sign in with Apple** first, then **Continue with Google**.
@@ -905,6 +905,7 @@ Liquid Glass is Apple's glass material from iOS 26 (owner decision, #113).
 
 ## Components
 
+- **Image skeleton.** While a card image, a card thumbnail, a commander avatar, commander art, or set art loads, its shape pulses like the skeleton grid. Card images, card thumbnails, and commander avatars pulse in line color, or in glass skeleton on glass. Commander art and set art pulse in line color over the whole card or banner. When the image loads, it fades in over 200 ms. When it fails, card images, card thumbnails, commander avatars, and commander art stay a still line-colored shape, and set art leaves the banner empty. A card image that shows a new card pulses again until the new image loads. The blurred art crop behind the copy page hero has no skeleton.
 - **Buttons.** Primary buttons are lime with dark text: Swap in, Swap in all, Bought, Add to collection. Secondary buttons use the control surface: Close, Skip, Cancel. Destructive actions, such as **Remove scan**, use danger text on the danger tint.
   - A disabled button fades to 38% opacity, the same dimming as the other sign-in buttons while one signs in. `theme.ts` names it `opacity.dimmed`.
   - A busy button shows a spinner before its label and takes no taps. It keeps its full color.

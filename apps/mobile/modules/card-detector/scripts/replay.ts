@@ -9,6 +9,7 @@ import { parseArgs } from 'node:util';
 import type { FrameQuad } from '../index';
 import { heldStillSample } from '../../../test/scanner-evidence/detector/clips';
 import {
+  branchAloneTable,
   compareReplays,
   replayTable,
   scoreReplay,
@@ -25,7 +26,6 @@ const imagesDirectory = path.resolve(process.env.DETECTOR_IMAGES_DIR ?? path.joi
 const texturesDirectory = path.join(dataDirectory, 'textures');
 const reportsDirectory = path.join(dataDirectory, 'reports');
 const comparedSources = [path.join('ios', 'Detector'), path.join('macos', 'CardDetectorCommand')];
-const photoOutlineSource = path.join(comparedSources[0], 'PhotoOutline.swift');
 
 const { values } = parseArgs({
   options: {
@@ -35,7 +35,7 @@ const { values } = parseArgs({
   },
 });
 
-function run(command: string, args: string[], { cwd, output }: { cwd?: string; output?: boolean } = {}) {
+function runProcess(command: string, args: string[], { cwd, output }: { cwd?: string; output?: boolean } = {}) {
   return new Promise<{ code: number | null; stdout: string }>((resolve, reject) => {
     const child = spawn(command, args, { cwd, stdio: ['ignore', output ? 'pipe' : process.stderr, 'inherit'] });
     const chunks: Buffer[] = [];
@@ -46,7 +46,7 @@ function run(command: string, args: string[], { cwd, output }: { cwd?: string; o
 }
 
 async function git(args: string[]) {
-  const result = await run('git', args, { cwd: moduleRoot, output: true });
+  const result = await runProcess('git', args, { cwd: moduleRoot, output: true });
   if (result.code !== 0) throw new Error(`git ${args.join(' ')} failed`);
   return result.stdout.trim();
 }
@@ -73,7 +73,7 @@ async function renderFrames() {
   const recorded = values['record-frame-hashes'] ? '' : await fs.readFile(hashListFile, 'utf8');
   if (recorded && (await mismatchedFrames(recorded)).length === 0) return [];
   await fs.rm(framesDirectory, { recursive: true, force: true });
-  const render = await run('uv', [
+  const render = await runProcess('uv', [
     'run',
     path.join(recipeDirectory, 'frames.py'),
     '--cards',
@@ -96,7 +96,7 @@ async function renderFrames() {
 }
 
 async function buildCommand(packageRoot: string, scratch: string) {
-  const build = await run('swift', [
+  const build = await runProcess('swift', [
     'build',
     '-c',
     'release',
@@ -116,29 +116,21 @@ async function buildCommand(packageRoot: string, scratch: string) {
 async function exportBasePackage(commit: string) {
   const repositoryRoot = await git(['rev-parse', '--show-toplevel']);
   const modulePath = path.relative(repositoryRoot, moduleRoot);
+  const stepMode = await runProcess('git', ['grep', '--quiet', '--fixed-strings', '"step"', commit, '--', path.join(modulePath, comparedSources[1])], {
+    cwd: repositoryRoot,
+  });
+  if (stepMode.code !== 0) return null;
   const directory = path.join(dataDirectory, 'base', commit);
   const packageRoot = path.join(directory, 'package');
   await fs.rm(packageRoot, { recursive: true, force: true });
   await fs.mkdir(packageRoot, { recursive: true });
   const archive = path.join(directory, 'package.tar');
   const packageFiles = ['Package.swift', 'ios/Detector', 'macos'].map((file) => path.join(modulePath, file));
-  const written = await run('git', ['archive', '--output', archive, commit, ...packageFiles], { cwd: repositoryRoot });
+  const written = await runProcess('git', ['archive', '--output', archive, commit, ...packageFiles], { cwd: repositoryRoot });
   if (written.code !== 0) throw new Error(`git archive ${commit} failed`);
-  const unpacked = await run('tar', ['-x', '-f', archive, '-C', packageRoot, '--strip-components', String(modulePath.split(path.sep).length)]);
+  const unpacked = await runProcess('tar', ['-x', '-f', archive, '-C', packageRoot, '--strip-components', String(modulePath.split(path.sep).length)]);
   if (unpacked.code !== 0) throw new Error('the merge base package did not unpack');
-  const baseCommandFile = path.join(packageRoot, comparedSources[1], 'main.swift');
-  const baseCommand = existsSync(baseCommandFile) ? await fs.readFile(baseCommandFile, 'utf8') : '';
-  if (!baseCommand.includes('case "step"')) {
-    await fs.cp(path.join(moduleRoot, 'Package.swift'), path.join(packageRoot, 'Package.swift'));
-    await fs.cp(path.join(moduleRoot, comparedSources[1]), path.join(packageRoot, comparedSources[1]), { recursive: true });
-    await fs.cp(path.join(moduleRoot, photoOutlineSource), path.join(packageRoot, photoOutlineSource));
-  }
-  return {
-    packageRoot,
-    scratch: path.join(directory, 'build'),
-    refines: baseCommand.includes('case "refine"'),
-    takesIntrinsicMatrix: baseCommand.includes('intrinsicMatrix'),
-  };
+  return { packageRoot, scratch: path.join(directory, 'build') };
 }
 
 async function sourceFiles(packageRoot: string) {
@@ -158,7 +150,7 @@ async function sourceFiles(packageRoot: string) {
 type PhotoOutlineRecord = { outline: FrameQuad; outcome: string; durationMs: number };
 type ReplayFrame = { frame: string; intrinsicMatrix: number[][] };
 
-function startCommand(command: string, frames: ReplayFrame[], takesIntrinsicMatrix: boolean) {
+function startCommand(command: string, frames: ReplayFrame[]) {
   const child = spawn(command, ['step', ...frames.map(({ frame }) => frame)], {
     cwd: framesDirectory,
     stdio: ['pipe', 'pipe', 'inherit'],
@@ -171,10 +163,9 @@ function startCommand(command: string, frames: ReplayFrame[], takesIntrinsicMatr
     return JSON.parse(line.value) as unknown;
   }
   return {
-    detect: async (index: number) =>
-      (await ask(takesIntrinsicMatrix ? `${index} ${frames[index].intrinsicMatrix.flat().join(' ')}` : String(index))) as FrameSample,
+    detect: async (index: number) => (await ask(`${index} ${frames[index].intrinsicMatrix.flat().join(' ')}`)) as FrameSample,
     refine: async (index: number, photo: string, outline: FrameQuad) =>
-      (await ask(JSON.stringify({ refine: index, photo, outline }))) as PhotoOutlineRecord,
+      (await ask(JSON.stringify({ refine: index, photo, outline, intrinsicMatrix: frames[index].intrinsicMatrix }))) as PhotoOutlineRecord,
     stop: () => child.stdin.end(),
   };
 }
@@ -191,13 +182,9 @@ async function refinePhotos(side: ReturnType<typeof startCommand>, frames: Repla
   return records;
 }
 
-async function detectInterleaved(
-  commands: { command: string; refines: boolean; takesIntrinsicMatrix: boolean }[],
-  labels: FrameLabels,
-  rounds: number,
-) {
+async function detectInterleaved(commands: string[], labels: FrameLabels, rounds: number) {
   const frames = [...labels.frames, ...labels.clips.flatMap((clip) => clip.frames)];
-  const sides = commands.map(({ command, takesIntrinsicMatrix }) => startCommand(command, frames, takesIntrinsicMatrix));
+  const sides = commands.map((command) => startCommand(command, frames));
   const samples = sides.map(() => Array.from({ length: rounds }, (): FrameSample[] => []));
   for (let round = 0; round < rounds; round += 1) {
     const roundFrames = round === 0 ? frames.length : labels.frames.length;
@@ -206,20 +193,29 @@ async function detectInterleaved(
       for (const side of order) samples[side][round].push(await sides[side].detect(index));
     }
   }
-  const photoOutlines = await Promise.all(
-    sides.map((side, index) => (commands[index].refines ? refinePhotos(side, frames, labels, samples[index][0]) : new Map<string, PhotoOutlineRecord>())),
-  );
+  const photoOutlines = await Promise.all(sides.map((side, index) => refinePhotos(side, frames, labels, samples[index][0])));
   sides.forEach((side) => side.stop());
   return { samples, photoOutlines };
 }
 
 function photoRefinementLine(name: string, records: Map<string, PhotoOutlineRecord>) {
-  if (records.size === 0) return `Photo refinement on the ${name}: none, its detector command has no refine mode.`;
   const outcomes = new Map<string, number>();
   for (const { outcome } of records.values()) outcomes.set(outcome, (outcomes.get(outcome) ?? 0) + 1);
   const durations = [...records.values()].map((record) => record.durationMs).sort((a, b) => a - b);
   const counts = [...outcomes].map(([outcome, count]) => `${count} ${outcome.replace('_', ' ')}`).join(', ');
   return `Photo refinement on the ${name}: ${counts}, of ${records.size} clips that ask for a photo. Median ${durations[Math.floor(durations.length / 2)].toFixed(0)} ms on the Mac.`;
+}
+
+const outlinesOf = (records: Map<string, PhotoOutlineRecord>) => new Map([...records].map(([clip, record]) => [clip, record.outline]));
+
+async function writeReports(report: string, scores: Record<string, unknown>) {
+  await fs.rm(reportsDirectory, { recursive: true, force: true });
+  await fs.mkdir(reportsDirectory, { recursive: true });
+  await Promise.all([
+    ...Object.entries(scores).map(([name, score]) => fs.writeFile(path.join(reportsDirectory, `${name}.json`), `${JSON.stringify(score, null, 1)}\n`)),
+    fs.writeFile(path.join(reportsDirectory, 'comparison.md'), report),
+  ]);
+  console.log(report);
 }
 
 const mismatched = await renderFrames();
@@ -235,41 +231,52 @@ if (mismatched.length > 0) {
 }
 const labels = JSON.parse(await fs.readFile(path.join(framesDirectory, 'labels.json'), 'utf8')) as FrameLabels;
 const baseCommit = await git(['merge-base', 'HEAD', values.base!]);
+const branchCommit = await git(['rev-parse', '--short', 'HEAD']);
 console.error('Building the detector command on the branch');
 const branchCommand = await buildCommand(moduleRoot, path.join(dataDirectory, 'build'));
-console.error(`Building the detector command on the merge base ${baseCommit.slice(0, 7)}`);
 const basePackage = await exportBasePackage(baseCommit);
+
+if (!basePackage) {
+  console.error(`The merge base ${baseCommit.slice(0, 7)} has no detector replay`);
+  const {
+    samples: [branchRounds],
+    photoOutlines: [branchPhotos],
+  } = await detectInterleaved([branchCommand], labels, Number(values.rounds));
+  const branch = scoreReplay(labels, branchRounds, outlinesOf(branchPhotos));
+  const { table, pass } = branchAloneTable(branch);
+  await writeReports(
+    [
+      `The merge base ${baseCommit.slice(0, 7)} with ${values.base} has no detector replay, so the branch at ${branchCommit} runs alone against fixed limits, ${values.rounds} timing rounds.`,
+      '',
+      table,
+      photoRefinementLine('branch', branchPhotos),
+      '',
+    ].join('\n'),
+    { branch },
+  );
+  process.exit(pass ? 0 : 1);
+}
+
+console.error(`Building the detector command on the merge base ${baseCommit.slice(0, 7)}`);
 const baseCommand = await buildCommand(basePackage.packageRoot, basePackage.scratch);
 const sameDetector = (await sourceFiles(moduleRoot)) === (await sourceFiles(basePackage.packageRoot));
 const {
   samples: [baseRounds, branchRounds],
   photoOutlines: [basePhotos, branchPhotos],
-} = await detectInterleaved(
-  [
-    { command: baseCommand, refines: basePackage.refines, takesIntrinsicMatrix: basePackage.takesIntrinsicMatrix },
-    { command: branchCommand, refines: true, takesIntrinsicMatrix: true },
-  ],
-  labels,
-  Number(values.rounds),
-);
-const outlinesOf = (records: Map<string, PhotoOutlineRecord>) => new Map([...records].map(([clip, record]) => [clip, record.outline]));
+} = await detectInterleaved([baseCommand, branchCommand], labels, Number(values.rounds));
 const base = scoreReplay(labels, baseRounds, outlinesOf(basePhotos));
 const branch = scoreReplay(labels, branchRounds, outlinesOf(branchPhotos));
 const comparison = compareReplays(base, branch, { sameDetector });
-const report = [
-  `The branch at ${await git(['rev-parse', '--short', 'HEAD'])} against the merge base ${baseCommit.slice(0, 7)} with ${values.base}, ${values.rounds} timing rounds.`,
-  '',
-  replayTable(comparison),
-  photoRefinementLine('merge base', basePhotos),
-  '',
-  photoRefinementLine('branch', branchPhotos),
-  '',
-].join('\n');
-await fs.mkdir(reportsDirectory, { recursive: true });
-await Promise.all([
-  fs.writeFile(path.join(reportsDirectory, 'base.json'), `${JSON.stringify(base, null, 1)}\n`),
-  fs.writeFile(path.join(reportsDirectory, 'branch.json'), `${JSON.stringify(branch, null, 1)}\n`),
-  fs.writeFile(path.join(reportsDirectory, 'comparison.md'), report),
-]);
-console.log(report);
+await writeReports(
+  [
+    `The branch at ${branchCommit} against the merge base ${baseCommit.slice(0, 7)} with ${values.base}, ${values.rounds} timing rounds.`,
+    '',
+    replayTable(comparison),
+    photoRefinementLine('merge base', basePhotos),
+    '',
+    photoRefinementLine('branch', branchPhotos),
+    '',
+  ].join('\n'),
+  { base, branch },
+);
 process.exit(comparison.pass ? 0 : 1);

@@ -9,7 +9,6 @@ import Testing
 
 private let card = SyntheticCard(center: SIMD2(360, 620), width: 400, angle: 4.0 * Double.pi / 180.0)
 private let moved = CardQuadGeometry.orderedClockwise(card.corners)!
-private let heldStill = moved.map { $0 + SIMD2(9.0, -6.0) }
 
 private func refined(_ corners: [SIMD2<Double>]) -> CardEdgeRefiner.Outcome {
   .refined(corners: corners, supportMin: 0.9, shifts: [0, 0, 0, 0], supports: [0.9, 0.9, 0.9, 0.9], fallbackEdges: 0)
@@ -50,34 +49,34 @@ private func writeJPEG(_ image: GrayImage) -> URL {
 @Test("keeps a photo outline within the size and motion checks")
 func keepsAPhotoOutlineWithinTheChecks() {
   let close = scaled(moved, width: 0.99, height: 0.99).map { $0 + SIMD2(2.0, 1.0) }
-  let result = PhotoOutline.chosen(refined(close), moved: moved, heldStill: heldStill)
+  let result = PhotoOutline.checkedOutline(refined(close), moved: moved)
   #expect(result.outcome == .refined)
   #expect(result.outline == close)
 }
 
 @Test(
-  "refuses a photo outline more than 2% smaller than the moved outline, and keeps the held-still outline",
+  "refuses a photo outline more than 2% smaller than the moved outline, and keeps the moved outline",
   arguments: [(0.97, 1.0), (1.0, 0.97), (0.9, 0.9)]
 )
 func refusesASmallerPhotoOutline(width: Double, height: Double) {
-  let result = PhotoOutline.chosen(refined(scaled(moved, width: width, height: height)), moved: moved, heldStill: heldStill)
+  let result = PhotoOutline.checkedOutline(refined(scaled(moved, width: width, height: height)), moved: moved)
   #expect(result.outcome == .sizeRefused)
-  #expect(result.outline == heldStill)
+  #expect(result.outline == moved)
 }
 
-@Test("refuses a photo outline whose corners sit far from the moved outline, and keeps the held-still outline")
+@Test("refuses a photo outline whose corners sit far from the moved outline, and keeps the moved outline")
 func refusesAPhotoOutlineFarFromTheMovedOutline() {
   let shifted = moved.map { $0 + SIMD2(0.0, 12.0) }
-  let result = PhotoOutline.chosen(refined(shifted), moved: moved, heldStill: heldStill)
+  let result = PhotoOutline.checkedOutline(refined(shifted), moved: moved)
   #expect(result.outcome == .motionRefused)
-  #expect(result.outline == heldStill)
+  #expect(result.outline == moved)
 }
 
-@Test("keeps the held-still outline when the edge refiner finds no outline on the photo")
-func keepsTheHeldStillOutlineWithoutARefinedOutline() {
-  let result = PhotoOutline.chosen(.weakEdge(supportMin: 0.2), moved: moved, heldStill: heldStill)
+@Test("keeps the moved outline when the edge refiner finds no outline on the photo")
+func keepsTheMovedOutlineWithoutARefinedOutline() {
+  let result = PhotoOutline.checkedOutline(.weakEdge(supportMin: 0.2), moved: moved)
   #expect(result.outcome == .notRefined)
-  #expect(result.outline == heldStill)
+  #expect(result.outline == moved)
 }
 
 @Test("keeps the held-still outline when the photo cannot be read")
@@ -85,7 +84,13 @@ func keepsTheHeldStillOutlineOnAnError() {
   let frame = makeBuffer(oriented: renderCard(card, width: 720, height: 1280, background: 185), orientation: .right)
   let outline = moved.map { SIMD2($0.x / 720.0, $0.y / 1280.0) }
   let missing = FileManager.default.temporaryDirectory.appendingPathComponent("missing-\(UUID().uuidString).jpg")
-  let result = PhotoOutline.refine(photo: missing, frame: frame, frameOrientation: .right, heldStill: outline)
+  let result = PhotoOutline.refine(
+    photo: missing,
+    frame: frame,
+    frameOrientation: .right,
+    frameIntrinsicMatrix: nil,
+    heldStill: outline
+  )
   #expect(result.outcome == .failed)
   #expect(result.outline == outline)
 }
@@ -102,10 +107,37 @@ func refinesTheOutlineOnAPhotoAfterTheHandMoved() throws {
     photo: photo,
     frame: frame,
     frameOrientation: .right,
+    frameIntrinsicMatrix: nil,
     heldStill: moved.map { SIMD2($0.x / 720.0, $0.y / 1280.0) }
   )
 
   #expect(result.outcome == .refined)
   let error = maximumCornerError(result.outline.map { SIMD2($0.x * 720.0, $0.y * 1280.0) }, truth)
   #expect(error < 1.5, "photo outline corner error \(error) px")
+}
+
+@Test("refines the outline of a tilted black-bordered card on the photo with the frame's intrinsic matrix")
+func refinesATiltedCardWithTheIntrinsicMatrix() {
+  let image = renderCard(TiltedCard(pose: tiltedTowardTheTop), width: 720, height: 1280, background: 185)
+  let frame = makeBuffer(oriented: image, orientation: .right)
+  let photo = writeJPEG(image)
+  defer { try? FileManager.default.removeItem(at: photo) }
+  let outerEdge = CardQuadGeometry.orderedClockwise(tiltedTowardTheTop.card())!
+  func refined(frameIntrinsicMatrix: simd_float3x3?) -> PhotoOutline.Result {
+    PhotoOutline.refine(
+      photo: photo,
+      frame: frame,
+      frameOrientation: .right,
+      frameIntrinsicMatrix: frameIntrinsicMatrix,
+      heldStill: outerEdge.map { SIMD2($0.x / 720.0, $0.y / 1280.0) }
+    )
+  }
+
+  let withMatrix = refined(frameIntrinsicMatrix: CameraPose.landscapeCameraMatrix)
+  let withoutMatrix = refined(frameIntrinsicMatrix: nil)
+
+  #expect(withMatrix.outcome == .refined)
+  let error = maximumCornerError(withMatrix.outline.map { SIMD2($0.x * 720.0, $0.y * 1280.0) }, outerEdge)
+  #expect(error < 1.5, "photo outline corner error \(error) px")
+  #expect(withoutMatrix.outcome != .refined)
 }
