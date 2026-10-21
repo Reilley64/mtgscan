@@ -167,12 +167,12 @@ function scoreCondition(condition: string, frames: FrameScore[]): ConditionScore
   };
 }
 
-export function scoreReplay(labels: FrameLabels, samples: FrameSample[]): ReplayScore {
-  const byFrame = new Map(samples.map((sample) => [sample.frame, sample]));
+export function scoreReplay(labels: FrameLabels, rounds: FrameSample[][]): ReplayScore {
+  const roundsByFrame = rounds.map((samples) => new Map(samples.map((sample) => [sample.frame, sample])));
   const frames = labels.frames.map((label) => {
-    const sample = byFrame.get(label.frame);
-    if (!sample) throw new Error(`no detection sample for ${label.frame}`);
-    return scoreFrame(label, sample, labels);
+    const samples = roundsByFrame.map((byFrame) => byFrame.get(label.frame));
+    if (!samples.every((sample) => sample !== undefined)) throw new Error(`no detection sample for ${label.frame}`);
+    return { ...scoreFrame(label, samples[0], labels), nativeDurationMs: median(samples.map((sample) => sample.nativeDurationMs)) };
   });
   const conditions = [...new Set(frames.map((frame) => frame.condition))];
   return {

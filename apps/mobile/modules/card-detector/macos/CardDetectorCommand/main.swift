@@ -6,7 +6,7 @@ import ImageIO
 
 let displayOrientation = CGImagePropertyOrientation.right
 
-let usage = "usage: card-detector frames <image>..."
+let usage = "usage: card-detector frames <image>... | card-detector step <image>..."
 
 struct Frame {
   let width: Int
@@ -129,7 +129,7 @@ func detect(_ buffer: CVPixelBuffer) -> DetectionSample {
   )
 }
 
-func detectFrames(_ paths: [String]) {
+func warmedUpBuffers(_ paths: [String]) -> [CVPixelBuffer] {
   let buffers = paths.map { path in
     guard let frame = loadFrame(at: URL(fileURLWithPath: path)), frame.width < frame.height,
           let buffer = analysisBuffer(of: frame)
@@ -137,10 +137,26 @@ func detectFrames(_ paths: [String]) {
     return buffer
   }
   _ = detect(buffers[0])
-  for (path, buffer) in zip(paths, buffers) {
-    autoreleasepool {
-      emit(detect(buffer).record.merging(["frame": path]) { current, _ in current })
-    }
+  return buffers
+}
+
+func emitDetection(_ path: String, _ buffer: CVPixelBuffer) {
+  autoreleasepool {
+    emit(detect(buffer).record.merging(["frame": path]) { current, _ in current })
+  }
+}
+
+func detectFrames(_ paths: [String]) {
+  for (path, buffer) in zip(paths, warmedUpBuffers(paths)) {
+    emitDetection(path, buffer)
+  }
+}
+
+func detectFramesOnRequest(_ paths: [String]) {
+  let buffers = warmedUpBuffers(paths)
+  while let line = readLine() {
+    guard let index = Int(line), buffers.indices.contains(index) else { fail("no frame at index \(line)") }
+    emitDetection(paths[index], buffers[index])
   }
 }
 
@@ -148,6 +164,8 @@ let arguments = Array(CommandLine.arguments.dropFirst())
 switch arguments.first {
 case "frames" where arguments.count > 1:
   detectFrames(Array(arguments.dropFirst()))
+case "step" where arguments.count > 1:
+  detectFramesOnRequest(Array(arguments.dropFirst()))
 default:
   fail(usage)
 }
