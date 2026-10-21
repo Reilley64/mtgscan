@@ -23,6 +23,7 @@ import type {
   UserTag,
 } from '@mtgscan/supabase/collection';
 import type { ExchangeRate } from '@mtgscan/supabase/converted-prices';
+import { galleryFormatVersion } from '@mtgscan/supabase/gallery-manifest';
 import type { Deck, DeckBasicLand, DeckCard, DeckChange, DeckChangeEffect, DeckCommander, DeckEvaluation, RevertPreview } from '@mtgscan/supabase/decks';
 import type { PlannedSwap } from '@mtgscan/supabase/planned-swaps';
 import type { BuylistCard, FreeCopy } from '@mtgscan/supabase/buylist';
@@ -202,7 +203,7 @@ function exchangeRatesOf(currencies: string[], rateDate = testRateDate): Exchang
   }));
 }
 
-function galleryObjectsOf(version: string, partNames: string[], formatVersion = 2) {
+function galleryObjectsOf(version: string, partNames: string[], formatVersion = galleryFormatVersion) {
   return new Map([
     ['published.json', JSON.stringify({ formatVersion, version, manifest: `${version}/manifest.json` })],
     [`${version}/manifest.json`, JSON.stringify({ formatVersion, version, parts: partNames.map((name) => ({ name })) })],
@@ -1269,12 +1270,12 @@ export function expirePageCursors() {
   store.cursorGeneration += 1;
 }
 
-export function publishGallery(version: string, { partNames = galleryPartNames, formatVersion = 2 } = {}) {
+export function publishGallery(version: string, { partNames = galleryPartNames, formatVersion = galleryFormatVersion } = {}) {
   store.galleryObjects = new Map([...store.galleryObjects, ...galleryObjectsOf(version, partNames, formatVersion)]);
 }
 
 export function uploadUnpublishedGallery(version: string) {
-  store.galleryObjects.set(`${version}/manifest.json`, JSON.stringify({ formatVersion: 2, version, parts: [] }));
+  store.galleryObjects.set(`${version}/manifest.json`, JSON.stringify({ formatVersion: galleryFormatVersion, version, parts: [] }));
 }
 
 export function allowAiClients(seeds: { name: string; allowedAt: string }[]) {
