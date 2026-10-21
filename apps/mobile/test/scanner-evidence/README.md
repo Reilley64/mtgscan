@@ -103,7 +103,7 @@ Pass criteria:
 - 11 of 11 non-card crops rejected.
 - 0 recognizer errors.
 
-Recorded result: 207 correct accepts of 250, 0 false accepts, 248 right cards first, and 230 right printings first. 15 accepts are unread, accepted as the only printing of their art. With the true printing missing, 0 accepts. The last Vision recording, on macOS 15.7.3, had 214 correct accepts, 249 right cards first, and 236 right printings first. On macOS 27.0.1 the Vision gallery gets 206 correct accepts, so most of the drop comes from the collector line reader on the new OS.
+Recorded result: 217 correct accepts of 250, 0 false accepts, 249 right cards first, and 241 right printings first. 14 accepts are unread, accepted as the only printing of their art. With the true printing missing, 0 accepts. Before #507 read more set codes, the PE-Core gallery had 207 correct accepts, 248 right cards first, and 230 right printings first. The last Vision recording, on macOS 15.7.3, had 214 correct accepts, 249 right cards first, and 236 right printings first. On macOS 27.0.1 the Vision gallery gets 206 correct accepts, so most of the drop comes from the collector line reader on the new OS.
 
 ## Gate 2: simulated scans
 
@@ -121,7 +121,7 @@ Pass criteria:
 - No more accepted wrong printings outside the candidate list than recorded. The recorded count is 0. The #10 study had 1, Tamiyo's Journal `plst SOI-265` with 10 printings that share its art. The candidate list now includes every same-text twin, so that card is inside it.
 - 0 recognizer errors.
 
-Recorded result on the full gallery: 2,504 accepts, 2,134 exactly right, 370 other printings of the right card, and 0 wrong cards. 2,996 of 3,000 had the right card first. With the true printing missing: 401 accepts, all another printing of the right card, and 0 wrong cards. The last Vision recording had 2,493 accepts, 2,135 exactly right, and 2,993 right cards first, and 382 accepts with the true printing missing.
+Recorded result on the full gallery: 2,537 accepts, 2,161 exactly right, 376 other printings of the right card, and 0 wrong cards. 2,996 of 3,000 had the right card first, and 2,542 the right printing first. With the true printing missing: 398 accepts, all another printing of the right card, and 0 wrong cards. Before #507 read more set codes, the PE-Core gallery had 2,504 accepts, 2,134 exactly right, 2,531 right printings first, and 401 accepts with the true printing missing. The last Vision recording had 2,493 accepts, 2,135 exactly right, and 2,993 right cards first, and 382 accepts with the true printing missing.
 
 In the results, `falseAccepts` counts every accept that is not the exact printing. Most are same-text twins, which are the product decision in #10. `check.mjs` reports wrong cards separately. `truthInTop5` counts the scans whose true printing is anywhere in the candidate list.
 
@@ -147,6 +147,8 @@ Pass criteria from #10 and #21:
 - The exact card printing first for at least 27 of 30. The other cards abstain or show a switchable same-text twin.
 - End-to-end p95 below 1.5 s.
 - Gallery parity on the phone: the lowest cosine is at least 0.98 over 24 reference images (`DEVICE_PARITY`). `bun run gallery parity` checks this rule when it records the parity check. The score script copies the `PARITY` line into `DEVICE_PARITY`.
+
+When the end-to-end p95 fails, `phaseMs` in the `RECOGNITION` lines shows where the time goes. `README.md` (Latest scan) lists the phases. The score script does not read them.
 
 Cards per minute is not a recognition gate. It moved to #11.
 

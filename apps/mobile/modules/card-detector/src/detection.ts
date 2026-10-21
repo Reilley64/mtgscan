@@ -26,9 +26,19 @@ export type DetectionSample = {
   runtimeErrorCode: DetectorErrorCode | null;
 };
 
+export type PhotoTimes = {
+  receivedAt: number;
+  capturedAt: number;
+  processedAt: number;
+  savedAt: number;
+};
+
 export type CapturedPhoto = {
   uri: string;
   outline: CardOutline;
+  width: number;
+  height: number;
+  times: PhotoTimes;
 };
 
 export type CameraPermission = 'granted' | 'denied' | 'undetermined';

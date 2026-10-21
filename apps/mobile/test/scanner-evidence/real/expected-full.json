@@ -1,6 +1,6 @@
 {
  "recordedWith": {
-  "recognizerCommit": "64a295e",
+  "recognizerCommit": "68ffac7",
   "model": {
    "name": "pe-core-s16-384",
    "sha256": "a7b41405eb0a9b34cebc3acf64c42d4c009689df3686d7f22fc12ea53e521aab"
@@ -18,38 +18,44 @@
   },
   "machine": "Apple M3, macOS 27.0.1",
   "recordedOn": "2026-10-21",
-  "command": "bun run recognizer:replay --webp-round-trip (real-full)",
-  "note": "Recorded for #471 with the first PE-Core gallery version and art margin 0.03. 207 correct accepts and 0 false accepts (Vision recorded 214 on macOS 15.7.3). On macOS 27.0.1 the Vision gallery gives 206 with the same collector line reader, so most of the drop comes from the OS: against that run PE-Core loses 1 accept and gains 2. 15 accepts are unread, as for Vision."
+  "command": "bun run recognizer:replay (real-full)",
+  "note": "Recorded for #507, which reads more set codes in the collector line. 217 correct accepts and 0 false accepts, up from 207. 241 right printings first, up from 230."
  },
  "result": {
   "catalog": 102857,
   "heldOut": false,
-  "truthInTop5": 247,
+  "truthInTop5": 248,
   "cards": 250,
-  "nameTop1": 248,
-  "printingTop1": 230,
-  "accepted": 207,
-  "correctAccepts": 207,
+  "nameTop1": 249,
+  "printingTop1": 241,
+  "accepted": 217,
+  "correctAccepts": 217,
   "falseAccepts": 0,
   "nonCards": 11,
   "nonCardsRejected": 11,
   "errors": 0,
-  "p50Ms": 166,
-  "p95Ms": 249,
+  "p50Ms": 199,
+  "p95Ms": 301,
   "acceptReasons": {
-   "collector line X matches a card in the image shortlist": 192,
-   "only printing of its art, next art # behind": 15
+   "collector line X matches a card in the image shortlist": 203,
+   "only printing of its art, next art # behind": 14
   },
   "groups": {
    "all": {
     "cards": 250,
-    "accepted": 207,
-    "correct": 207,
+    "accepted": 217,
+    "correct": 217,
     "false": 0
    }
   },
   "falseAcceptList": [],
   "acceptedRows": [
+   {
+    "correct": true,
+    "reason": "collector line DSC 92 matches a card in the image shortlist",
+    "topSimilarity": 0.9064804911613464,
+    "group": null
+   },
    {
     "correct": true,
     "reason": "collector line SOS 171 matches a card in the image shortlist",
@@ -172,6 +178,12 @@
    },
    {
     "correct": true,
+    "reason": "collector line SOS 174 matches a card in the image shortlist",
+    "topSimilarity": 0.9390510320663452,
+    "group": null
+   },
+   {
+    "correct": true,
     "reason": "collector line M21 4 matches a card in the image shortlist",
     "topSimilarity": 0.9232481718063354,
     "group": null
@@ -232,6 +244,12 @@
    },
    {
     "correct": true,
+    "reason": "collector line SOS 7 matches a card in the image shortlist",
+    "topSimilarity": 0.892375111579895,
+    "group": null
+   },
+   {
+    "correct": true,
     "reason": "collector line SOS 178 matches a card in the image shortlist",
     "topSimilarity": 0.9091565012931824,
     "group": null
@@ -288,6 +306,12 @@
     "correct": true,
     "reason": "collector line M20 8 matches a card in the image shortlist",
     "topSimilarity": 0.941683292388916,
+    "group": null
+   },
+   {
+    "correct": true,
+    "reason": "collector line ELD 8 matches a card in the image shortlist",
+    "topSimilarity": 0.9361502528190613,
     "group": null
    },
    {
@@ -538,6 +562,12 @@
    },
    {
     "correct": true,
+    "reason": "collector line M15 86 matches a card in the image shortlist",
+    "topSimilarity": 0.9567354321479797,
+    "group": null
+   },
+   {
+    "correct": true,
     "reason": "collector line ELD 76 matches a card in the image shortlist",
     "topSimilarity": 0.9337494969367981,
     "group": null
@@ -754,6 +784,12 @@
    },
    {
     "correct": true,
+    "reason": "collector line SOA 37 matches a card in the image shortlist",
+    "topSimilarity": 0.8764079213142395,
+    "group": null
+   },
+   {
+    "correct": true,
     "reason": "collector line SOS 38 matches a card in the image shortlist",
     "topSimilarity": 0.8784080743789673,
     "group": null
@@ -774,6 +810,12 @@
     "correct": true,
     "reason": "collector line SLD 7097 matches a card in the image shortlist",
     "topSimilarity": 0.7815174460411072,
+    "group": null
+   },
+   {
+    "correct": true,
+    "reason": "collector line SLD 7094 matches a card in the image shortlist",
+    "topSimilarity": 0.8274620771408081,
     "group": null
    },
    {
@@ -868,7 +910,7 @@
    },
    {
     "correct": true,
-    "reason": "only printing of its art, next art 0.100 behind",
+    "reason": "collector line SOS 170 matches a card in the image shortlist",
     "topSimilarity": 0.9130791425704956,
     "group": null
    },
@@ -946,6 +988,12 @@
    },
    {
     "correct": true,
+    "reason": "collector line RIX 176 matches a card in the image shortlist",
+    "topSimilarity": 0.9380927085876465,
+    "group": null
+   },
+   {
+    "correct": true,
     "reason": "collector line SLD 7096 matches a card in the image shortlist",
     "topSimilarity": 0.9067417979240417,
     "group": null
@@ -1000,6 +1048,12 @@
    },
    {
     "correct": true,
+    "reason": "collector line ELD 8 matches a card in the image shortlist",
+    "topSimilarity": 0.9582545161247253,
+    "group": null
+   },
+   {
+    "correct": true,
     "reason": "collector line SOS 170 matches a card in the image shortlist",
     "topSimilarity": 0.9166253805160522,
     "group": null
@@ -1020,6 +1074,12 @@
     "correct": true,
     "reason": "collector line ELD 295 matches a card in the image shortlist",
     "topSimilarity": 0.9501022696495056,
+    "group": null
+   },
+   {
+    "correct": true,
+    "reason": "collector line RIX 125 matches a card in the image shortlist",
+    "topSimilarity": 0.950327455997467,
     "group": null
    },
    {
@@ -1299,8 +1359,8 @@
     "truth": "211a1d86-7257-4621-ae05-c2b235c063f0",
     "group": null,
     "top": "211a1d86-7257-4621-ae05-c2b235c063f0",
-    "accepted": null,
-    "reason": "only printing of its art, but the next art is 0.006 behind; at least 0.030 is required"
+    "accepted": "211a1d86-7257-4621-ae05-c2b235c063f0",
+    "reason": "collector line DSC 92 matches a card in the image shortlist"
    },
    {
     "input": "crops/rectified/muw8ssia-10.jpg",
@@ -1386,7 +1446,7 @@
     "input": "crops/rectified/muw8ssia-3.jpg",
     "truth": "8059c52b-5d25-4052-b48a-e9e219a7a546",
     "group": null,
-    "top": "80d4ce4f-8255-419b-9e7f-544d9798e5c8",
+    "top": "8059c52b-5d25-4052-b48a-e9e219a7a546",
     "accepted": null,
     "reason": "10 printings share this art and collector line read only 176"
    },
@@ -1522,9 +1582,9 @@
     "input": "crops/rectified/muwdygj1-16.jpg",
     "truth": "6261e89a-dbf1-481a-823e-6bb00be57195",
     "group": null,
-    "top": "b78578d3-0e15-4c34-8b03-07190c802ac2",
-    "accepted": null,
-    "reason": "3 printings share this art and collector line read only 174"
+    "top": "6261e89a-dbf1-481a-823e-6bb00be57195",
+    "accepted": "6261e89a-dbf1-481a-823e-6bb00be57195",
+    "reason": "collector line SOS 174 matches a card in the image shortlist"
    },
    {
     "input": "crops/rectified/muwdygj1-17.jpg",
@@ -1610,9 +1670,9 @@
     "input": "crops/rectified/muwdygj1-26.jpg",
     "truth": "68ee92cd-51af-4de5-bcc8-34d0bb2fd398",
     "group": null,
-    "top": "785d75b7-2054-47d0-8135-96ba6b4e9b78",
-    "accepted": null,
-    "reason": "3 printings share this art and collector line read only 7"
+    "top": "68ee92cd-51af-4de5-bcc8-34d0bb2fd398",
+    "accepted": "68ee92cd-51af-4de5-bcc8-34d0bb2fd398",
+    "reason": "collector line SOS 7 matches a card in the image shortlist"
    },
    {
     "input": "crops/rectified/muwdygj1-27.jpg",
@@ -1714,9 +1774,9 @@
     "input": "crops/rectified/muwdygj1-38.jpg",
     "truth": "dcb94950-3f3e-4876-84f8-d5e4d9cfecee",
     "group": null,
-    "top": "7c742e2f-a0e9-41b0-812a-ed716e8d0fee",
-    "accepted": null,
-    "reason": "6 printings share this art and collector line read only 8"
+    "top": "dcb94950-3f3e-4876-84f8-d5e4d9cfecee",
+    "accepted": "dcb94950-3f3e-4876-84f8-d5e4d9cfecee",
+    "reason": "collector line ELD 8 matches a card in the image shortlist"
    },
    {
     "input": "crops/rectified/muwdygj1-39.jpg",
@@ -1994,7 +2054,7 @@
     "input": "crops/rectified/muwewrqz-20.jpg",
     "truth": "52705c53-883e-4b6a-9c08-3fa35f6f17d5",
     "group": null,
-    "top": "a9c87b4d-6e19-4b28-9041-821289f9cd1a",
+    "top": "52705c53-883e-4b6a-9c08-3fa35f6f17d5",
     "accepted": null,
     "reason": "2 printings share this art and collector line read only 146"
    },
@@ -2066,9 +2126,9 @@
     "input": "crops/rectified/muwh80d1-11.jpg",
     "truth": "32efcfad-818c-4485-9022-cf94403f370b",
     "group": null,
-    "top": "c90a12af-b453-4d83-9a14-5411b562d480",
-    "accepted": null,
-    "reason": "5 printings share this art and collector line read only 86"
+    "top": "32efcfad-818c-4485-9022-cf94403f370b",
+    "accepted": "32efcfad-818c-4485-9022-cf94403f370b",
+    "reason": "collector line M15 86 matches a card in the image shortlist"
    },
    {
     "input": "crops/rectified/muwh80d1-12.jpg",
@@ -2403,8 +2463,8 @@
     "truth": "c5bb5307-e874-42c4-b85d-06b9f6c474c8",
     "group": null,
     "top": "c5bb5307-e874-42c4-b85d-06b9f6c474c8",
-    "accepted": null,
-    "reason": "only printing of its art, but the next art is 0.012 behind; at least 0.030 is required"
+    "accepted": "c5bb5307-e874-42c4-b85d-06b9f6c474c8",
+    "reason": "collector line SOA 37 matches a card in the image shortlist"
    },
    {
     "input": "crops/rectified/muwhquxp-22.jpg",
@@ -2442,9 +2502,9 @@
     "input": "crops/rectified/muwhquxp-26.jpg",
     "truth": "c88eb33d-efba-4ad9-878f-f051079c9bce",
     "group": null,
-    "top": "89a288d2-de94-4c49-a17e-5b0ed0281a5b",
-    "accepted": null,
-    "reason": "4 printings share this art and collector line read only 7094"
+    "top": "c88eb33d-efba-4ad9-878f-f051079c9bce",
+    "accepted": "c88eb33d-efba-4ad9-878f-f051079c9bce",
+    "reason": "collector line SLD 7094 matches a card in the image shortlist"
    },
    {
     "input": "crops/rectified/muwhquxp-27.jpg",
@@ -2588,7 +2648,7 @@
     "group": null,
     "top": "77285d12-e658-4eb3-ba13-ff202afab9c8",
     "accepted": "77285d12-e658-4eb3-ba13-ff202afab9c8",
-    "reason": "only printing of its art, next art 0.100 behind"
+    "reason": "collector line SOS 170 matches a card in the image shortlist"
    },
    {
     "input": "crops/catalog/muyuq3pm-6.jpg",
@@ -2707,8 +2767,8 @@
     "truth": "303d51ab-b9c4-4647-950f-291daabe7b81",
     "group": null,
     "top": "303d51ab-b9c4-4647-950f-291daabe7b81",
-    "accepted": null,
-    "reason": "3 printings share this art and collector line read only 176"
+    "accepted": "303d51ab-b9c4-4647-950f-291daabe7b81",
+    "reason": "collector line RIX 176 matches a card in the image shortlist"
    },
    {
     "input": "crops/catalog/muyuq3pm-21.jpg",
@@ -2810,7 +2870,7 @@
     "input": "crops/catalog-device/muywn390-3.jpg",
     "truth": "35100197-7914-450e-9205-57cb4fc345d6",
     "group": null,
-    "top": "4941246b-7d6a-4b2d-8144-f36ac890a389",
+    "top": "35100197-7914-450e-9205-57cb4fc345d6",
     "accepted": null,
     "reason": "7 printings share this art and collector line read only 5"
    },
@@ -2818,9 +2878,9 @@
     "input": "crops/catalog-device/muywn390-4.jpg",
     "truth": "dcb94950-3f3e-4876-84f8-d5e4d9cfecee",
     "group": null,
-    "top": "7e9d9a8a-ea85-4d2e-8580-38125aebc736",
-    "accepted": null,
-    "reason": "6 printings share this art and collector line read only 8"
+    "top": "dcb94950-3f3e-4876-84f8-d5e4d9cfecee",
+    "accepted": "dcb94950-3f3e-4876-84f8-d5e4d9cfecee",
+    "reason": "collector line ELD 8 matches a card in the image shortlist"
    },
    {
     "input": "crops/catalog-device/muywn390-5.jpg",
@@ -2867,8 +2927,8 @@
     "truth": "d28056c7-c58d-4986-a45c-c9e55aed23a1",
     "group": null,
     "top": "d28056c7-c58d-4986-a45c-c9e55aed23a1",
-    "accepted": null,
-    "reason": "10 printings share this art and collector line read only 125"
+    "accepted": "d28056c7-c58d-4986-a45c-c9e55aed23a1",
+    "reason": "collector line RIX 125 matches a card in the image shortlist"
    },
    {
     "input": "crops/catalog-device/muywn390-11.jpg",
@@ -3282,7 +3342,7 @@
     "input": "crops/catalog-device/muyxcbms-32.jpg",
     "truth": "52705c53-883e-4b6a-9c08-3fa35f6f17d5",
     "group": null,
-    "top": "a9c87b4d-6e19-4b28-9041-821289f9cd1a",
+    "top": "52705c53-883e-4b6a-9c08-3fa35f6f17d5",
     "accepted": null,
     "reason": "2 printings share this art and collector line read only 146"
    },
@@ -3290,7 +3350,7 @@
     "input": "crops/catalog-device/muyxcbms-33.jpg",
     "truth": "52705c53-883e-4b6a-9c08-3fa35f6f17d5",
     "group": null,
-    "top": "a9c87b4d-6e19-4b28-9041-821289f9cd1a",
+    "top": "52705c53-883e-4b6a-9c08-3fa35f6f17d5",
     "accepted": null,
     "reason": "2 printings share this art and collector line read only 146"
    },
