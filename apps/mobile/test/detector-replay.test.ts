@@ -65,11 +65,14 @@ function sample(frame: string, outline: [number, number][] | null, nativeDuratio
   };
 }
 
-function run(cardOutline: [number, number][] | null, emptyOutline: [number, number][] | null = null, nativeDurationMs = 4) {
-  return scoreReplay(labels, [
-    sample('plain-000.png', cardOutline, nativeDurationMs),
-    sample('empty-plain-000.png', emptyOutline, nativeDurationMs),
-  ]);
+function run(cardOutline: [number, number][] | null, emptyOutline: [number, number][] | null = null, roundDurationsMs = [4]) {
+  return scoreReplay(
+    labels,
+    roundDurationsMs.map((nativeDurationMs) => [
+      sample('plain-000.png', cardOutline, nativeDurationMs),
+      sample('empty-plain-000.png', emptyOutline, nativeDurationMs),
+    ]),
+  );
 }
 
 function failedBars(comparison: ReturnType<typeof compareReplays>) {
@@ -124,8 +127,25 @@ test('the same detector code fails the replay when it gives other numbers, and n
   const onTheEdge = cardAt(200, 300)!;
   const shifted = cardAt(201, 300)!;
 
-  expect(compareReplays(run(onTheEdge), run(onTheEdge, null, 4.5), { sameDetector: true }).pass).toBe(true);
+  expect(compareReplays(run(onTheEdge), run(onTheEdge, null, [4.5]), { sameDetector: true }).pass).toBe(true);
   expect(failedBars(compareReplays(run(onTheEdge), run(shifted), { sameDetector: true }))).toContain('Same detector code');
+});
+
+
+test('one slow round does not fail the Mac timing bar when the other rounds hold steady', () => {
+  const onTheEdge = cardAt(200, 300)!;
+
+  const comparison = compareReplays(run(onTheEdge, null, [4, 4, 4]), run(onTheEdge, null, [4, 40, 4]), { sameDetector: false });
+
+  expect(bar(comparison, 'Mac timing p95')).toMatchObject({ base: '4.0 ms', branch: '4.0 ms', pass: true });
+});
+
+test('a branch slower than 1.2 times the merge base on most rounds fails the Mac timing bar', () => {
+  const onTheEdge = cardAt(200, 300)!;
+
+  const comparison = compareReplays(run(onTheEdge, null, [4, 4, 4]), run(onTheEdge, null, [4, 5, 5]), { sameDetector: false });
+
+  expect(bar(comparison, 'Mac timing p95')).toMatchObject({ base: '4.0 ms', branch: '5.0 ms', pass: false });
 });
 
 test('the detector replay gates each condition and tilt bucket on its own', () => {
@@ -135,7 +155,7 @@ test('the detector replay gates each condition and tilt bucket on its own', () =
     frames: [label('plain-000.png', onTheEdge), label('plain-030.png', onTheEdge, { tiltBucket: '7.5-15' })],
   };
   const replay = (tiltedOutline: [number, number][] | null) =>
-    scoreReplay(tiltedLabels, [sample('plain-000.png', onTheEdge), sample('plain-030.png', tiltedOutline)]);
+    scoreReplay(tiltedLabels, [[sample('plain-000.png', onTheEdge), sample('plain-030.png', tiltedOutline)]]);
 
   const comparison = compareReplays(replay(onTheEdge), replay(null), { sameDetector: false });
 
@@ -162,11 +182,11 @@ test('the detector replay reports inside outlines per border colour and tilt buc
       label('plain-032.png', onTheEdge, { tiltBucket: '7.5-15', borderColor: 'black' }),
     ],
   };
-  const replay = scoreReplay(tiltedLabels, [
+  const replay = scoreReplay(tiltedLabels, [[
     sample('plain-030.png', onTheInnerFrame),
     sample('plain-031.png', onTheEdge),
     sample('plain-032.png', onTheEdge),
-  ]);
+  ]]);
 
   const comparison = compareReplays(replay, replay, { sameDetector: false });
 
@@ -188,11 +208,11 @@ test('the replay table has one row per condition and tilt bucket, with the merge
     ],
   };
   const replay = (tiltedOutline: [number, number][] | null) =>
-    scoreReplay(tiltedLabels, [
+    scoreReplay(tiltedLabels, [[
       sample('plain-000.png', onTheEdge),
       sample('plain-030.png', tiltedOutline),
       sample('empty-plain-000.png', null),
-    ]);
+    ]]);
 
   const table = replayTable(compareReplays(replay(onTheEdge), replay(null), { sameDetector: false }));
 
@@ -213,11 +233,11 @@ test('the detector replay reports each condition per border colour', () => {
       label('plain-030.png', onTheEdge, { tiltBucket: '7.5-15', borderColor: 'borderless' }),
     ],
   };
-  const replay = scoreReplay(borderLabels, [
+  const replay = scoreReplay(borderLabels, [[
     sample('plain-000.png', onTheEdge),
     sample('plain-001.png', null),
     sample('plain-030.png', onTheEdge),
-  ]);
+  ]]);
 
   const table = replayTable(compareReplays(replay, replay, { sameDetector: false }));
 
@@ -260,9 +280,11 @@ function runClip(clip: ClipLabel, outlineAt: (index: number, trueCorners: [numbe
   return scoreReplay(
     { ...labels, clips: [clip] },
     [
-      sample('plain-000.png', cardAt(200, 300)),
-      sample('empty-plain-000.png', null),
-      ...clip.frames.map((frame, index) => sample(frame.frame, outlineAt(index, frame.corners))),
+      [
+        sample('plain-000.png', cardAt(200, 300)),
+        sample('empty-plain-000.png', null),
+        ...clip.frames.map((frame, index) => sample(frame.frame, outlineAt(index, frame.corners))),
+      ],
     ],
   );
 }

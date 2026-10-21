@@ -158,15 +158,18 @@ function scoreGroups(frames: FrameScore[], keyOf: (frame: FrameScore) => GroupKe
   return [...groups.values()].map((group) => scoreGroup(group.key, group.frames));
 }
 
-export function scoreReplay(labels: FrameLabels, samples: FrameSample[]): ReplayScore {
-  const byFrame = new Map(samples.map((sample) => [sample.frame, sample]));
-  const sampleOf = (frame: string) => {
-    const sample = byFrame.get(frame);
-    if (!sample) throw new Error(`no detection sample for ${frame}`);
-    return sample;
+export function scoreReplay(labels: FrameLabels, rounds: FrameSample[][]): ReplayScore {
+  const roundsByFrame = rounds.map((samples) => new Map(samples.map((sample) => [sample.frame, sample])));
+  const samplesOf = (frame: string, inRounds = roundsByFrame) => {
+    const samples = inRounds.map((byFrame) => byFrame.get(frame));
+    if (!samples.every((sample) => sample !== undefined)) throw new Error(`no detection sample for ${frame}`);
+    return samples;
   };
-  const frames = labels.frames.map((label) => scoreFrame(label, sampleOf(label.frame), labels));
-  const clips = labels.clips.map((clip) => scoreClip(clip, clip.frames.map((frame) => sampleOf(frame.frame)), labels));
+  const frames = labels.frames.map((label) => {
+    const samples = samplesOf(label.frame);
+    return { ...scoreFrame(label, samples[0], labels), nativeDurationMs: median(samples.map((sample) => sample.nativeDurationMs)) };
+  });
+  const clips = labels.clips.map((clip) => scoreClip(clip, clip.frames.map((frame) => samplesOf(frame.frame, roundsByFrame.slice(0, 1))[0]), labels));
   const conditions = [...new Set(frames.map((frame) => frame.condition))];
   const byBorderColor = frames
     .filter((frame) => frame.borderColor !== null)

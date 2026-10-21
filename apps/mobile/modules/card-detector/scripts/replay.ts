@@ -3,6 +3,7 @@ import { createHash } from 'node:crypto';
 import { existsSync } from 'node:fs';
 import fs from 'node:fs/promises';
 import path from 'node:path';
+import readline from 'node:readline';
 import { parseArgs } from 'node:util';
 
 import {
@@ -26,6 +27,7 @@ const comparedSources = [path.join('ios', 'Detector'), path.join('macos', 'CardD
 const { values } = parseArgs({
   options: {
     base: { type: 'string', default: 'origin/main' },
+    rounds: { type: 'string', default: '3' },
     'record-frame-hashes': { type: 'boolean', default: false },
   },
 });
@@ -121,7 +123,8 @@ async function exportBasePackage(commit: string) {
   if (written.code !== 0) throw new Error(`git archive ${commit} failed`);
   const unpacked = await run('tar', ['-x', '-f', archive, '-C', packageRoot, '--strip-components', String(modulePath.split(path.sep).length)]);
   if (unpacked.code !== 0) throw new Error('the merge base package did not unpack');
-  if (!existsSync(path.join(packageRoot, comparedSources[1]))) {
+  const baseCommandFile = path.join(packageRoot, comparedSources[1], 'main.swift');
+  if (!existsSync(baseCommandFile) || !(await fs.readFile(baseCommandFile, 'utf8')).includes('case "step"')) {
     await fs.cp(path.join(moduleRoot, 'Package.swift'), path.join(packageRoot, 'Package.swift'));
     await fs.cp(path.join(moduleRoot, comparedSources[1]), path.join(packageRoot, comparedSources[1]), { recursive: true });
   }
@@ -142,14 +145,36 @@ async function sourceFiles(packageRoot: string) {
   return JSON.stringify(files);
 }
 
-async function detect(command: string, labels: FrameLabels) {
+function startCommand(command: string, frames: string[]) {
+  const child = spawn(command, ['step', ...frames], {
+    cwd: framesDirectory,
+    stdio: ['pipe', 'pipe', 'inherit'],
+  });
+  const lines = readline.createInterface({ input: child.stdout })[Symbol.asyncIterator]();
+  return {
+    async detect(index: number) {
+      child.stdin.write(`${index}\n`);
+      const line = await lines.next();
+      if (line.done) throw new Error(`${command} stopped`);
+      return JSON.parse(line.value) as FrameSample;
+    },
+    stop: () => child.stdin.end(),
+  };
+}
+
+async function detectInterleaved(commands: string[], labels: FrameLabels, rounds: number) {
   const frames = [...labels.frames, ...labels.clips.flatMap((clip) => clip.frames)].map((frame) => frame.frame);
-  const result = await run(command, ['frames', ...frames], { cwd: framesDirectory, output: true });
-  if (result.code !== 0) throw new Error(`${command} did not finish`);
-  return result.stdout
-    .trim()
-    .split('\n')
-    .map((line) => JSON.parse(line) as FrameSample);
+  const sides = commands.map((command) => startCommand(command, frames));
+  const samples = sides.map(() => Array.from({ length: rounds }, (): FrameSample[] => []));
+  for (let round = 0; round < rounds; round += 1) {
+    const roundFrames = round === 0 ? frames.length : labels.frames.length;
+    for (let index = 0; index < roundFrames; index += 1) {
+      const order = (round + index) % 2 === 0 ? sides.keys() : [...sides.keys()].reverse();
+      for (const side of order) samples[side][round].push(await sides[side].detect(index));
+    }
+  }
+  sides.forEach((side) => side.stop());
+  return samples;
 }
 
 const mismatched = await renderFrames();
@@ -158,7 +183,9 @@ if (values['record-frame-hashes']) {
   process.exit(0);
 }
 if (mismatched.length > 0) {
-  console.error(`${mismatched.length} rendered frames do not match frames.sha256, first: ${mismatched[0]}`);
+  console.error(
+    `${mismatched.length} rendered frames do not match frames.sha256, first: ${mismatched[0]}. This Mac renders other frame bytes than the recorded ones, or the recipe changed without --record-frame-hashes.`,
+  );
   process.exit(1);
 }
 const labels = JSON.parse(await fs.readFile(path.join(framesDirectory, 'labels.json'), 'utf8')) as FrameLabels;
@@ -169,16 +196,20 @@ console.error(`Building the detector command on the merge base ${baseCommit.slic
 const basePackage = await exportBasePackage(baseCommit);
 const baseCommand = await buildCommand(basePackage.packageRoot, basePackage.scratch);
 const sameDetector = (await sourceFiles(moduleRoot)) === (await sourceFiles(basePackage.packageRoot));
-const base = scoreReplay(labels, await detect(baseCommand, labels));
-const branch = scoreReplay(labels, await detect(branchCommand, labels));
+const [baseRounds, branchRounds] = await detectInterleaved([baseCommand, branchCommand], labels, Number(values.rounds));
+const base = scoreReplay(labels, baseRounds);
+const branch = scoreReplay(labels, branchRounds);
 const comparison = compareReplays(base, branch, { sameDetector });
-const table = replayTable(comparison);
+const report = [
+  `The branch at ${await git(['rev-parse', '--short', 'HEAD'])} against the merge base ${baseCommit.slice(0, 7)} with ${values.base}, ${values.rounds} timing rounds.`,
+  '',
+  replayTable(comparison),
+].join('\n');
 await fs.mkdir(reportsDirectory, { recursive: true });
 await Promise.all([
   fs.writeFile(path.join(reportsDirectory, 'base.json'), `${JSON.stringify(base, null, 1)}\n`),
   fs.writeFile(path.join(reportsDirectory, 'branch.json'), `${JSON.stringify(branch, null, 1)}\n`),
-  fs.writeFile(path.join(reportsDirectory, 'comparison.md'), table),
+  fs.writeFile(path.join(reportsDirectory, 'comparison.md'), report),
 ]);
-console.log(`Detector replay: the branch at ${(await git(['rev-parse', '--short', 'HEAD']))} against the merge base ${baseCommit.slice(0, 7)} with ${values.base}\n`);
-console.log(table);
+console.log(report);
 process.exit(comparison.pass ? 0 : 1);

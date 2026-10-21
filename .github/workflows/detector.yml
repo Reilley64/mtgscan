@@ -4,6 +4,8 @@ on:
   pull_request:
     paths:
       - apps/mobile/modules/card-detector/**
+      - apps/mobile/test/scanner-evidence/detector/**
+      - apps/mobile/src/scan/capture.ts
       - apps/mobile/app.json
       - .github/workflows/detector.yml
   workflow_dispatch:
@@ -28,6 +30,43 @@ jobs:
       - name: Swift fixture tests
         working-directory: apps/mobile
         run: bun run detector:test
+
+  replay:
+    runs-on: macos-15
+    timeout-minutes: 30
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          fetch-depth: 0
+      - uses: oven-sh/setup-bun@0c5077e51419868618aeaa5fe8019c62421857d6 # v2.2.0
+      - uses: astral-sh/setup-uv@1c37ad07a6a961277cf70c0d37d6f313000f5884 # v10.3.0
+      - name: Restore the card images
+        uses: actions/cache@55cc8345863c7cc4c66a329aec7e433d2d1c52a9 # v6.1.0
+        with:
+          path: apps/mobile/modules/card-detector/.data/images
+          key: detector-images-${{ hashFiles('apps/mobile/test/scanner-evidence/detector/cards.json') }}
+          restore-keys: detector-images-
+      - name: Restore the textures
+        uses: actions/cache@55cc8345863c7cc4c66a329aec7e433d2d1c52a9 # v6.1.0
+        with:
+          path: apps/mobile/modules/card-detector/.data/textures
+          key: detector-textures-${{ hashFiles('apps/mobile/test/scanner-evidence/detector/textures.json') }}
+          restore-keys: detector-textures-
+      - name: Restore the rendered frames
+        uses: actions/cache@55cc8345863c7cc4c66a329aec7e433d2d1c52a9 # v6.1.0
+        with:
+          path: apps/mobile/modules/card-detector/.data/frames
+          key: detector-frames-${{ hashFiles('apps/mobile/test/scanner-evidence/detector/frames.sha256') }}
+      - name: Detector replay
+        working-directory: apps/mobile
+        run: bun run detector:replay --base "origin/${{ github.base_ref || 'main' }}"
+      - name: Write the table to the job summary
+        if: always()
+        run: |
+          table=apps/mobile/modules/card-detector/.data/reports/comparison.md
+          if [ -f "$table" ]; then
+            { echo '## Detector replay'; echo; cat "$table"; } >> "$GITHUB_STEP_SUMMARY"
+          fi
 
   module:
     runs-on: macos-15
