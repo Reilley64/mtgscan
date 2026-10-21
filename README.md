@@ -46,7 +46,7 @@ A development build has a primitive catalog that shows every primitive in each s
 
 ### Card recognizer
 
-The card recognizer is a local Expo module in `apps/mobile/modules/card-recognizer`. `recognize(photoUri, outline)` returns a card result with its candidates and decision, or a not-a-card result, as #75 describes. The outline is the four card corners, top left first and clockwise, as fractions of the photo's width and height from its top-left corner. It loads the gallery from `Application Support/gallery` on the phone and throws `gallery_not_ready` until one is there.
+The card recognizer is a local Expo module in `apps/mobile/modules/card-recognizer`. `recognize(photoUri, outline)` returns a card result with its candidates and decision, or a not-a-card result, as #75 describes. It returns the result as `recognition`, with `times`: when the native call started and ended, in milliseconds since 1970 like `Date.now()`. The outline is the four card corners, top left first and clockwise, as fractions of the photo's width and height from its top-left corner. It loads the gallery from `Application Support/gallery` on the phone and throws `gallery_not_ready` until one is there.
 
 A card result also has:
 
@@ -56,6 +56,34 @@ A card result also has:
   - `unique_art` when the top card printing is the only one with its art, and the next art is far enough behind.
 - `artMargin`, the similarity of the top candidate minus the similarity of the best candidate with other art. It is null when no other art was compared.
 - `trainingCrop`, the file URI of the straightened card as a 488 x 680 WebP at quality 90 in `Caches/training-crops`. That is the size of the crops in the scanner evidence pack. The recognizer writes it with libwebp, the encoder that Android will also use (ADR 0015). On iOS it uses the libwebp that `expo-image` brings into the app, so the app holds one copy. The crop is upright, in the rotation that the recognizer chose. A not-a-card result and a failed recognition write no crop.
+
+The module compiles against the libwebp headers in `ios/WebP`. They come from the libwebp version that `Package.swift` pins for the macOS tests. The Recognizer check builds the app for the Simulator, then runs `modules/card-recognizer/scripts/check-libwebp-version.mjs` on the built app. The script builds a probe against those headers and the app's `SDWebImageWebPCoder.framework`, and runs it in a new iPhone 16e Simulator, or in the Simulator with the UDID in its second argument. The probe prints `WebPGetEncoderVersion()`. The script fails when that version differs from the pin. The check also runs when `bun.lock` changes, so an `expo-image` update runs it. To run it locally, run `bun modules/card-recognizer/scripts/check-libwebp-version.mjs <mtgscan.app> D2C1596D-8A88-4D39-A587-CAB648D05CA1` in `apps/mobile`, with the path of a Simulator build of the app. The UDID is the shared iPhone 16e Simulator, so the check creates no Simulator on your Mac. Take the device lock first, as in `docs/agents/local-development.md`. To move to a new libwebp, copy `encode.h`, `types.h`, and `COPYING` from that version into `ios/WebP`, and pin it in `Package.swift`.
+
+The recognizer reads the collector line from the bottom 16% of the straightened card with Vision text recognition. It takes the set code from the line with the language code, such as "ELD • EN". A code read before a dot, a star, or a hyphen that is a set code in the gallery names its set. Vision often misreads that line, so the reader also takes a code:
+
+- with Cyrillic letters that look like Latin ones, such as "МКС • EN";
+- with a space inside it, such as "M 15 • EN";
+- before "+", "#", "~", "%", or no separator, such as "SLD + EN" or "DSCEN";
+- with one stray digit before "EN", such as "M21 - 2EN".
+
+It reads no collector number from the line with the language code, so "M210 EN" is not number 210.
+
+The recognizer matches such a code only against the sets of the shortlisted printings of the top 10 cards in the image shortlist. It tries these match levels, best first:
+
+1. The code equals the set code.
+2. They are equal after mapping look-alike characters: O to 0, I, L, and T to 1, S to 5, Z to 2, B to 8, and G to 6. "MT5" matches M15.
+3. The first character was dropped, such as "OS" for SOS. Or the separator was read as a last character, such as "M210" for M21.
+4. They are one character apart, such as "120" for M20.
+
+The best level must name exactly one set. Otherwise the reading has no set code.
+
+The decision also follows these rules:
+
+- A number read before a rarity letter, such as "269 C", is often the set size of "136/269 C". When it names a printing that the image does not support, the recognizer drops it and decides on the set code alone.
+- An accept by set code needs the next other card at least the art margin behind the top candidate.
+- An accept by set code also needs the set to have only one printing of the top card in the gallery. A set code alone cannot tell two printings of one set apart.
+- A number with no set code shows first the one printing of the top card with that number and the art of a top 5 image candidate. The recognizer abstains.
+- Cards in the 1993, 1997, and 2003 frames print no set code. When the top printing has one of these frames and the reader read a set code, the recognizer does not accept by unique art.
 
 The recognizer makes feature prints with the Core ML model of the installed gallery version, on all compute units. It scales the straightened card to 488 x 680, It then pads the card to the model's input size with the model's mean color, 0.5 gray, so the card keeps its aspect ratio. It L2-normalizes the vector that the model returns. A model that returns NaN, or a vector of another size than the gallery version's, makes the scan fail as an unreadable photo.
 
@@ -157,7 +185,7 @@ The card detector is a local Expo module in `apps/mobile/modules/card-detector`.
   - A frame with no matrix keeps the check in the frame: the ratio of the mean side lengths within 0.02 of 63:88. A flat card gives the same aspect both ways.
   - `aspectRatio` in the detection sample is the aspect that the gate checked. The `photo-requested` capture event logs it.
 - A sample has `detected`, the refined `corners`, the proposal, its `confidence`, `areaRatio`, `aspectRatio`, `edgeSupportMin`, the 8 x 6 brightness `signature`, the frame size, `nativeDurationMs`, `sampledAtMs`, and `runtimeErrorCode` or null. Corners are fractions of the upright frame, top left first and clockwise.
-- `takePhoto(outline)` takes the outline of the sample that held still. It returns the photo file and the photo outline, in the same fractions of the photo as `recognize` takes. The photo has the same aspect as the analyzed frame.
+- `takePhoto(outline)` takes the outline of the sample that held still. It returns the photo file and the photo outline, in the same fractions of the photo as `recognize` takes. The photo has the same aspect as the analyzed frame. It also returns the photo's `width` and `height` in pixels as the camera reports them, and `times` in milliseconds since 1970 like `Date.now()`: when the module got the request (`receivedAt`), when the camera captured the photo (`capturedAt`), when the camera handed over the processed photo (`processedAt`), and when the module wrote the JPEG file (`savedAt`).
 - Photo refinement runs inside `takePhoto`, after the photo, outside the frame loop. The camera session keeps the last analyzed frame with a detected card and its outline. `PhotoOutline.refine` in `ios/Detector` registers that frame against the photo with Vision's `VNHomographicImageRegistrationRequest` and moves the held-still outline by that motion. It scales the photo to the analysis size and runs the edge refiner on it, with the moved outline as the proposal.
 - The size check refuses a refined outline more than 2% narrower or shorter than the moved outline. The inner frame is about 10% smaller. The motion check refuses a refined outline with a corner more than 2% of the moved outline's short side from the moved outline, about 1.3 mm on the card. The scanner evidence pack README (Photo refinement) has the replay results behind both limits.
 - On a refusal, on an error, or when the last analyzed frame is not the one with the held-still outline, `takePhoto` returns the held-still outline, as before photo refinement.
@@ -181,6 +209,34 @@ Vision's rectangle detector (`VNDetectRectanglesRequest`) was tried in #421 in p
 ### Latest scan
 
 `apps/mobile/src/scan/use-scan-recognition.ts` sends each photo to `recognize`, deletes the photo when the recognizer answers, and reports the result to the scan batch in `src/scan/scan-batch-state.tsx`. Development builds log each recognition to Metro as a `RECOGNITION` line: the recognition, the time, and the end-to-end time from the photo request. The bin-deck run reads these lines. `src/scan/scan-batch.ts` holds the scans, the default finish rule from #75, and the edits from the quick actions and the details sheet. Each scan is one copy. **+1** adds a new scan with the same card printing, finish, condition, and language. Card images on the chip and in the details sheet come from `image_uris` in the card catalog's `card_printings` table. The set button shows the expansion symbol from `icon_svg_uri` in `card_sets`. `expo-image` keeps both in its disk cache.
+
+A `RECOGNITION` line with a result also has `photoSize`, the photo dimensions that the camera reports, and `phaseMs`, the end-to-end time split into phases (#503). The phases add up to the end-to-end time. A failed recognition logs no phases.
+
+| Phase | From | To |
+| --- | --- | --- |
+| `photoRequest` | The photo request in JavaScript | The card detector gets the request |
+| `photoCapture` | The card detector gets the request | The camera captures the photo |
+| `photoProcessing` | The camera captures the photo | The camera hands over the processed photo |
+| `photoSave` | The camera hands over the processed photo | The card detector writes the JPEG file |
+| `photoHandOff` | The card detector writes the JPEG file | JavaScript calls `recognize` |
+| `recognizerCall` | JavaScript calls `recognize` | The native recognizer starts |
+| `recognizer` | The native recognizer starts | The native recognizer ends |
+| `recognitionHandOff` | The native recognizer ends | The line is logged |
+
+`recognizer` is split into the stages in `stageMs` of the recognition. The stages add up to `recognizer` to within a millisecond.
+
+| Stage | Time |
+| --- | --- |
+| `gallery` | Waiting for the installed gallery. The first scan after the app starts loads it. |
+| `rectify` | Reading the photo and straightening the card |
+| `resize` | Turning the card and resizing both rotations for the model |
+| `featurePrint` | The feature prints of both rotations |
+| `search` | Comparing both feature prints with the gallery |
+| `read` | Reading the collector line, once or in both rotations |
+| `decide` | The shortlist, the decision, and the candidates |
+| `trainingCrop` | Writing the training crop. A not-a-card result has no `trainingCrop` stage. |
+
+A development build links the debug build of the libwebp in `expo-image`, which has no compiler optimizations. There, `trainingCrop` takes about 450 ms on the Mac. A release build links the optimized libwebp, and the stage takes about 25 ms on the Mac (#503).
 
 ### Scan batch
 

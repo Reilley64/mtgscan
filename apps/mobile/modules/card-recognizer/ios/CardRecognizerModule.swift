@@ -77,18 +77,25 @@ public final class CardRecognizerModule: Module {
     }
 
     AsyncFunction("recognize") { (photo: URL, outline: [OutlinePoint]) async throws -> [String: Any] in
+      let startedAt = Self.wallClockMs()
+      var galleryStartedAt = ProcessInfo.processInfo.systemUptime
       let recognition: Recognition
       do throws(RecognitionFailure) {
+        let gallery = try await installedGallery.gallery()
         recognition = try CardRecognizer.recognize(
           photo: photo,
           outline: try CardOutline(corners: outline.map { CGPoint(x: $0.x, y: $0.y) }),
-          gallery: try await installedGallery.gallery(),
+          gallery: gallery,
+          stageMs: ["gallery": CardRecognizer.elapsed(since: &galleryStartedAt)],
           trainingCropDirectory: Self.trainingCropDirectory
         )
       } catch {
         throw Exception(name: "RecognitionError", description: error.code, code: error.code)
       }
-      return try Self.javaScriptObject(recognition)
+      return [
+        "recognition": try Self.javaScriptObject(recognition),
+        "times": ["startedAt": startedAt, "endedAt": Self.wallClockMs()],
+      ]
     }
 
     AsyncFunction("checkGalleryParity") { () async throws -> [String: Any] in
@@ -131,6 +138,10 @@ public final class CardRecognizerModule: Module {
     } catch {
       throw Exception(name: "RecognitionError", description: error.code, code: error.code)
     }
+  }
+
+  private static func wallClockMs() -> Double {
+    (Date().timeIntervalSince1970 * 1_000).rounded()
   }
 
   private static func javaScriptObject(_ value: some Encodable) throws -> [String: Any] {

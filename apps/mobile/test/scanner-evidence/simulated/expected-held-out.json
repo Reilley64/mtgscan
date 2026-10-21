@@ -1,6 +1,6 @@
 {
  "recordedWith": {
-  "recognizerCommit": "64a295e",
+  "recognizerCommit": "68ffac7",
   "model": {
    "name": "pe-core-s16-384",
    "sha256": "a7b41405eb0a9b34cebc3acf64c42d4c009689df3686d7f22fc12ea53e521aab"
@@ -18,60 +18,54 @@
   },
   "machine": "Apple M3, macOS 27.0.1",
   "recordedOn": "2026-10-21",
-  "command": "bun run recognizer:replay --webp-round-trip (simulated-held-out)",
-  "note": "Recorded for #471 with the first PE-Core gallery version and art margin 0.03. 401 accepts, all another printing of the right card, and 0 wrong cards. At art margin 0.025, Penance EXO 15 was accepted for Demonic Consultation ICE 121 (sim-02734), 0.027 ahead of the next art. acceptedRows is removed because it does not name the scan."
+  "command": "bun run recognizer:replay (simulated-held-out)",
+  "note": "Recorded for #507, which reads more set codes in the collector line. 398 accepts with the true printing missing, down from 401, all another printing of the right card, and 0 wrong cards."
  },
  "result": {
   "catalog": 102857,
   "heldOut": true,
   "truthInTop5": 0,
   "cards": 3000,
-  "nameTop1": 2338,
+  "nameTop1": 2337,
   "printingTop1": 0,
-  "accepted": 401,
+  "accepted": 398,
   "correctAccepts": 0,
-  "falseAccepts": 401,
+  "falseAccepts": 398,
   "nonCards": 0,
   "nonCardsRejected": 0,
   "errors": 0,
-  "p50Ms": 220,
-  "p95Ms": 339,
+  "p50Ms": 313,
+  "p95Ms": 478,
   "acceptReasons": {
-   "collector line X matches a card in the image shortlist": 359,
-   "only printing of its art, next art # behind": 24,
+   "collector line X matches a card in the image shortlist": 366,
    "set MH# leaves one printing of the top card": 1,
-   "set LTR leaves one printing of the top card": 2,
+   "only printing of its art, next art # behind": 22,
    "set MOM leaves one printing of the top card": 1,
-   "set WOE leaves one printing of the top card": 1,
-   "set CLB leaves one printing of the top card": 1,
-   "set DDO leaves one printing of the top card": 2,
+   "set DDO leaves one printing of the top card": 1,
    "set VOC leaves one printing of the top card": 1,
    "set OGW leaves one printing of the top card": 1,
    "set JMP leaves one printing of the top card": 1,
-   "set J# leaves one printing of the top card": 1,
    "set KTK leaves one printing of the top card": 1,
-   "set SPM leaves one printing of the top card": 1,
-   "set UMA leaves one printing of the top card": 3,
-   "set ZNR leaves one printing of the top card": 1
+   "set UMA leaves one printing of the top card": 3
   },
   "groups": {
    "same-art": {
     "cards": 1500,
-    "accepted": 351,
+    "accepted": 352,
     "correct": 0,
-    "false": 351
+    "false": 352
    },
    "single-art": {
     "cards": 800,
-    "accepted": 17,
+    "accepted": 16,
     "correct": 0,
-    "false": 17
+    "false": 16
    },
    "special": {
     "cards": 400,
-    "accepted": 18,
+    "accepted": 15,
     "correct": 0,
-    "false": 18
+    "false": 15
    },
    "old-frame": {
     "cards": 300,
@@ -170,6 +164,18 @@
      "setCode": "rix"
     },
     "topSimilarity": 0.9645735025405884,
+    "truthInCandidates": false
+   },
+   {
+    "input": "sim-00038.jpg",
+    "accepted": "5bbf66a4-8fd4-4c87-89e2-c6ad6c4de7ab",
+    "truth": "d2c637e9-5eb4-4d7d-ab76-7f8804090471",
+    "reason": "collector line M15 140 matches a card in the image shortlist",
+    "reading": {
+     "collectorNumber": "140",
+     "premiumMark": false
+    },
+    "topSimilarity": 0.9777925610542297,
     "truthInCandidates": false
    },
    {
@@ -605,7 +611,7 @@
     "input": "sim-00172.jpg",
     "accepted": "3f57e0f9-e232-489c-b991-d0d23f75d8dd",
     "truth": "be9be7f7-95ed-4cc8-9e74-88defd496a7f",
-    "reason": "only printing of its art, next art 0.083 behind",
+    "reason": "collector line TLA 79 matches a card in the image shortlist",
     "reading": {
      "collectorNumber": "79",
      "premiumMark": false
@@ -662,18 +668,6 @@
      "setCode": "aer"
     },
     "topSimilarity": 0.9291898608207703,
-    "truthInCandidates": false
-   },
-   {
-    "input": "sim-00191.jpg",
-    "accepted": "3c73835d-4af8-4754-bcc8-176e43fceaea",
-    "truth": "71ed2e4b-c732-472a-a589-f1f53086d9ee",
-    "reason": "set LTR leaves one printing of the top card",
-    "reading": {
-     "premiumMark": false,
-     "setCode": "ltr"
-    },
-    "topSimilarity": 0.9466234445571899,
     "truthInCandidates": false
    },
    {
@@ -1829,6 +1823,19 @@
     "truthInCandidates": false
    },
    {
+    "input": "sim-00537.jpg",
+    "accepted": "090d678c-f0e4-4757-8900-93dfe67aefe9",
+    "truth": "ce579036-4960-4ed6-9e75-b19d27a96032",
+    "reason": "collector line KTK 137 matches a card in the image shortlist",
+    "reading": {
+     "collectorNumber": "137",
+     "premiumMark": false,
+     "setCode": "ktk"
+    },
+    "topSimilarity": 0.9753709435462952,
+    "truthInCandidates": false
+   },
+   {
     "input": "sim-00547.jpg",
     "accepted": "a0df01d1-6131-4ef7-abea-ba084f3b0954",
     "truth": "a8d09d18-5f82-4007-ba82-336cb429bcbf",
@@ -1891,18 +1898,6 @@
      "setCode": "ncc"
     },
     "topSimilarity": 0.9798195958137512,
-    "truthInCandidates": false
-   },
-   {
-    "input": "sim-00570.jpg",
-    "accepted": "8996cd43-5ecd-4a05-a5a9-e49326befaa1",
-    "truth": "287c7486-472b-4069-9826-6a3adbdefaa6",
-    "reason": "set WOE leaves one printing of the top card",
-    "reading": {
-     "premiumMark": false,
-     "setCode": "woe"
-    },
-    "topSimilarity": 0.9525192379951477,
     "truthInCandidates": false
    },
    {
@@ -2036,18 +2031,6 @@
     "truthInCandidates": false
    },
    {
-    "input": "sim-00617.jpg",
-    "accepted": "400c76c6-f677-4e7e-87ad-2e526d4b498a",
-    "truth": "e59903e3-a344-4218-9d41-8b19a9bc8311",
-    "reason": "set CLB leaves one printing of the top card",
-    "reading": {
-     "premiumMark": false,
-     "setCode": "clb"
-    },
-    "topSimilarity": 0.9503467082977295,
-    "truthInCandidates": false
-   },
-   {
     "input": "sim-00620.jpg",
     "accepted": "01ed59b1-968b-4297-9e98-42d940f9478c",
     "truth": "c08d3b3a-6923-4891-b545-51cfe65e4c7d",
@@ -2109,6 +2092,18 @@
      "setCode": "vow"
     },
     "topSimilarity": 0.976172685623169,
+    "truthInCandidates": false
+   },
+   {
+    "input": "sim-00647.jpg",
+    "accepted": "b474378c-5fa8-418f-8d76-23e78003ed18",
+    "truth": "8525d2a8-3ef4-48b6-b41a-3946e721ad5a",
+    "reason": "collector line SOI 265 matches a card in the image shortlist",
+    "reading": {
+     "collectorNumber": "265",
+     "premiumMark": false
+    },
+    "topSimilarity": 0.9503998756408691,
     "truthInCandidates": false
    },
    {
@@ -3799,15 +3794,16 @@
     "truthInCandidates": false
    },
    {
-    "input": "sim-01252.jpg",
-    "accepted": "3dc61690-30c6-4374-8777-e1802e9e164c",
-    "truth": "7272906c-14f2-4e06-bbea-b461369e151a",
-    "reason": "set DDO leaves one printing of the top card",
+    "input": "sim-01242.jpg",
+    "accepted": "3941562d-3e39-4746-9a18-d3aa6d3468b0",
+    "truth": "2aa8d3c1-ae2a-4dd5-82c7-1f93f39f4580",
+    "reason": "collector line AKH 99 matches a card in the image shortlist",
     "reading": {
+     "collectorNumber": "99",
      "premiumMark": false,
-     "setCode": "ddo"
+     "setCode": "akh"
     },
-    "topSimilarity": 0.9791473150253296,
+    "topSimilarity": 0.9743518233299255,
     "truthInCandidates": false
    },
    {
@@ -4072,7 +4068,7 @@
     "input": "sim-01347.jpg",
     "accepted": "fb4ed14d-369e-4dd0-a6bf-258f031855fb",
     "truth": "a68379b6-e2f8-4755-b231-41e4813175ec",
-    "reason": "only printing of its art, next art 0.036 behind",
+    "reason": "collector line E01 10 matches a card in the image shortlist",
     "reading": {
      "collectorNumber": "10",
      "premiumMark": false
@@ -4431,6 +4427,18 @@
     "truthInCandidates": false
    },
    {
+    "input": "sim-01450.jpg",
+    "accepted": "9e4fc5ed-e90d-4965-985a-ed126a713506",
+    "truth": "2168b98d-f4d0-437e-b01e-055f08cefabb",
+    "reason": "collector line AER 152 matches a card in the image shortlist",
+    "reading": {
+     "collectorNumber": "152",
+     "premiumMark": false
+    },
+    "topSimilarity": 0.9465640783309937,
+    "truthInCandidates": false
+   },
+   {
     "input": "sim-01455.jpg",
     "accepted": "d7a0f2d9-efa4-4a53-a24b-36694457bd1c",
     "truth": "0848d20a-2f95-4659-ad3d-982b814ccf6c",
@@ -4639,18 +4647,6 @@
     "truthInCandidates": false
    },
    {
-    "input": "sim-01594.jpg",
-    "accepted": "b08cadcd-7e2d-48a6-8900-ca92499fdaff",
-    "truth": "aecbe209-7f91-4add-98e0-e6ffa1739631",
-    "reason": "set J22 leaves one printing of the top card",
-    "reading": {
-     "premiumMark": false,
-     "setCode": "j22"
-    },
-    "topSimilarity": 0.8921633362770081,
-    "truthInCandidates": false
-   },
-   {
     "input": "sim-01677.jpg",
     "accepted": "0c08ed44-2c13-4029-af2e-68585a76bb03",
     "truth": "1ceb4988-0a79-4757-9fcc-381ee8643d0f",
@@ -4852,18 +4848,6 @@
     "truthInCandidates": false
    },
    {
-    "input": "sim-02383.jpg",
-    "accepted": "d0c18ffe-a2b9-40df-a6b4-a9381e6dc467",
-    "truth": "eae0bf5a-d5b1-4d87-af8e-e7dd512dfb4a",
-    "reason": "set SPM leaves one printing of the top card",
-    "reading": {
-     "premiumMark": false,
-     "setCode": "spm"
-    },
-    "topSimilarity": 0.7827982306480408,
-    "truthInCandidates": false
-   },
-   {
     "input": "sim-02387.jpg",
     "accepted": "badac9b4-bfaf-4b02-a48a-ec141393566c",
     "truth": "d47c49b9-bba2-4c1d-af2c-b0b79e0ae14d",
@@ -4925,18 +4909,6 @@
      "setCode": "iko"
     },
     "topSimilarity": 0.9572627544403076,
-    "truthInCandidates": false
-   },
-   {
-    "input": "sim-02477.jpg",
-    "accepted": "a1ad561c-ccb4-480a-88a4-0555d0ef245e",
-    "truth": "7fb5e087-2deb-4c03-8ccc-ba4b061875e4",
-    "reason": "set LTR leaves one printing of the top card",
-    "reading": {
-     "premiumMark": false,
-     "setCode": "ltr"
-    },
-    "topSimilarity": 0.8987356424331665,
     "truthInCandidates": false
    },
    {
@@ -5051,18 +5023,6 @@
      "setCode": "ss3"
     },
     "topSimilarity": 0.9738041758537292,
-    "truthInCandidates": false
-   },
-   {
-    "input": "sim-02659.jpg",
-    "accepted": "228c1650-da3c-4099-91b6-18e3873c9cdb",
-    "truth": "530ed3d8-d176-44c8-ba54-f2536ceeb497",
-    "reason": "set ZNR leaves one printing of the top card",
-    "reading": {
-     "premiumMark": false,
-     "setCode": "znr"
-    },
-    "topSimilarity": 0.9493839144706726,
     "truthInCandidates": false
    },
    {

@@ -10,9 +10,19 @@ enum PhotoFailure: String, Error {
   case unreadablePhoto = "unreadable_photo"
 }
 
+struct PhotoTimes: Sendable {
+  let receivedAt: Double
+  var capturedAt = 0.0
+  var processedAt = 0.0
+  var savedAt = 0.0
+}
+
 struct CapturedPhoto: Sendable {
   let url: URL
   let outline: [SIMD2<Double>]
+  let width: Int
+  let height: Int
+  let times: PhotoTimes
 }
 
 private struct AnalyzedFrame: @unchecked Sendable {
@@ -24,6 +34,9 @@ private struct AnalyzedFrame: @unchecked Sendable {
 private struct TakenPhoto: Sendable {
   let url: URL
   let time: CMTime
+  let width: Int
+  let height: Int
+  let times: PhotoTimes
 }
 
 final class CameraSession: NSObject, @unchecked Sendable {
@@ -77,6 +90,7 @@ final class CameraSession: NSObject, @unchecked Sendable {
     outline: [SIMD2<Double>],
     completion: @escaping @Sendable (Result<CapturedPhoto, PhotoFailure>) -> Void
   ) {
+    let times = PhotoTimes(receivedAt: Self.wallClockMs())
     guard outline.count == 4 else {
       completion(.failure(.noCard))
       return
@@ -95,11 +109,19 @@ final class CameraSession: NSObject, @unchecked Sendable {
       }
       let id = settings.uniqueID
       let frame = lastFrameLock.withLock { lastFrame }.flatMap { $0.outline == outline ? $0 : nil }
-      let capture = PhotoCapture { [weak self] result in
+      let capture = PhotoCapture(times: times) { [weak self] result in
         if let self {
           sessionQueue.async { self.photoCaptures[id] = nil }
         }
-        completion(result.map { CapturedPhoto(url: $0.url, outline: Self.photoOutline($0, frame: frame, heldStill: outline)) })
+        completion(result.map { photo in
+          CapturedPhoto(
+            url: photo.url,
+            outline: Self.photoOutline(photo, frame: frame, heldStill: outline),
+            width: photo.width,
+            height: photo.height,
+            times: photo.times
+          )
+        })
       }
       photoCaptures[id] = capture
       photoOutput.capturePhoto(with: settings, delegate: capture)
@@ -207,6 +229,10 @@ final class CameraSession: NSObject, @unchecked Sendable {
     CMClockGetTime(CMClockGetHostTimeClock()).seconds * 1_000.0
   }
 
+  static func wallClockMs() -> Double {
+    (Date().timeIntervalSince1970 * 1_000).rounded()
+  }
+
   @objc private func sessionFailed() {
     onSample(DetectionSample(failure: .cameraFailed, sampledAtMs: Self.nowMs()))
   }
@@ -265,18 +291,33 @@ extension CameraSession: AVCaptureVideoDataOutputSampleBufferDelegate {
 }
 
 private final class PhotoCapture: NSObject, AVCapturePhotoCaptureDelegate, @unchecked Sendable {
+  private var times: PhotoTimes
   private let completion: @Sendable (Result<TakenPhoto, PhotoFailure>) -> Void
 
-  init(completion: @escaping @Sendable (Result<TakenPhoto, PhotoFailure>) -> Void) {
+  init(times: PhotoTimes, completion: @escaping @Sendable (Result<TakenPhoto, PhotoFailure>) -> Void) {
+    self.times = times
     self.completion = completion
   }
 
+  func photoOutput(_: AVCapturePhotoOutput, didCapturePhotoFor _: AVCaptureResolvedPhotoSettings) {
+    times.capturedAt = CameraSession.wallClockMs()
+  }
+
   func photoOutput(_: AVCapturePhotoOutput, didFinishProcessingPhoto photo: AVCapturePhoto, error: Error?) {
+    times.processedAt = CameraSession.wallClockMs()
     let url = FileManager.default.temporaryDirectory.appendingPathComponent("scan-\(UUID().uuidString).jpg")
     guard error == nil, let data = photo.fileDataRepresentation(), (try? data.write(to: url)) != nil else {
       completion(.failure(.unreadablePhoto))
       return
     }
-    completion(.success(TakenPhoto(url: url, time: photo.timestamp)))
+    times.savedAt = CameraSession.wallClockMs()
+    let dimensions = photo.resolvedSettings.photoDimensions
+    completion(.success(TakenPhoto(
+      url: url,
+      time: photo.timestamp,
+      width: Int(dimensions.width),
+      height: Int(dimensions.height),
+      times: times
+    )))
   }
 }
