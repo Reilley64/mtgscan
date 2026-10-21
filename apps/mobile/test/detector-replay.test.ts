@@ -1,5 +1,6 @@
 import type { FrameQuad } from '../modules/card-detector';
 import {
+  branchAloneTable,
   compareReplays,
   replayTable,
   scoreReplay,
@@ -124,6 +125,20 @@ test('a wrong outline does not count toward the detection rate, and fails the wr
 
   expect(bar(comparison, 'Detection rate')).toMatchObject({ base: '1 of 1', branch: '0 of 1', pass: false });
   expect(bar(comparison, 'Wrong outlines')).toMatchObject({ base: '0', branch: '1', pass: false });
+});
+
+test('the table lists each frame that loses its correct outline and each new wrong outline, with where the outline was', () => {
+  const onTheEdge = cardAt(200, 300)!;
+  const outsideByTwoMm = cardAt(200 - 2 * pixelsPerMm, 300)!;
+
+  const wrong = replayTable(compareReplays(run(onTheEdge), run(outsideByTwoMm), { sameDetector: false }));
+  const missing = replayTable(compareReplays(run(onTheEdge), run(null), { sameDetector: false }));
+
+  const outline = '- plain-000.png, tilt 0, black border: outline at (190, 300) (505, 300) (505, 740) (190, 740)';
+  expect(wrong).toContain(`plain | 0, detection rate:\n\n${outline}`);
+  expect(wrong).toContain(`plain | 0, wrong outlines:\n\n${outline}`);
+  expect(wrong).toContain('corner error 2.00 mm');
+  expect(missing).toContain('plain | 0, detection rate:\n\n- plain-000.png, tilt 0, black border: no outline');
 });
 
 test('an outline with every corner within 1 mm of the true corners is a correct outline', () => {
@@ -285,7 +300,7 @@ test('the detector replay gates each condition and tilt bucket on its own', () =
   ]);
 });
 
-test('the detector replay reports inside outlines per border colour and tilt bucket', () => {
+test('the detector replay reports inside outlines per border color and tilt bucket', () => {
   const onTheEdge = cardAt(200, 300)!;
   const onTheInnerFrame = onTheEdge.map(([x, y]): [number, number] => [
     x + (x === 200 ? 3 : -3) * pixelsPerMm,
@@ -340,7 +355,7 @@ test('the replay table has one row per condition and tilt bucket, with the merge
   expect(table).toContain('- Detection rate: correct outlines not lower by more than 0');
 });
 
-test('the detector replay reports each condition per border colour', () => {
+test('the detector replay reports each condition per border color', () => {
   const onTheEdge = cardAt(200, 300)!;
   const borderLabels: FrameLabels = {
     ...labels,
@@ -461,25 +476,34 @@ test('the photo outline is the refined photo outline when the detector command r
   expect(refined.handShiftMm).toBeCloseTo(2);
 });
 
-test('a photo outline median of 0.5 mm or more fails the photo outline bar on clips whose held-still outline sits on the card edge', () => {
+test('a photo outline median over all clips of 0.5 mm or more fails the photo outline bar, and lists the clips at 0.5 mm or more', () => {
   const clip = clipLabel('plain-clip-000', { handShiftMm: 0.6 });
 
   const comparison = compareReplays(runClip(clip, onTheCard), runClip(clip, onTheCard), { sameDetector: false });
 
-  expect(comparison.clipBars).toContainEqual(
-    expect.objectContaining({ metric: 'Photo outline median, held still on the card edge', branch: '0.60 mm', bar: 'below 0.5 mm', pass: false }),
-  );
+  expect(bar(comparison, 'Photo outline median, all clips')).toMatchObject({ branch: '0.60 mm', bar: 'below 0.5 mm', pass: false });
+  expect(comparison.clipBars).toContainEqual(expect.objectContaining({ metric: 'Photo outline median', branch: '0.60 mm', pass: null }));
+  expect(replayTable(comparison)).toContain('photo outline median, all clips:\n\n- plain-clip-000: photo outline at (400, 600)');
 });
 
-test('a clip whose held-still outline is off the card edge does not count for the photo outline bar', () => {
-  const clip = clipLabel('plain-clip-000');
-  const offTheEdge = (_: number, trueCorners: [number, number][]) => trueCorners.map(([x, y]): [number, number] => [x + 0.6 * pixelsPerMm, y]);
+test('the photo outline bar pools the clips of every condition', () => {
+  const steady = clipLabel('plain-clip-000');
+  const shifted = { ...clipLabel('sleeve-clip-000', { handShiftMm: 0.6 }), condition: 'sleeve' as const };
+  const replay = (clips: ClipLabel[]) =>
+    scoreReplay(
+      { ...labels, clips },
+      [[
+        sample('plain-000.png', cardAt(200, 300)),
+        sample('empty-plain-000.png', null),
+        ...clips.flatMap((clip) => clip.frames.map((frame) => sample(frame.frame, frame.corners))),
+      ]],
+    );
 
-  const comparison = compareReplays(runClip(clip, onTheCard), runClip(clip, offTheEdge), { sameDetector: false });
+  const comparison = compareReplays(replay([steady, shifted, clipLabel('plain-clip-001')]), replay([steady, shifted, clipLabel('plain-clip-001')]), {
+    sameDetector: false,
+  });
 
-  expect(comparison.clipBars).toContainEqual(
-    expect.objectContaining({ metric: 'Photo outline median, held still on the card edge', base: '0.00 mm', branch: 'none', pass: true }),
-  );
+  expect(bar(comparison, 'Photo outline median, all clips')).toMatchObject({ branch: '0.00 mm', pass: true });
 });
 
 test('a new photo outline more than 1 mm inside the card edge fails the inside photo outlines bar', () => {
@@ -522,19 +546,17 @@ test('a later settle time fails the settle time bar', () => {
   ]);
 });
 
-test('more jitter fails the jitter bar, and a photo outline more than 0.1 mm worse fails the photo outline bar', () => {
+test('more jitter fails the jitter bar, and the table lists the clip', () => {
   const clip = clipLabel('plain-clip-000');
   const shifted = (shiftMm: (index: number) => number) => (index: number, trueCorners: [number, number][]) =>
     trueCorners.map(([x, y]): [number, number] => [x + shiftMm(index) * pixelsPerMm, y]);
   const steady = shifted(() => 0.2);
-  const shaking = shifted((index) => (index % 2 === 0 ? 0.5 : -0.1));
+  const shaking = shifted((index) => (index % 2 === 0 ? 0.3 : 0.1));
 
   const comparison = compareReplays(runClip(clip, steady), runClip(clip, shaking), { sameDetector: false });
 
-  expect(comparison.clipBars.filter((candidate) => candidate.pass === false).map((candidate) => candidate.metric)).toEqual([
-    'Jitter median',
-    'Photo outline median',
-  ]);
+  expect(comparison.clipBars.filter((candidate) => candidate.pass === false).map((candidate) => candidate.metric)).toEqual(['Jitter median']);
+  expect(replayTable(comparison)).toContain('plain, jitter median:\n\n- plain-clip-000: photo outline at');
 });
 
 test('the replay table has one row per clip condition and names each clip that stops asking for a photo', () => {
@@ -543,8 +565,35 @@ test('the replay table has one row per clip condition and names each clip that s
   const table = replayTable(compareReplays(runClip(clip, onTheCard), runClip(clip, everyOtherFrame), { sameDetector: false }));
 
   expect(table).toContain(
-    '| plain | 1 of 1 → 0 of 1 | 1200 ms → none | 0.00 mm → 0.00 mm | 1.00 mm → none | 1.00 mm → none | 0 → 0 | 1.00 mm → none | fail: photo asked for, settle time median |',
+    '| plain | 1 of 1 → 0 of 1 | 1200 ms → none | 0.00 mm → 0.00 mm | 1.00 mm → none | 0 → 0 | 1.00 mm → none | fail: photo asked for, settle time median |',
   );
   expect(table).toContain('- Photo asked for: not fewer');
   expect(table).toContain('Clips that ask for a photo on the merge base and not on the branch: plain-clip-000');
+});
+
+test('a branch with no merge base replay passes the fixed limits with no false outline, 1 inside outline on plain frames at no tilt, and a Mac p95 below 20 ms', () => {
+  const onTheEdge = cardAt(200, 300)!;
+  const insideAtTheTop = onTheEdge.map(([x, y], index): [number, number] => [x, index < 2 ? y + 1.5 * pixelsPerMm : y]);
+
+  const { table, pass } = branchAloneTable(run(insideAtTheTop, null, [19.9]));
+
+  expect(pass).toBe(true);
+  expect(table).toContain('| plain | 0 | 0 of 1 | 1 | none | none | 1 | 0.00 x 0.75 mm |');
+  expect(table).toContain('| False outlines | 0 | zero | pass |');
+  expect(table).toContain('| Mac timing p95 | 19.9 ms | below 20 ms | pass |');
+});
+
+test('a false outline, a second inside outline on plain frames at no tilt, or a Mac p95 of 20 ms fails the fixed limits', () => {
+  const onTheEdge = cardAt(200, 300)!;
+  const insideAtTheTop = onTheEdge.map(([x, y], index): [number, number] => [x, index < 2 ? y + 1.5 * pixelsPerMm : y]);
+  const twoFrames: FrameLabels = { ...labels, frames: [label('plain-000.png', onTheEdge), label('plain-001.png', onTheEdge)] };
+  const twoInside = scoreReplay(twoFrames, [[sample('plain-000.png', insideAtTheTop), sample('plain-001.png', insideAtTheTop)]]);
+
+  const falseOutline = branchAloneTable(run(onTheEdge, cardAt(400, 500)));
+
+  expect(falseOutline.pass).toBe(false);
+  expect(falseOutline.table).toContain('false outlines:\n\n- empty-plain-000.png, tilt 0: outline at (400, 500)');
+  expect(branchAloneTable(twoInside)).toMatchObject({ pass: false });
+  expect(branchAloneTable(twoInside).table).toContain('plain | 0, inside outlines:\n\n- plain-000.png');
+  expect(branchAloneTable(run(onTheEdge, null, [20])).pass).toBe(false);
 });

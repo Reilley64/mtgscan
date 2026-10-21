@@ -5,7 +5,9 @@ on:
     paths:
       - apps/mobile/modules/card-detector/**
       - apps/mobile/test/scanner-evidence/detector/**
+      - apps/mobile/test/scanner-evidence/image_download.py
       - apps/mobile/src/scan/capture.ts
+      - apps/mobile/src/scan/capture-log.ts
       - apps/mobile/app.json
       - .github/workflows/detector.yml
   workflow_dispatch:
