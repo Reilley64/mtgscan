@@ -52,7 +52,7 @@ public enum CardRecognizer {
       throw .unreadablePhoto
     }
     guard uprightVector.count == gallery.dimension, turnedVector.count == gallery.dimension else { throw .unreadablePhoto }
-    stageMs["embed"] = elapsed(since: &startedAt)
+    stageMs["featurePrint"] = elapsed(since: &startedAt)
     var bothScores = gallery.similarities(to: [uprightVector, turnedVector])
     for index in excluded {
       bothScores[0][index] = -1

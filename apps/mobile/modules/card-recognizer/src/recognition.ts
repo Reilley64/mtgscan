@@ -32,7 +32,7 @@ export type CollectorLineReading = {
   premiumMark: boolean;
 };
 
-export type StageTimes = Partial<Record<'rectify' | 'resize' | 'embed' | 'search' | 'read', number>>;
+export type StageTimes = Partial<Record<'rectify' | 'resize' | 'featurePrint' | 'search' | 'read', number>>;
 
 export type DecisionBasis = 'collector_line' | 'set_code' | 'unique_art';
 
