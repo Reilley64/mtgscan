@@ -21,7 +21,7 @@ type SettingsContentProps = {
   trainingCropUploads: boolean | null;
   onTrainingCropUploadsChange: (on: boolean) => void;
   onSignOut: () => void;
-  onOpenModelLicence: () => void;
+  onOpenModelLicense: () => void;
 };
 
 const trainingCropsMeta =
@@ -52,7 +52,7 @@ export function SettingsContent({
   trainingCropUploads,
   onTrainingCropUploadsChange,
   onSignOut,
-  onOpenModelLicence,
+  onOpenModelLicense,
 }: SettingsContentProps) {
   return (
     <>
@@ -75,7 +75,7 @@ export function SettingsContent({
         mtgscan is unofficial Fan Content permitted under the Fan Content Policy. Not approved/endorsed by Wizards. Portions of the materials used are property of Wizards of the Coast. ©Wizards of the Coast LLC.
       </Text>
       <Text variant="credit">
-        Card recognition uses PE-Core S16 by Meta, under the <TextLink onPress={onOpenModelLicence}>Apache License 2.0</TextLink>.
+        Card recognition uses PE-Core S16 by Meta, under the <TextLink onPress={onOpenModelLicense}>Apache License 2.0</TextLink>.
       </Text>
     </>
   );

@@ -162,7 +162,7 @@ test('under the Fan Content notice, the settings drawer says in dim credit type 
   expect(appearsBefore(screen.getByText(/^mtgscan is unofficial Fan Content/), notice)).toBe(true);
 });
 
-test('Apache License 2.0 in the settings drawer opens the licence text in the system browser', async () => {
+test('Apache License 2.0 in the settings drawer opens the license text in the system browser', async () => {
   const openURL = jest.spyOn(Linking, 'openURL').mockResolvedValueOnce();
   await renderApp();
   await openSettings();
