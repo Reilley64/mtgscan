@@ -15,6 +15,9 @@ _Avoid_: Version, edition
 **Art crop**:
 Scryfall's image of the art of a card printing, with no frame or text. A double-faced card printing uses the art of its front face. The copy page blurs it behind the card image.
 
+**Artist**:
+The person Scryfall names as the illustrator of a card printing. A card printing by more than one artist names them all, such as "Nana Qi & GodMachine". The copy page credits the artist under the type line.
+
 **Card symbol**:
 A symbol that Oracle text and mana costs write in braces, such as {G}, {2/W}, {T}, or {E}, as Scryfall's symbology lists it. The app draws it with the Mana font, and VoiceOver reads it as words.
 _Avoid_: Mana icon, icon

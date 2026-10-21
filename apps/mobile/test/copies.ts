@@ -16,6 +16,7 @@ export function copyOf(copyId: string, changes: Partial<CopyDetails> = {}): Copy
     rarity: 'uncommon',
     image_uris: ['https://cards.scryfall.io/normal/front/curator.jpg'],
     art_crop_uri: 'https://cards.scryfall.io/art_crop/front/curator.jpg',
+    artist: 'Greg Staples',
     finish: 'nonfoil',
     condition: 'near_mint',
     language: 'en',
@@ -35,7 +36,7 @@ export function copyOf(copyId: string, changes: Partial<CopyDetails> = {}): Copy
 }
 
 export function deckCardOf(copyId: string, name: string, typeLine: string, changes: Partial<DeckCard> = {}): DeckCard {
-  const { deck, held_for, free, added_at, purchase_day_price, faces, commander_legality, user_tags, art_crop_uri, ...row } = copyOf(copyId, {
+  const { deck, held_for, free, added_at, purchase_day_price, faces, commander_legality, user_tags, art_crop_uri, artist, ...row } = copyOf(copyId, {
     name,
     image_uris: [`https://cards.scryfall.io/normal/front/${copyId}.jpg`],
   });
@@ -73,6 +74,7 @@ export const delver = copyOf('copy-delver', {
   collector_number: '51',
   image_uris: ['https://cards.scryfall.io/normal/front/delver.jpg', 'https://cards.scryfall.io/normal/back/delver.jpg'],
   art_crop_uri: 'https://cards.scryfall.io/art_crop/front/delver.jpg',
+  artist: 'Nils Hamm',
   type_line: 'Creature — Human Wizard // Creature — Human Insect',
   faces: [
     { name: 'Delver of Secrets', oracle_text: 'At the beginning of your upkeep, look at the top card of your library.' },

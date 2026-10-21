@@ -71,6 +71,7 @@ describe('the copy read', () => {
       rarity: 'uncommon',
       image_uris: [expect.stringContaining('https://cards.scryfall.io/normal/')],
       art_crop_uri: expect.stringContaining('https://cards.scryfall.io/art_crop/front/'),
+      artist: 'Greg Staples',
       finish: 'nonfoil',
       condition: 'lightly_played',
       language: 'ja',
