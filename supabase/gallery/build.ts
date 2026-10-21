@@ -15,7 +15,7 @@ import {
   updateBytes,
 } from './format';
 import { cachedImages } from './images';
-import { type FeaturePrintModel, type Manifest, galleryFormatVersion, manifestFile } from './manifest';
+import { type FeaturePrintModel, type Manifest, type RecognizerThresholds, galleryFormatVersion, manifestFile } from './manifest';
 import { type ConvertedModel, modelArchive } from './model';
 import { galleryPrintings } from './printings';
 import { type Recognizer, macOSMajor } from './recognizer';
@@ -76,19 +76,26 @@ function sameRow(a: GalleryRow, b: GalleryRow): boolean {
   return JSON.stringify(a.printing) === JSON.stringify(b.printing) && Buffer.from(a.codes).equals(Buffer.from(b.codes));
 }
 
-function plan(rows: GalleryRow[], published: RecordedVersion | null, installed: Map<string, GalleryRow> | null, recognizer: Recognizer, newBase: boolean): Plan {
-  if (newBase) {
-    return { kind: 'base', reason: 'the owner asked for a new base' };
+type AddOnBase = { published: RecordedVersion; installed: Map<string, GalleryRow> };
+
+function sameThresholds(a: RecognizerThresholds, b: RecognizerThresholds): boolean {
+  return a.notACard === b.notACard && a.orientationMargin === b.orientationMargin && a.artMargin === b.artMargin;
+}
+
+function plan(rows: GalleryRow[], addOnBase: AddOnBase | null, newBase: boolean, recognizer: Recognizer, thresholds: RecognizerThresholds): Plan {
+  if (!addOnBase) {
+    return { kind: 'base', reason: newBase ? 'the owner asked for a new base' : 'no gallery version is published' };
   }
-  if (!published || !installed) {
-    return { kind: 'base', reason: 'no gallery version is published' };
-  }
+  const { published, installed } = addOnBase;
   const manifest = published.manifest;
   if (manifest.encoding.type !== 'int8') {
     return { kind: 'base', reason: 'the encoding changed' };
   }
   if (macOSMajor(manifest.builtWith.macOS) !== macOSMajor(recognizer.about.macOS)) {
     return { kind: 'base', reason: 'the macOS major version changed' };
+  }
+  if (!sameThresholds(manifest.thresholds, thresholds)) {
+    return { kind: 'base', reason: 'the recognizer thresholds changed' };
   }
   const changed = rows.filter((row) => {
     const earlier = installed.get(row.printing.id);
@@ -181,17 +188,20 @@ export async function buildGallery(
       publishedParts.set(part.name, await localPartBytes(() => client, options.workDirectory, published.version, part));
     }
   }
-  if (published && !options.newBase) {
-    refuseAnAddOnAcrossModels(published, model);
+  const addOnPublished = options.newBase ? null : published;
+  if (addOnPublished) {
+    refuseAnAddOnAcrossModels(addOnPublished, model);
   }
-  const installed =
-    published && !options.newBase ? installedRows(published.manifest, (part) => publishedParts.get(part.name)!) : null;
+  const addOnBase = addOnPublished && {
+    published: addOnPublished,
+    installed: installedRows(addOnPublished.manifest, (part) => publishedParts.get(part.name)!),
+  };
   const current = new Set(rows.map((row) => row.printing.id));
-  const leftOver = installed ? [...installed.keys()].filter((id) => !current.has(id)).length : 0;
+  const leftOver = addOnBase ? [...addOnBase.installed.keys()].filter((id) => !current.has(id)).length : 0;
   if (leftOver > 0) {
     console.log(`${leftOver} rows of gallery version ${published!.version} are no longer in the card catalog. They stay until the next base.`);
   }
-  const decision = plan(rows, published, installed, recognizer, options.newBase);
+  const decision = plan(rows, addOnBase, options.newBase, recognizer, model.thresholds);
   if (decision.kind === 'unchanged') {
     console.log(`Nothing changed since gallery version ${published!.version}. No new version was built.`);
     return null;
@@ -208,7 +218,7 @@ export async function buildGallery(
       ...galleryParts(decision.addOn, decision.firstRow, decision.changed, model.model.vectorSize),
     ];
   }
-  const distinctRows = decision.kind === 'base' ? rows.length : new Set([...installed!.keys(), ...decision.changed.map((row) => row.printing.id)]).size;
+  const distinctRows = decision.kind === 'base' ? rows.length : new Set([...addOnBase!.installed.keys(), ...decision.changed.map((row) => row.printing.id)]).size;
   const manifest: Manifest = {
     formatVersion: galleryFormatVersion,
     version,
@@ -233,7 +243,6 @@ export async function buildGallery(
   startedAt = performance.now();
   await upload(client, manifest, parts, published);
   timings.push(`upload ${seconds(startedAt)}`);
-
 
   const evidence = await evidenceVersion();
   const kept = [manifest, ...[published, versions.find((recorded) => recorded.version === evidence)]
