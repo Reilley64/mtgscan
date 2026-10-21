@@ -47,7 +47,9 @@ async function git(args: string[]) {
 }
 
 async function frameHashes() {
-  const files = (await fs.readdir(framesDirectory)).filter((file) => file.endsWith('.png') || file === 'labels.json').sort();
+  const files = (await fs.readdir(framesDirectory))
+    .filter((file) => file.endsWith('.png') || file.endsWith('.jpg') || file === 'labels.json')
+    .sort();
   const lines = await Promise.all(
     files.map(async (file) => `${createHash('sha256').update(await fs.readFile(path.join(framesDirectory, file))).digest('hex')}  ${file}`),
   );
@@ -141,7 +143,8 @@ async function sourceFiles(packageRoot: string) {
 }
 
 async function detect(command: string, labels: FrameLabels) {
-  const result = await run(command, ['frames', ...labels.frames.map((frame) => frame.frame)], { cwd: framesDirectory, output: true });
+  const frames = [...labels.frames, ...labels.clips.flatMap((clip) => clip.frames)].map((frame) => frame.frame);
+  const result = await run(command, ['frames', ...frames], { cwd: framesDirectory, output: true });
   if (result.code !== 0) throw new Error(`${command} did not finish`);
   return result.stdout
     .trim()
