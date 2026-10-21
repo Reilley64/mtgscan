@@ -495,7 +495,7 @@ bun run training-crops:score ~/Library/Caches/mtgscan/training-crops
 It needs `uv` and no hosted access. It aligns each crop with Scryfall's `normal` image of its saved card printing, both at 488 x 680, where 7.75 px is 1 mm. A SIFT affine fit (ratio test, RANSAC) gives the start, and ECC refines it on edge images. It reads the images from `~/Library/Caches/mtgscan/scryfall-images`, the folder of the gallery build. It downloads a missing image from Scryfall into that folder. `--images <dir>` names another folder.
 
 - A crop whose ECC correlation is below 0.6 is unscored, with no size or shift. In #421, good fits had 0.77 to 0.96, and a wrong fit had 0.46.
-- Each side is how far the crop edge sits inside the outer card edge, in mm. A negative side takes in the table.
+- Each side is how far the crop edge sits inside the outer card edge, in mm. A negative side means the crop takes in some of the surface around the card.
 - Size is the mean of two opposite sides. A positive size means the card outline was smaller than the card.
 - Shift is half the difference of two opposite sides. It mostly comes from the hand moving between the card outline holding still and the photo.
 - An inside outline has a side more than 1 mm inside the card edge.
