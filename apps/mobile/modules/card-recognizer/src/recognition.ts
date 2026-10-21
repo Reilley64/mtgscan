@@ -60,3 +60,7 @@ export type NotACardRecognition = {
 };
 
 export type Recognition = CardRecognition | NotACardRecognition;
+
+export type RecognizerTimes = { startedAt: number; endedAt: number };
+
+export type TimedRecognition = { recognition: Recognition; times: RecognizerTimes };

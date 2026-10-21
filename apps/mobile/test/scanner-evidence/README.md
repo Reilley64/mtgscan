@@ -148,6 +148,8 @@ Pass criteria from #10 and #21:
 - End-to-end p95 below 1.5 s.
 - Gallery parity on the phone: the lowest cosine is at least 0.98 over 24 reference images (`DEVICE_PARITY`). `bun run gallery parity` checks this rule when it records the parity check. The score script copies the `PARITY` line into `DEVICE_PARITY`.
 
+When the end-to-end p95 fails, `phaseMs` in the `RECOGNITION` lines shows where the time goes. `README.md` (Latest scan) lists the phases. The score script does not read them.
+
 Cards per minute is not a recognition gate. It moved to #11.
 
 Cited runs, all on an iPhone 16e with iOS 26.6.1 and the torch off:

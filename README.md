@@ -46,7 +46,7 @@ A development build has a primitive catalog that shows every primitive in each s
 
 ### Card recognizer
 
-The card recognizer is a local Expo module in `apps/mobile/modules/card-recognizer`. `recognize(photoUri, outline)` returns a card result with its candidates and decision, or a not-a-card result, as #75 describes. The outline is the four card corners, top left first and clockwise, as fractions of the photo's width and height from its top-left corner. It loads the gallery from `Application Support/gallery` on the phone and throws `gallery_not_ready` until one is there.
+The card recognizer is a local Expo module in `apps/mobile/modules/card-recognizer`. `recognize(photoUri, outline)` returns a card result with its candidates and decision, or a not-a-card result, as #75 describes. It returns the result as `recognition`, with `times`: when the native call started and ended, in milliseconds since 1970 like `Date.now()`. The outline is the four card corners, top left first and clockwise, as fractions of the photo's width and height from its top-left corner. It loads the gallery from `Application Support/gallery` on the phone and throws `gallery_not_ready` until one is there.
 
 A card result also has:
 
@@ -152,7 +152,7 @@ The card detector is a local Expo module in `apps/mobile/modules/card-detector`.
 - About 5 times a second, the detector finds a card in a preview frame with the Apple Vision document proposal and the luma edge refiner from #10. It sends one detection sample to JavaScript for each analyzed frame.
 - A card is detected when its refined outline passes every detector gate: proposal confidence at least 0.5, area 0.08 to 0.9 of the frame, aspect within 0.02 of 63:88, and edge support at least 0.7. The view draws the magenta outline only around a detected card, without waiting for JavaScript.
 - A sample has `detected`, the refined `corners`, the proposal, its `confidence`, `areaRatio`, `aspectRatio`, `edgeSupportMin`, the 8 x 6 brightness `signature`, the frame size, `nativeDurationMs`, `sampledAtMs`, and `runtimeErrorCode` or null. Corners are fractions of the upright frame, top left first and clockwise.
-- `takePhoto(outline)` takes the outline of the sample that held still and returns it with the photo file, in the same fractions of the photo as `recognize` takes. The photo has the same aspect as the analyzed frame.
+- `takePhoto(outline)` takes the outline of the sample that held still and returns it with the photo file, in the same fractions of the photo as `recognize` takes. The photo has the same aspect as the analyzed frame. It also returns the photo's `width` and `height` in pixels as the camera reports them, and `times` in milliseconds since 1970 like `Date.now()`: when the module got the request (`receivedAt`), when the camera captured the photo (`capturedAt`), when the camera handed over the processed photo (`processedAt`), and when the module wrote the JPEG file (`savedAt`).
 - Taking a photo plays no haptic. On iOS 18 and later, the shutter sound is suppressed where iOS allows it. On iOS 17, and where the law requires the shutter sound, iOS still plays it.
 
 The capture rule from #75 lives in `apps/mobile/src/scan/capture.ts`. It takes one photo when a detected card holds still for 400 ms, and re-arms after the card leaves or changes. The app needs iOS 17, because the recognizer's model is a Core ML ML program for iOS 17.
@@ -172,6 +172,21 @@ Vision's rectangle detector (`VNDetectRectanglesRequest`) was tried in #421 in p
 ### Latest scan
 
 `apps/mobile/src/scan/use-scan-recognition.ts` sends each photo to `recognize`, deletes the photo when the recognizer answers, and reports the result to the scan batch in `src/scan/scan-batch-state.tsx`. Development builds log each recognition to Metro as a `RECOGNITION` line: the recognition, the time, and the end-to-end time from the photo request. The bin-deck run reads these lines. `src/scan/scan-batch.ts` holds the scans, the default finish rule from #75, and the edits from the quick actions and the details sheet. Each scan is one copy. **+1** adds a new scan with the same card printing, finish, condition, and language. Card images on the chip and in the details sheet come from `image_uris` in the card catalog's `card_printings` table. The set button shows the expansion symbol from `icon_svg_uri` in `card_sets`. `expo-image` keeps both in its disk cache.
+
+A `RECOGNITION` line with a result also has `photoSize`, the photo dimensions that the camera reports, and `phaseMs`, the end-to-end time split into phases (#503). The phases add up to the end-to-end time. A failed recognition logs no phases.
+
+| Phase | From | To |
+| --- | --- | --- |
+| `photoRequest` | The photo request in JavaScript | The card detector gets the request |
+| `photoCapture` | The card detector gets the request | The camera captures the photo |
+| `photoProcessing` | The camera captures the photo | The camera hands over the processed photo |
+| `photoSave` | The camera hands over the processed photo | The card detector writes the JPEG file |
+| `photoHandOff` | The card detector writes the JPEG file | JavaScript calls `recognize` |
+| `recognizerCall` | JavaScript calls `recognize` | The native recognizer starts |
+| `recognizer` | The native recognizer starts | The native recognizer ends |
+| `recognitionHandOff` | The native recognizer ends | The line is logged |
+
+`recognizer` holds the recognizer stages in `stageMs` and the rest of the native call, such as writing the training crop.
 
 ### Scan batch
 
