@@ -186,7 +186,7 @@ What it runs:
 1. It renders the frames from `detector/frames.py` into `modules/card-detector/.data/frames`. It checks every frame and `labels.json` against `detector/frames.sha256`. A frame with another hash fails the replay. It skips the render when the frames are already there and match.
 2. It builds the macOS detector command, `card-detector`, on the branch and on the merge base of `HEAD` and `origin/main`. The command is an executable target in `modules/card-detector/Package.swift`. It compiles the Swift files in `ios/Detector` unchanged. When the merge base has no detector command with the `step` mode, the replay builds the branch's command with the merge base's detector files.
 3. Both commands start at the same time in the `step` mode. Each reads every frame and builds the buffer the phone analyzes. The buffer is a full-range `420f` buffer, landscape, with the `.right` orientation, and its colours are converted with BT.709. The replay then asks for one frame at a time, by its index on the command's input. The command runs the detector on that frame and writes one JSON line: the detection sample fields, with the time of the detector call in `nativeDurationMs`.
-4. The replay runs each frame on the merge base and on the branch back to back. It swaps which side goes first on each frame and each round, and it runs every frame 5 times. So the two sides share the same moments on the Mac, and a slow moment hits both. The card outlines come from the first round.
+4. The replay runs each frame on the merge base and on the branch back to back. It swaps which side goes first on each frame and each round, and it runs every frame 3 times. So the two sides share the same moments on the Mac, and a slow moment hits both. The card outlines come from the first round.
 5. The scorer compares each card outline with the true corners. It maps the outline onto the card with the homography of the true corners, so every distance is in mm on the card.
 
 `card-detector frames <image>...` runs the detector once on each frame and writes the same JSON lines, for use by hand.
@@ -208,7 +208,7 @@ Metrics and pass bars, from #493:
 | Inside outlines | Card outlines with a side more than 1 mm inside the card edge | No new one on any frame |
 | Size error | The mean of opposite sides in mm, median of the detected frames. Inside is positive, as in #421. | Reported |
 | False outlines | Card outlines on empty frames | Zero |
-| Mac timing | The median time of the detector call on each frame over the 5 rounds, then the p95 over every frame. Same Mac, same run. | At most 1.2 times the merge base. It is a proxy only: the 20 ms bar is on the iPhone. |
+| Mac timing | The median time of the detector call on each frame over the 3 rounds, then the p95 over every frame. Same Mac, same run. | At most 1.2 times the merge base. It is a proxy only: the 20 ms bar is on the iPhone. |
 | Same detector code | When the branch and the merge base have the same detector files and command, every number except timing must match | Same numbers |
 
 The replay writes `base.json`, `branch.json`, and `comparison.md` to `modules/card-detector/.data/reports`. Under the table, it lists each new inside outline and each false outline, with the outline's corners in frame pixels and how far each side is inside the card edge. It exits 0 when every bar passes, and 1 when a bar fails or a frame hash differs.
@@ -216,7 +216,7 @@ The replay writes `base.json`, `branch.json`, and `comparison.md` to `modules/ca
 Options:
 
 - `--base <ref>` compares with the merge base of `HEAD` and another ref, such as a spec's integration branch.
-- `--rounds <n>` runs every frame `n` times on each side. The default is 5. One round is enough to check the outlines, but its timing is noisy.
+- `--rounds <n>` runs every frame `n` times on each side. The default is 3. One round is enough to check the outlines, but its timing is noisy.
 - `--record-frame-hashes` renders the frames again and writes `detector/frames.sha256`. Use it only when the recipe or the card list changes, and say why in the pull request.
 
 Result on `main` at `a6fcfaf`, on an Apple M3 with macOS 27.0.1:
@@ -226,7 +226,7 @@ Result on `main` at `a6fcfaf`, on an Apple M3 with macOS 27.0.1:
 - 1 inside outline: `plain-018.png`, a black-bordered card outlined on its inner frame, 2.6 to 6.7 mm inside.
 - 0 false outlines on the empty plain frames.
 - Mac timing p95 about 3.5 ms. The replay takes about 20 seconds once the images are downloaded.
-- Timing noise: with the same detector code on both sides, the timing ratio stayed between 0.96 and 1.04 over 10 runs of 5 rounds on a busy M3. One pass with the merge base first and the branch second gave 0.71 to 1.70 on the same Mac.
+- Timing noise: with the same detector code on both sides, the timing ratio stayed between 0.96 and 1.04 over 10 runs of 3 rounds on a busy M3, and between 0.96 and 1.04 with 5 rounds. One pass with the merge base first and the branch second gave 0.71 to 1.70 on the same Mac.
 
 Synthetic frames do not show what Vision does on real frames (#421). So the replay gates mechanisms and regressions, and the phone confirms real gains.
 

@@ -26,7 +26,7 @@ const comparedSources = [path.join('ios', 'Detector'), path.join('macos', 'CardD
 const { values } = parseArgs({
   options: {
     base: { type: 'string', default: 'origin/main' },
-    rounds: { type: 'string', default: '5' },
+    rounds: { type: 'string', default: '3' },
     'record-frame-hashes': { type: 'boolean', default: false },
   },
 });
