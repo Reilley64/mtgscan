@@ -8,6 +8,7 @@ import Vision
 enum PhotoOutline {
   static let sizeShrinkMax = 0.02
   static let cornerMotionMax = 0.02
+  static let photoSearchFraction = Double(ProcessInfo.processInfo.environment["PHOTO_SEARCH"] ?? "") ?? CardEdgeRefiner.searchFraction
 
   enum Outcome: String, Sendable {
     case refined
@@ -68,7 +69,7 @@ enum PhotoOutline {
     debug.thumbnailPNG = pngData(image.image)
     let size = SIMD2(frameTransform.orientedWidth, frameTransform.orientedHeight)
     let atHeldStill = image.withPlane { plane in
-      CardEdgeRefiner.refine(proposal: heldStill.map { $0 * size }, plane: plane, transform: image.transform)
+      CardEdgeRefiner.refine(proposal: heldStill.map { $0 * size }, plane: plane, transform: image.transform, searchFraction: photoSearchFraction)
     }
     debug.refinementAtHeldStill = String(describing: atHeldStill)
     if case let .refined(corners, _, _, _, _) = atHeldStill {
@@ -82,7 +83,7 @@ enum PhotoOutline {
     let moved = heldStill.map { motion($0 * size) }
     debug.moved = moved.map { $0 / size }
     let refinement = image.withPlane { plane in
-      CardEdgeRefiner.refine(proposal: moved, plane: plane, transform: image.transform)
+      CardEdgeRefiner.refine(proposal: moved, plane: plane, transform: image.transform, searchFraction: photoSearchFraction)
     }
     debug.refinement = String(describing: refinement)
     if case let .refined(corners, _, _, _, _) = refinement {

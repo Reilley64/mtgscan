@@ -141,3 +141,31 @@ func refinesATiltedCardWithTheIntrinsicMatrix() {
   #expect(error < 1.5, "photo outline corner error \(error) px")
   #expect(withoutMatrix.outcome != .refined)
 }
+
+
+@Test("refines the outline on a photo with background lines parallel to the card's top edge")
+func refinesTheOutlineBesideParallelBackgroundLines() {
+  var image = renderCard(card, width: 720, height: 1280, background: 185)
+  let outline = CardQuadGeometry.orderedClockwise(card.corners)!
+  let top = EdgeLine.through(outline[0], outline[1])!
+  for y in 0 ..< image.height {
+    for x in 0 ..< image.width {
+      let outward = -top.distance(to: SIMD2(Double(x) + 0.5, Double(y) + 0.5))
+      guard outward > 20.0, Int(outward) % 7 < 2 else { continue }
+      image.pixels[y * image.width + x] = 90
+    }
+  }
+  let frame = makeBuffer(oriented: image, orientation: .right)
+  let photo = writeJPEG(image)
+  defer { try? FileManager.default.removeItem(at: photo) }
+
+  let result = PhotoOutline.refine(
+    photo: photo,
+    frame: frame,
+    frameOrientation: .right,
+    frameIntrinsicMatrix: nil,
+    heldStill: outline.map { SIMD2($0.x / 720.0, $0.y / 1280.0) }
+  )
+
+  #expect(result.outcome == .refined)
+}

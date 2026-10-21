@@ -43,7 +43,7 @@ enum CardEdgeRefiner {
   static let minimumConsistency = 0.7
   static let peakSearchPixels = 3
   static let inlierTolerance = 2.0
-  static let linesPerEdge = 5
+  static let linesPerEdge = Int(ProcessInfo.processInfo.environment["LINES_PER_EDGE"] ?? "") ?? 5
 
   enum Outcome {
     case refined(
@@ -86,7 +86,8 @@ enum CardEdgeRefiner {
   static func refine(
     proposal: [SIMD2<Double>],
     plane: LumaPlane,
-    transform: OrientationTransform
+    transform: OrientationTransform,
+    searchFraction: Double = searchFraction
   ) -> Outcome {
     let proposalMetrics = CardQuadGeometry.metrics(proposal, in: transform)
     let searchRadius = min(
@@ -123,13 +124,20 @@ enum CardEdgeRefiner {
     }
 
     var selected: (corners: [SIMD2<Double>], fits: [EdgeFit], outwardness: Double)?
+    if debugRefiner {
+      for (index, fits) in edges.enumerated() {
+        print("[DEBUG-493] edge \(index): " + fits.map { "shift \(String(format: "%.2f", $0.shift)) support \($0.support) sign \($0.sign)" }.joined(separator: "; "))
+      }
+    }
     for top in edges[0] {
       for right in edges[1] {
         for bottom in edges[2] {
           for left in edges[3] {
             let fits = [top, right, bottom, left]
             let signs = Set(fits.map(\.sign).filter { $0 != 0.0 })
+            if debugRefiner { debugQuad(fits.map(\.line), signs: signs.count, transform: transform) }
             guard signs.count <= 1,
+                  !(translationGuard && isTranslated(fits.map(\.shift), shortSide: proposalMetrics.shortSide)),
                   let corners = quadrilateral(fits.map(\.line), transform: transform)
             else {
               continue
@@ -150,6 +158,9 @@ enum CardEdgeRefiner {
     guard let selected else {
       return .invalidQuad(supportMin: measuredSupport)
     }
+    if ProcessInfo.processInfo.environment["DEBUG_SELECTED"] != nil {
+      print("[DEBUG-493] selected shifts px " + selected.fits.map { String(format: "%.1f", $0.shift) }.joined(separator: " ") + " candidates " + edges.map { String($0.count) }.joined(separator: " "))
+    }
     return .refined(
       corners: selected.corners,
       supportMin: selected.fits.filter { $0.sign != 0.0 }
@@ -158,6 +169,30 @@ enum CardEdgeRefiner {
       supports: supports,
       fallbackEdges: fallbackEdges
     )
+  }
+
+  static let translationGuard = ProcessInfo.processInfo.environment["TRANSLATION_GUARD"] != nil
+  static let translationMax = Double(ProcessInfo.processInfo.environment["TRANSLATION_MAX"] ?? "") ?? 0.02
+
+  static func isTranslated(_ shifts: [Double], shortSide: Double) -> Bool {
+    let limit = translationMax * shortSide
+    return [(shifts[0], shifts[2]), (shifts[1], shifts[3])].contains { pair in
+      min(pair.0, pair.1) < -limit && max(pair.0, pair.1) > limit
+    }
+  }
+
+  static let debugRefiner = ProcessInfo.processInfo.environment["DEBUG_REFINER"] != nil
+
+  private static func debugQuad(_ lines: [EdgeLine], signs: Int, transform: OrientationTransform) {
+    var corners: [SIMD2<Double>] = []
+    for index in 0 ..< 4 {
+      guard let corner = lines[(index + 3) % 4].intersection(with: lines[index]) else { return }
+      corners.append(corner)
+    }
+    let metrics = CardQuadGeometry.metrics(corners, in: transform)
+    let horizontal = (simd_length(corners[1] - corners[0]) + simd_length(corners[2] - corners[3])) / 2.0
+    let vertical = (simd_length(corners[3] - corners[0]) + simd_length(corners[2] - corners[1])) / 2.0
+    print("[DEBUG-493] quad signs \(signs) inside \(CardQuadGeometry.isInside(corners, width: transform.orientedWidth, height: transform.orientedHeight)) aspect \(String(format: "%.4f", metrics.aspectRatio)) onCard \(metrics.aspectRatioIsOnCard) inFrame \(String(format: "%.4f", min(horizontal, vertical) / max(horizontal, vertical))) shaped \(CardQuadGeometry.isCardShaped(metrics))")
   }
 
   private static func quadrilateral(

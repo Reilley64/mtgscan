@@ -240,6 +240,100 @@ func detectFramesOnRequest(_ paths: [String]) {
   }
 }
 
+func dumpBuffer(_ directory: URL, file: String = "frame.nv12.zlib", width: Int = 1280, height: Int = 720) -> CVPixelBuffer {
+  guard let compressed = try? Data(contentsOf: directory.appendingPathComponent(file)),
+        let packed = try? (compressed as NSData).decompressed(using: .zlib) as Data
+  else { fail("cannot read \(file) in \(directory.path)") }
+  var created: CVPixelBuffer?
+  guard CVPixelBufferCreate(
+    kCFAllocatorDefault, width, height, kCVPixelFormatType_420YpCbCr8BiPlanarFullRange,
+    [kCVPixelBufferIOSurfacePropertiesKey: [:]] as CFDictionary, &created
+  ) == kCVReturnSuccess, let buffer = created else { fail("cannot create a buffer") }
+  CVPixelBufferLockBaseAddress(buffer, [])
+  defer { CVPixelBufferUnlockBaseAddress(buffer, []) }
+  var offset = 0
+  for plane in 0 ..< 2 {
+    let rows = plane == 0 ? height : height / 2
+    let stride = CVPixelBufferGetBytesPerRowOfPlane(buffer, plane)
+    let base = CVPixelBufferGetBaseAddressOfPlane(buffer, plane)!
+    packed.withUnsafeBytes { bytes in
+      for row in 0 ..< rows {
+        memcpy(base + row * stride, bytes.baseAddress! + offset + row * width, width)
+      }
+    }
+    offset += rows * width
+  }
+  return buffer
+}
+
+struct DumpRecord: Decodable {
+  struct Frame: Decodable { let intrinsicMatrixRows: [[Double]] }
+  let heldStill: [[Double]]
+  let frame: Frame
+}
+
+func refinePhotoDump(_ path: String, matrixOverride: [Double]?) {
+  let directory = URL(fileURLWithPath: path)
+  guard let data = try? Data(contentsOf: directory.appendingPathComponent("record.json")),
+        let record = try? JSONDecoder().decode(DumpRecord.self, from: data)
+  else { fail("cannot read record.json in \(path)") }
+  let buffer = dumpBuffer(directory)
+  let rows = matrixOverride ?? record.frame.intrinsicMatrixRows.flatMap { $0 }
+  let matrix = simd_float3x3(rows: [
+    SIMD3(Float(rows[0]), Float(rows[1]), Float(rows[2])),
+    SIMD3(Float(rows[3]), Float(rows[4]), Float(rows[5])),
+    SIMD3(Float(rows[6]), Float(rows[7]), Float(rows[8])),
+  ])
+  let heldStill = record.heldStill.map { SIMD2($0[0], $0[1]) }
+  let result = PhotoOutline.refine(
+    photo: directory.appendingPathComponent("photo.jpg"),
+    frame: buffer,
+    frameOrientation: displayOrientation,
+    frameIntrinsicMatrix: ProcessInfo.processInfo.environment["NO_MATRIX"] == nil ? matrix : nil,
+    heldStill: heldStill
+  )
+  let detection = detect(buffer, intrinsicMatrix: matrix)
+  emit([
+    "dump": directory.lastPathComponent,
+    "outcome": result.outcome.rawValue,
+    "outline": outlineRecord(result.outline),
+    "refinement": result.debug?.refinement ?? "",
+    "refinementAtHeldStill": result.debug?.refinementAtHeldStill ?? "",
+    "frameDetection": detection.record,
+  ])
+}
+
 let arguments = Array(CommandLine.arguments.dropFirst())
+if arguments.first == "photo-dump" {
+  for path in arguments.dropFirst() { refinePhotoDump(path, matrixOverride: nil) }
+  exit(0)
+}
+struct FrameLine: Decodable {
+  let frame: String
+  let seconds: Double
+  let intrinsicMatrixRows: [[Double]]?
+}
+
+func detectFrameDump(_ path: String) {
+  let directory = URL(fileURLWithPath: path)
+  guard let text = try? String(contentsOf: directory.appendingPathComponent("frames.jsonl"), encoding: .utf8) else {
+    fail("cannot read frames.jsonl in \(path)")
+  }
+  for line in text.split(separator: "\n") {
+    let frame = decoded(FrameLine.self, from: String(line))
+    let buffer = dumpBuffer(directory, file: frame.frame)
+    let matrix = frame.intrinsicMatrixRows.map { rows in
+      simd_float3x3(rows: rows.map { SIMD3(Float($0[0]), Float($0[1]), Float($0[2])) })
+    }
+    print("[DEBUG-493] frame \(frame.frame)")
+    emit(detect(buffer, intrinsicMatrix: matrix).record.merging(["frame": frame.frame, "seconds": frame.seconds]) { current, _ in current })
+  }
+}
+
+if arguments.first == "frame-dump" {
+  for path in arguments.dropFirst() { detectFrameDump(path) }
+  exit(0)
+}
+
 guard arguments.first == "step", arguments.count > 1 else { fail(usage) }
 detectFramesOnRequest(Array(arguments.dropFirst()))
