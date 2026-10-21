@@ -303,7 +303,7 @@ Photo refinement (#500), on the same Mac, against the integration branch at `1e6
 - Vision's registration moves the outline to within 0.2 mm of the card on all 20 photos, when the held-still outline is the true card edge.
 - One inside photo outline goes away, on a shadow clip. No photo outline is a new inside outline.
 - Photo refinement takes 34 to 50 ms at the median on the Mac, most of it in reading the photo and in the registration. The edge refiner takes about 2 ms. The detector's frame loop is unchanged.
-- On the `macos-15` runner of the Detector workflow, all 16 photo outlines pass both checks, also on the sleeve clip, and photo refinement takes 117 ms at the median. Its photo outline medians are within 0.01 mm of the Mac's.
+- On the `macos-15` runner of the Detector workflow, all 16 photo outlines pass both checks, also on the sleeve clip, and photo refinement takes 76 to 117 ms at the median over two runs. Its photo outline medians are within 0.01 mm of the Mac's.
 
 The refusal limits of `PhotoOutline` come from these runs:
 
