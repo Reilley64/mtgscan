@@ -92,7 +92,9 @@ async function renderFrames() {
   return mismatchedFrames(recorded);
 }
 
-async function buildCommand(packageRoot: string, scratch: string) {
+type DetectorCommand = { command: string; takesIntrinsicMatrix: boolean };
+
+async function buildCommand(packageRoot: string, scratch: string): Promise<DetectorCommand> {
   const build = await run('swift', [
     'build',
     '-c',
@@ -107,7 +109,8 @@ async function buildCommand(packageRoot: string, scratch: string) {
     scratch,
   ]);
   if (build.code !== 0) throw new Error(`the detector command did not build in ${packageRoot}`);
-  return path.join(scratch, 'release', 'card-detector');
+  const commandSource = await fs.readFile(path.join(packageRoot, comparedSources[1], 'main.swift'), 'utf8');
+  return { command: path.join(scratch, 'release', 'card-detector'), takesIntrinsicMatrix: commandSource.includes('intrinsicMatrix') };
 }
 
 async function exportBasePackage(commit: string) {
@@ -145,15 +148,16 @@ async function sourceFiles(packageRoot: string) {
   return JSON.stringify(files);
 }
 
-function startCommand(command: string, frames: string[]) {
-  const child = spawn(command, ['step', ...frames], {
+function startCommand({ command, takesIntrinsicMatrix }: DetectorCommand, frames: { frame: string; intrinsicMatrix: number[][] }[]) {
+  const child = spawn(command, ['step', ...frames.map(({ frame }) => frame)], {
     cwd: framesDirectory,
     stdio: ['pipe', 'pipe', 'inherit'],
   });
   const lines = readline.createInterface({ input: child.stdout })[Symbol.asyncIterator]();
   return {
     async detect(index: number) {
-      child.stdin.write(`${index}\n`);
+      const matrix = takesIntrinsicMatrix ? ` ${frames[index].intrinsicMatrix.flat().join(' ')}` : '';
+      child.stdin.write(`${index}${matrix}\n`);
       const line = await lines.next();
       if (line.done) throw new Error(`${command} stopped`);
       return JSON.parse(line.value) as FrameSample;
@@ -162,8 +166,8 @@ function startCommand(command: string, frames: string[]) {
   };
 }
 
-async function detectInterleaved(commands: string[], labels: FrameLabels, rounds: number) {
-  const frames = [...labels.frames, ...labels.clips.flatMap((clip) => clip.frames)].map((frame) => frame.frame);
+async function detectInterleaved(commands: DetectorCommand[], labels: FrameLabels, rounds: number) {
+  const frames = [...labels.frames, ...labels.clips.flatMap((clip) => clip.frames)];
   const sides = commands.map((command) => startCommand(command, frames));
   const samples = sides.map(() => Array.from({ length: rounds }, (): FrameSample[] => []));
   for (let round = 0; round < rounds; round += 1) {
