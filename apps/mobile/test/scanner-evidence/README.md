@@ -19,6 +19,9 @@ This folder holds the evidence for the scanner release gates in #10, #21, and #7
 | `bin-deck/test-deck.tsv` | The fixed 30-card test deck, with the three corrected printings from #10. |
 | `bin-deck/<run>/` | The summary, results, and per-card detail of each physical run cited in #21. |
 | `check.mjs` | Compares a new result with an expected file and checks the gates. |
+| `training-crops/score.py` | The training crop scorer (README, Training crops). |
+| `training-crops/fixture-421/` | The 10 training crops of the #421 A/B, in the layout of `crops pull`, with the Scryfall `normal` images of their card printings. |
+| `training-crops/test_score.py` | Checks that the scorer reproduces the #421 table on the fixture. |
 
 Each expected file has a `recordedWith` block. It names the recognizer commit, the model and its SHA-256, the gallery, the machine, and the command.
 

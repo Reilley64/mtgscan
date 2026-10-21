@@ -137,6 +137,9 @@ _Avoid_: Rectangle detector
 The four corners of a detected card. The Scan tab draws it in magenta, and the recognizer straightens the photo along it.
 _Avoid_: Guide
 
+**Inside outline**:
+A card outline with a side more than 1 mm inside the card edge. On a black-bordered card it is often the inner frame. A training crop of an inside outline loses the border and can lose the collector line.
+
 **Automatic capture**:
 The scanner takes one photo when a detected card holds still for 400 ms. It re-arms when the card leaves for 1 second or a different card takes its place.
 _Avoid_: Auto-scan, shutter
