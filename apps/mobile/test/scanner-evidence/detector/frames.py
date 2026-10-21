@@ -7,6 +7,7 @@ import asyncio
 import json
 import math
 import random
+import sys
 from concurrent.futures import ProcessPoolExecutor
 from dataclasses import dataclass, replace
 from functools import partial
@@ -14,8 +15,10 @@ from pathlib import Path
 from typing import Callable
 
 import cv2
-import httpx
 import numpy as np
+
+sys.path.insert(0, str(Path(__file__).resolve().parents[1]))
+from image_download import download
 
 FRAME_WIDTH = 720
 FRAME_HEIGHT = 1280
@@ -79,32 +82,6 @@ class Condition:
 
 
 TILT_BUCKETS = [TiltBucket("0", 0, 0), TiltBucket("0-7.5", 0, 7.5), TiltBucket("7.5-15", 7.5, 15), TiltBucket("15-25", 15, 25)]
-
-
-async def download(items, directory):
-    directory.mkdir(parents=True, exist_ok=True)
-    pending = [item for item in items if not (directory / f"{item['id']}.jpg").exists()]
-    semaphore = asyncio.Semaphore(8)
-    failures = []
-
-    async def fetch(client, item):
-        async with semaphore:
-            for attempt in range(4):
-                try:
-                    response = await client.get(item["image"])
-                    if response.status_code == 200:
-                        target = directory / f"{item['id']}.jpg"
-                        target.with_suffix(".tmp").write_bytes(response.content)
-                        target.with_suffix(".tmp").rename(target)
-                        return
-                except httpx.HTTPError:
-                    pass
-                await asyncio.sleep(2**attempt)
-            failures.append(item["id"])
-
-    async with httpx.AsyncClient(headers={"User-Agent": USER_AGENT, "Accept": "image/*"}, timeout=30) as client:
-        await asyncio.gather(*(fetch(client, item) for item in pending))
-    return failures
 
 
 def read_image(path):
@@ -211,7 +188,7 @@ def lay_card(rng, surface, image, plane, view):
     return frame, corners, coverage
 
 
-def colour(rng):
+def color(rng):
     return np.array([rng.uniform(15, 240) for _ in range(3)], np.float32)
 
 
@@ -264,8 +241,8 @@ def dots(rng, plane, assets, view):
 def text(rng, plane, assets, view):
     pixels_per_mm = 4
     size_mm = 300
-    page = np.full((size_mm * pixels_per_mm, size_mm * pixels_per_mm, 3), colour(rng)[None, None, :], np.uint8)
-    ink = tuple(int(value) for value in colour(rng))
+    page = np.full((size_mm * pixels_per_mm, size_mm * pixels_per_mm, 3), color(rng)[None, None, :], np.uint8)
+    ink = tuple(int(value) for value in color(rng))
     line_mm = rng.uniform(3, 8)
     for row in range(int(size_mm / line_mm)):
         words = "".join(rng.choice(PATTERN_LETTERS) for _ in range(120))
@@ -275,12 +252,12 @@ def text(rng, plane, assets, view):
 
 def clutter(rng, plane, assets, view):
     u, v = plane_points(plane, view)
-    surface = np.ones(u.shape + (3,), np.float32) * colour(rng)
+    surface = np.ones(u.shape + (3,), np.float32) * color(rng)
     for _ in range(rng.randrange(150, 300)):
         centre = np.array([rng.uniform(-200, 200), rng.uniform(-250, 250)])
         angle = rng.uniform(0, math.pi)
         width, height = log_uniform(rng, 3, 60), log_uniform(rng, 3, 60)
-        fill = colour(rng)
+        fill = color(rng)
         axes = np.array([[math.cos(angle), math.sin(angle)], [-math.sin(angle), math.cos(angle)]])
         corners = centre + np.array([[-width, -height], [width, -height], [width, height], [-width, height]]) / 2 @ axes
         (left, top), (right, bottom) = np.floor(project(plane, corners).min(axis=0)) - 1, np.ceil(project(plane, corners).max(axis=0)) + 1
@@ -565,7 +542,7 @@ def main():
     textures = json.loads(Path(arguments.textures).read_text())["textures"]
     assets = Assets(cards, Path(arguments.images), textures, Path(arguments.texture_images))
     for items, directory in [(cards, assets.images), (textures, assets.texture_images)]:
-        failures = asyncio.run(download(items, directory))
+        failures = asyncio.run(download(items, directory, USER_AGENT))
         if failures:
             raise SystemExit(f"{len(failures)} images did not download, first: {failures[0]}")
     output = Path(arguments.output)

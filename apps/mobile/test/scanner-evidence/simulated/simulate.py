@@ -8,11 +8,14 @@ import gzip
 import json
 import math
 import random
+import sys
 from pathlib import Path
 
 import cv2
-import httpx
 import numpy as np
+
+sys.path.insert(0, str(Path(__file__).resolve().parents[1]))
+from image_download import download
 
 EXCLUDED_LAYOUTS = {"token", "art_series", "emblem", "double_faced_token", "front_card", "vanguard", "planar", "scheme"}
 SPECIAL_EFFECTS = {"showcase", "extendedart", "inverted", "etched", "shatteredglass"}
@@ -62,32 +65,6 @@ def choose(bulk_path, counts, seed):
         pool = pools.get(group, [])
         chosen.extend(rng.sample(pool, min(count, len(pool))))
     return chosen
-
-
-async def download(entries, directory):
-    directory.mkdir(parents=True, exist_ok=True)
-    pending = [entry for entry in entries if not (directory / f"{entry['id']}.jpg").exists()]
-    semaphore = asyncio.Semaphore(8)
-    failures = []
-
-    async def fetch(client, entry):
-        async with semaphore:
-            for attempt in range(4):
-                try:
-                    response = await client.get(entry["image"])
-                    if response.status_code == 200:
-                        target = directory / f"{entry['id']}.jpg"
-                        target.with_suffix(".tmp").write_bytes(response.content)
-                        target.with_suffix(".tmp").rename(target)
-                        return
-                except httpx.HTTPError:
-                    pass
-                await asyncio.sleep(2**attempt)
-            failures.append(entry["id"])
-
-    async with httpx.AsyncClient(headers={"User-Agent": USER_AGENT, "Accept": "image/*"}, timeout=30) as client:
-        await asyncio.gather(*(fetch(client, entry) for entry in pending))
-    return failures
 
 
 def background(rng, width, height):
@@ -202,7 +179,7 @@ def main():
         parser.error("--bulk or --cards is required")
     if arguments.save_cards:
         Path(arguments.save_cards).write_text(json.dumps({"seed": arguments.seed, "counts": counts, "cards": entries}, indent=1) + "\n")
-    failures = asyncio.run(download(entries, Path(arguments.images)))
+    failures = asyncio.run(download(entries, Path(arguments.images), USER_AGENT))
     output = Path(arguments.output)
     output.mkdir(parents=True, exist_ok=True)
     rng = random.Random(arguments.seed)
