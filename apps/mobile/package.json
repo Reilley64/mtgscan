@@ -11,7 +11,7 @@
     "lint": "expo lint",
     "test": "jest",
     "test:production-bundle": "bun scripts/check-production-bundle.mjs",
-    "detector:test": "swift test --package-path modules/card-detector --scratch-path modules/card-detector/.data/build",
+    "detector:test": "swift test --no-parallel --package-path modules/card-detector --scratch-path modules/card-detector/.data/build",
     "detector:replay": "bun modules/card-detector/scripts/replay.ts",
     "scan-sounds": "bun scripts/generate-scan-sounds.mjs",
     "recognizer:test": "swift test --package-path modules/card-recognizer --scratch-path modules/card-recognizer/.data/build",
