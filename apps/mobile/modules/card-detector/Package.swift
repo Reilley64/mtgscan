@@ -10,6 +10,11 @@ let package = Package(
   targets: [
     .target(name: "CardDetector", path: "ios/Detector"),
     .executableTarget(name: "CardDetectorCommand", dependencies: ["CardDetector"], path: "macos/CardDetectorCommand"),
-    .testTarget(name: "CardDetectorTests", dependencies: ["CardDetector"], path: "macos/CardDetectorTests"),
+    .testTarget(
+      name: "CardDetectorTests",
+      dependencies: ["CardDetector"],
+      path: "macos/CardDetectorTests",
+      resources: [.copy("Fixtures")]
+    ),
   ]
 )

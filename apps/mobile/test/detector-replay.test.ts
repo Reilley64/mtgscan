@@ -536,6 +536,22 @@ test('a clip that stops asking for a photo fails the photo asked for bar of its 
   expect(comparison.pass).toBe(false);
 });
 
+test('a clip whose only photo outline was inside the card can stop asking for a photo and still pass the photo asked for bar', () => {
+  const clip = clipLabel('plain-clip-000');
+  const toPhoto = (corners: [number, number][]) => corners.map(([x, y]) => ({ x: x / clip.photo.width, y: y / clip.photo.height })) as FrameQuad;
+  const onTheInnerFrame = clip.photo.corners.map(([x, y]): [number, number] => [x + (x === 400 ? 3 : -3) * pixelsPerMm * photoScale, y]);
+
+  const comparison = compareReplays(
+    runClip(clip, onTheCard, new Map([[clip.clip, toPhoto(onTheInnerFrame)]])),
+    runClip(clip, everyOtherFrame),
+    { sameDetector: false },
+  );
+
+  expect(comparison.clipBars).toContainEqual(
+    expect.objectContaining({ condition: 'plain', metric: 'Photo asked for', base: '0 of 1', branch: '0 of 1', pass: true }),
+  );
+});
+
 test('a later settle time fails the settle time bar', () => {
   const clip = clipLabel('plain-clip-000');
 
@@ -567,23 +583,23 @@ test('the replay table has one row per clip condition and names each clip that s
   expect(table).toContain(
     '| plain | 1 of 1 → 0 of 1 | 1200 ms → none | 0.00 mm → 0.00 mm | 1.00 mm → none | 0 → 0 | 1.00 mm → none | fail: photo asked for, settle time median |',
   );
-  expect(table).toContain('- Photo asked for: not fewer');
+  expect(table).toContain('- Photo asked for: not fewer, not counting inside photo outlines');
   expect(table).toContain('Clips that ask for a photo on the merge base and not on the branch: plain-clip-000');
 });
 
-test('a branch with no merge base replay passes the fixed limits with no false outline, 1 inside outline on plain frames at no tilt, and a Mac p95 below 20 ms', () => {
+test('a branch with no merge base replay passes the fixed limits with no false outline and 1 inside outline on plain frames at no tilt, at any Mac timing', () => {
   const onTheEdge = cardAt(200, 300)!;
   const insideAtTheTop = onTheEdge.map(([x, y], index): [number, number] => [x, index < 2 ? y + 1.5 * pixelsPerMm : y]);
 
-  const { table, pass } = branchAloneTable(run(insideAtTheTop, null, [19.9]));
+  const { table, pass } = branchAloneTable(run(insideAtTheTop, null, [65]));
 
   expect(pass).toBe(true);
   expect(table).toContain('| plain | 0 | 0 of 1 | 1 | none | none | 1 | 0.00 x 0.75 mm |');
   expect(table).toContain('| False outlines | 0 | zero | pass |');
-  expect(table).toContain('| Mac timing p95 | 19.9 ms | below 20 ms | pass |');
+  expect(table).not.toContain('| Mac timing p95 |');
 });
 
-test('a false outline, a second inside outline on plain frames at no tilt, or a Mac p95 of 20 ms fails the fixed limits', () => {
+test('a false outline or a second inside outline on plain frames at no tilt fails the fixed limits', () => {
   const onTheEdge = cardAt(200, 300)!;
   const insideAtTheTop = onTheEdge.map(([x, y], index): [number, number] => [x, index < 2 ? y + 1.5 * pixelsPerMm : y]);
   const twoFrames: FrameLabels = { ...labels, frames: [label('plain-000.png', onTheEdge), label('plain-001.png', onTheEdge)] };
@@ -595,5 +611,4 @@ test('a false outline, a second inside outline on plain frames at no tilt, or a 
   expect(falseOutline.table).toContain('false outlines:\n\n- empty-plain-000.png, tilt 0: outline at (400, 500)');
   expect(branchAloneTable(twoInside)).toMatchObject({ pass: false });
   expect(branchAloneTable(twoInside).table).toContain('plain | 0, inside outlines:\n\n- plain-000.png');
-  expect(branchAloneTable(run(onTheEdge, null, [20])).pass).toBe(false);
 });

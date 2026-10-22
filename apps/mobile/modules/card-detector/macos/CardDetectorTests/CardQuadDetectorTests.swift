@@ -296,7 +296,7 @@ func refinementRecoversOuterEdges() {
       bufferHeight: Double(CVPixelBufferGetHeight(buffer))
     )!
     let centroid = truth.reduce(SIMD2<Double>(0, 0), +) / 4.0
-    let lowered = truth.map { centroid + ($0 - centroid) * 0.94 + SIMD2(0.0, card.height * 0.06) }
+    let lowered = truth.map { centroid + ($0 - centroid) * 0.94 + SIMD2(0.0, card.height * 0.02) }
     let outcome = lumaPlane(buffer) {
       CardEdgeRefiner.refine(proposal: lowered, plane: $0, transform: transform)
     }
@@ -307,8 +307,44 @@ func refinementRecoversOuterEdges() {
     let error = maximumCornerError(corners, truth)
     #expect(error < 1.5, "orientation \(orientation.rawValue) corner error \(error) px")
     #expect(supportMin >= 0.9, "orientation \(orientation.rawValue) support \(supportMin)")
-    #expect(shifts[0] > 0.05 && shifts[2] < 0.0, "orientation \(orientation.rawValue) shifts \(shifts)")
+    #expect(shifts[0] > 0.05 && shifts[2] > 0.0 && shifts[0] > shifts[2], "orientation \(orientation.rawValue) shifts \(shifts)")
   }
+}
+
+@Test("keeps the card's edges when a line outside one edge and a line inside the opposite edge would shift the outline")
+func refinementRefusesAnOutlineShiftedAcrossTheCard() {
+  let card = SyntheticCard(center: SIMD2(360, 640), width: 400, angle: 4.0 * Double.pi / 180.0)
+  let truth = CardQuadGeometry.orderedClockwise(card.corners)!
+  var oriented = renderCard(card, width: 720, height: 1280, background: 190)
+  for y in 0 ..< oriented.height {
+    for x in 0 ..< oriented.width {
+      let local = card.local(SIMD2(Double(x) + 0.5, Double(y) + 0.5))
+      let outsideTheTop = (-card.height / 2.0 - 28.0 ... -card.height / 2.0 - 24.0).contains(local.y)
+        && abs(local.x) < card.width / 2.0 + 40.0
+      let insideTheBottom = (card.height / 2.0 - 26.0 ... card.height / 2.0 - 22.0).contains(local.y)
+        && abs(local.x) < card.width / 2.0 - 30.0
+      if outsideTheTop || insideTheBottom {
+        oriented.pixels[y * oriented.width + x] = 28
+      }
+    }
+  }
+  let buffer = makeBuffer(oriented: oriented, orientation: .right)
+  let transform = OrientationTransform(
+    displayOrientation: .right,
+    bufferWidth: Double(CVPixelBufferGetWidth(buffer)),
+    bufferHeight: Double(CVPixelBufferGetHeight(buffer))
+  )!
+
+  let outcome = lumaPlane(buffer) {
+    CardEdgeRefiner.refine(proposal: truth, plane: $0, transform: transform)
+  }
+
+  guard case let .refined(corners, _, _, _, _) = outcome else {
+    Issue.record("refinement failed: \(outcome)")
+    return
+  }
+  let error = maximumCornerError(corners, truth)
+  #expect(error < 1.5, "corner error \(error) px")
 }
 
 @Test("finds no card edges on a blank surface")

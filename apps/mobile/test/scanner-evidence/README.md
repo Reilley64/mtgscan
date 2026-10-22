@@ -263,7 +263,7 @@ Clip metrics and pass bars, from #493. Each bar applies to the 5 clips of a cond
 
 | Metric | What it counts | Bar against the merge base |
 | --- | --- | --- |
-| Photo asked for | Clips on which automatic capture asks for a photo | Not fewer |
+| Photo asked for | Clips on which automatic capture asks for a photo, not counting a clip whose photo outline is an inside outline | Not fewer |
 | Settle time | The time from the card's arrival, the first frame, until automatic capture asks for a photo. Median of the clips that ask. | Not worse |
 | Jitter | On the frames from the time the card rests, the standard deviation of each corner's error in mm on the card. A clip's jitter is its largest corner. Median of the clips with 2 or more detected frames at rest. | Not worse, to 0.01 mm |
 | Photo outline | The corner error of the photo outline that the command's photo refinement returns, in fractions of the photo. Median of the clips that ask. The bar is on the median over all clips, in the table above. | Reported |
@@ -287,9 +287,8 @@ When the merge base has no detector replay, the replay prints that and runs the 
 
 - No false outline.
 - At most 1 inside outline on `plain` frames at tilt `0`. The merge base table has that one, on `plain-018.png`, a black-bordered card.
-- Mac timing p95 below 20 ms on the Mac.
 
-It exits 0 only when all three pass. It writes only `branch.json` and `comparison.md`. This is the case for a pull request into `main` before #493 lands, such as #504.
+It has no Mac timing limit, because with no merge base on the same runner a fixed time measures the runner: a `macos-15` runner took 65 ms where the M3 takes about 5 ms. It exits 0 only when both limits pass. It writes only `branch.json` and `comparison.md`. This is the case for a pull request into `main` before #493 lands, such as #504.
 
 Options:
 
@@ -332,6 +331,12 @@ The refusal limits of `PhotoOutline` come from these runs. The fix round kept bo
 | --- | --- | --- |
 | Size check | A refined outline more than 2% narrower or shorter than the moved outline (`sizeShrinkMax`) | The 16 accepted outlines are within 0.4% of the moved outline's size. In a second run that starts each clip from the true card edge, one refined outline on the inner frame, on a sleeve clip at 15 to 25 degrees, is 5% to 6% smaller, and the size check refuses it. Before the intrinsic matrix, 3 such outlines were 6% to 9% smaller. |
 | Motion check | A refined outline with a corner more than 2% of the moved outline's short side from the moved outline (`cornerMotionMax`), about 1.3 mm on the card | The 16 accepted outlines move at most 0.4%. In the run from the true card edge, the 5 outlines that jump out to a sleeve or shadow edge move 2.6% to 3.6%, and the motion check refuses them. |
+
+The device check of #493 ([comment](https://github.com/Reilley64/mtgscan/issues/493#issuecomment-6330746264)) found two failures that the synthetic frames did not show: background lines outside the card filled the edge refiner's line slots on the photo, and an outline could sit on a line outside one edge and a line inside the other. The fix narrows the photo search band to 4% of the short side and refuses such an outline (`oppositeEdgeShiftMax`). `PhotoOutlineTests` checks the narrow band on one real photo from the phone, with its EXIF orientation, in `macos/CardDetectorTests/Fixtures/device-photo`. Against the integration branch at `9251240`, on the same Mac, every bar passes:
+
+- Wrong outlines fall in 7 condition and tilt rows, and inside outlines in 8. Detection rises by 1 in shadow at 7.5 to 15 and 15 to 25 degrees, and in white-bordered cards at 7.5 to 25 degrees.
+- One sleeve clip at 15 to 25 degrees, `sleeve-clip-003`, no longer asks for a photo. Its only photo outline on the integration branch was an inside outline, 5.5 mm off, so the photo asked for bar does not count it.
+- The photo outline median over all clips stays at 0.06 mm.
 
 Synthetic frames do not show what Vision does on real frames (#421). So the replay gates mechanisms and regressions, and the phone confirms real gains.
 

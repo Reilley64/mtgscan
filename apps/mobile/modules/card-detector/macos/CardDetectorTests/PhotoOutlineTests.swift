@@ -141,3 +141,74 @@ func refinesATiltedCardWithTheIntrinsicMatrix() {
   #expect(error < 1.5, "photo outline corner error \(error) px")
   #expect(withoutMatrix.outcome != .refined)
 }
+
+@Test("refines the outline on a photo with background lines parallel to the card's top edge")
+func refinesTheOutlineBesideParallelBackgroundLines() {
+  var image = renderCard(card, width: 720, height: 1280, background: 185)
+  let outline = CardQuadGeometry.orderedClockwise(card.corners)!
+  let top = EdgeLine.through(outline[0], outline[1])!
+  for y in 0 ..< image.height {
+    for x in 0 ..< image.width {
+      let outward = -top.distance(to: SIMD2(Double(x) + 0.5, Double(y) + 0.5))
+      guard outward > 20.0, Int(outward) % 7 < 2 else { continue }
+      image.pixels[y * image.width + x] = 90
+    }
+  }
+  let frame = makeBuffer(oriented: image, orientation: .right)
+  let photo = writeJPEG(image)
+  defer { try? FileManager.default.removeItem(at: photo) }
+
+  let result = PhotoOutline.refine(
+    photo: photo,
+    frame: frame,
+    frameOrientation: .right,
+    frameIntrinsicMatrix: nil,
+    heldStill: outline.map { SIMD2($0.x / 720.0, $0.y / 1280.0) }
+  )
+
+  #expect(result.outcome == .refined)
+}
+
+private struct DevicePhotoRecord: Decodable {
+  let intrinsicMatrix: [[Float]]
+  let heldStill: [[Double]]
+}
+
+private func grayImage(at url: URL) -> GrayImage {
+  let source = CGImageSourceCreateWithURL(url as CFURL, nil)!
+  let image = CGImageSourceCreateImageAtIndex(source, 0, nil)!
+  var gray = GrayImage(width: image.width, height: image.height, fill: 0)
+  gray.pixels.withUnsafeMutableBytes { bytes in
+    let context = CGContext(
+      data: bytes.baseAddress,
+      width: image.width,
+      height: image.height,
+      bitsPerComponent: 8,
+      bytesPerRow: image.width,
+      space: CGColorSpaceCreateDeviceGray(),
+      bitmapInfo: CGImageAlphaInfo.none.rawValue
+    )!
+    context.draw(image, in: CGRect(x: 0, y: 0, width: image.width, height: image.height))
+  }
+  return gray
+}
+
+@Test("refines the outline on a device photo with EXIF orientation and wood grain beside the card")
+func refinesTheOutlineOnADevicePhoto() throws {
+  let fixture = Bundle.module.resourceURL!.appendingPathComponent("Fixtures/device-photo")
+  let record = try JSONDecoder().decode(DevicePhotoRecord.self, from: Data(contentsOf: fixture.appendingPathComponent("record.json")))
+  let frame = makeBuffer(oriented: grayImage(at: fixture.appendingPathComponent("frame.png")), orientation: .up)
+  let heldStill = record.heldStill.map { SIMD2($0[0], $0[1]) }
+
+  let result = PhotoOutline.refine(
+    photo: fixture.appendingPathComponent("photo.jpg"),
+    frame: frame,
+    frameOrientation: .right,
+    frameIntrinsicMatrix: simd_float3x3(rows: record.intrinsicMatrix.map { SIMD3($0[0], $0[1], $0[2]) }),
+    heldStill: heldStill
+  )
+
+  #expect(result.outcome == .refined)
+  let error = maximumCornerError(result.outline.map { $0 * SIMD2(720.0, 1280.0) }, heldStill.map { $0 * SIMD2(720.0, 1280.0) })
+  #expect(error < 3.0, "photo outline \(error) px from the held-still outline")
+}

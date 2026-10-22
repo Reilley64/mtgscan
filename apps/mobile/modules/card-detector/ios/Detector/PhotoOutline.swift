@@ -8,6 +8,7 @@ import Vision
 enum PhotoOutline {
   static let sizeShrinkMax = 0.02
   static let cornerMotionMax = 0.02
+  static let searchFraction = 2.0 * cornerMotionMax
 
   enum Outcome: String, Sendable {
     case refined
@@ -44,7 +45,7 @@ enum PhotoOutline {
     let size = SIMD2(frameTransform.orientedWidth, frameTransform.orientedHeight)
     let moved = heldStill.map { motion($0 * size) }
     let refinement = image.withPlane { plane in
-      CardEdgeRefiner.refine(proposal: moved, plane: plane, transform: image.transform)
+      CardEdgeRefiner.refine(proposal: moved, plane: plane, transform: image.transform, searchFraction: searchFraction)
     }
     let checked = checkedOutline(refinement, moved: moved)
     return Result(outline: checked.outline.map { $0 / size }, outcome: checked.outcome)

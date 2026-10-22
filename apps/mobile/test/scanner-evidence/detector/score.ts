@@ -367,7 +367,6 @@ export function compareReplays(base: ReplayScore, branch: ReplayScore, { sameDet
 
 export const branchAloneLimits = {
   plainInsideOutlinesAtNoTilt: 1,
-  macP95Ms: 20,
 } as const;
 
 export function branchAloneBars(branch: ReplayScore): Bar[] {
@@ -395,15 +394,6 @@ export function branchAloneBars(branch: ReplayScore): Bar[] {
       bar: `at most ${limits.plainInsideOutlinesAtNoTilt}, the one in the merge base table`,
       pass: plainInside.length <= limits.plainInsideOutlinesAtNoTilt,
       listed: plainInside,
-    },
-    {
-      ...wholeRun,
-      metric: metrics.macTiming,
-      base: 'none',
-      branch: `${branch.macP95Ms.toFixed(1)} ms`,
-      bar: `below ${limits.macP95Ms} ms`,
-      pass: branch.macP95Ms < limits.macP95Ms,
-      listed: [],
     },
   ];
 }

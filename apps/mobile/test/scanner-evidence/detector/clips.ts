@@ -120,7 +120,7 @@ export function scoreClipGroups(clips: ClipScore[]): ClipGroupScore[] {
     return {
       condition,
       clips: group.length,
-      photosAskedFor: group.filter((clip) => clip.photoAskedFor).map((clip) => clip.clip),
+      photosAskedFor: group.filter((clip) => clip.photoAskedFor && !clip.photoOutlineInside).map((clip) => clip.clip),
       settleTimeMs: medianOf(group.map((clip) => clip.settleTimeMs)),
       jitterMm: medianOf(group.map((clip) => clip.jitterMm)),
       photoOutlineMm: medianOf(group.map((clip) => clip.photoOutlineMm)),
@@ -154,7 +154,7 @@ function groupBars(base: ClipGroupScore, branch: ClipGroupScore, baseClips: Map<
       metric: clipMetrics.photoAskedFor,
       base: `${base.photosAskedFor.length} of ${base.clips}`,
       branch: `${branch.photosAskedFor.length} of ${branch.clips}`,
-      bar: 'not fewer',
+      bar: 'not fewer, not counting inside photo outlines',
       pass: branch.photosAskedFor.length >= base.photosAskedFor.length,
       listed: base.photosAskedFor.filter((clip) => !branch.photosAskedFor.includes(clip)),
     },
