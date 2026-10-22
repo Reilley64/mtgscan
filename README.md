@@ -178,16 +178,27 @@ The gallery lives in the private `gallery` bucket. Signed-in users can read `pub
 The card detector is a local Expo module in `apps/mobile/modules/card-detector`. Its camera view owns the iOS capture session: the back camera, the preview, frame analysis, and the photo output. The app does not use VisionCamera.
 
 - About 5 times a second, the detector finds a card in a preview frame with the Apple Vision document proposal and the luma edge refiner from #10. It sends one detection sample to JavaScript for each analyzed frame.
-- A card is detected when its refined outline passes every detector gate: proposal confidence at least 0.5, area 0.08 to 0.9 of the frame, aspect within 0.02 of 63:88, and edge support at least 0.7. The view draws the magenta outline only around a detected card, without waiting for JavaScript.
+- A card is detected when its refined outline passes every detector gate: proposal confidence at least 0.5, area 0.08 to 0.9 of the frame, card aspect, and edge support at least 0.7. The view draws the magenta outline only around a detected card, without waiting for JavaScript.
+- The card aspect gate checks the aspect on the card, not in the frame (#499). The camera session turns on intrinsic matrix delivery on the video connection, and passes each frame's matrix to the detector. The matrix is in the landscape buffer's pixels, and the detector maps it to the upright frame. From the matrix, the detector computes the true aspect of each candidate outline (Zhang and He, "Whiteboard scanning and image enhancement", 2007). The gate passes an aspect within 0.012 of 63:88.
+  - A tilted phone no longer pushes the card edge out of the gate. Before, at about 12 degrees of tilt or more, the card edge could fail the gate in the frame, and the inner frame of a black-bordered card could pass it.
+  - The inner frame of a black-bordered card with a 2.4 mm border or more is 0.016 or more off 63:88, so it fails the gate. A sleeve up to about 1.9 mm larger than the card still passes it.
+  - A frame with no matrix keeps the check in the frame: the ratio of the mean side lengths within 0.02 of 63:88. A flat card gives the same aspect both ways.
+  - `aspectRatio` in the detection sample is the aspect that the gate checked. The `photo-requested` capture event logs it.
+- The edge refiner refuses an outline whose two opposite edges move in opposite directions from the proposal, each by more than 2% of the short side (`oppositeEdgeShiftMax`). Such an outline keeps the card's size but sits on a line outside one edge and a line inside the other. On the phone, it cut 4 to 5 mm off one end of a held-still card.
 - A sample has `detected`, the refined `corners`, the proposal, its `confidence`, `areaRatio`, `aspectRatio`, `edgeSupportMin`, the 8 x 6 brightness `signature`, the frame size, `nativeDurationMs`, `sampledAtMs`, and `runtimeErrorCode` or null. Corners are fractions of the upright frame, top left first and clockwise.
-- `takePhoto(outline)` takes the outline of the sample that held still and returns it with the photo file, in the same fractions of the photo as `recognize` takes. The photo has the same aspect as the analyzed frame. It also returns the photo's `width` and `height` in pixels as the camera reports them, and `times` in milliseconds since 1970 like `Date.now()`: when the module got the request (`receivedAt`), when the camera captured the photo (`capturedAt`), when the camera handed over the processed photo (`processedAt`), and when the module wrote the JPEG file (`savedAt`).
+- `takePhoto(outline)` takes the outline of the sample that held still. It returns the photo file and the photo outline, in the same fractions of the photo as `recognize` takes. The photo has the same aspect as the analyzed frame. It also returns the photo's `width` and `height` in pixels as the camera reports them, and `times` in milliseconds since 1970 like `Date.now()`: when the module got the request (`receivedAt`), when the camera captured the photo (`capturedAt`), when the camera handed over the processed photo (`processedAt`), and when the module wrote the JPEG file (`savedAt`).
+- Photo refinement runs inside `takePhoto`, after the photo, outside the frame loop. The camera session keeps a copy of each analyzed frame with a detected card from about the last second, with its outline and intrinsic matrix (`KeptFrames` in `ios/Detector`). `takePhoto` looks up the latest kept frame with the held-still outline. `PhotoOutline.refine` in `ios/Detector` registers that frame against the photo with Vision's `VNHomographicImageRegistrationRequest` and moves the held-still outline by that motion. It scales the photo to the analysis size and runs the edge refiner on it, with the moved outline as the proposal. The scaled photo has the frame's size and field of view, so the edge refiner checks the card aspect on the card with the frame's intrinsic matrix, as in the frame loop. On the photo, the edge refiner searches a band of 4% of the outline's short side on each side of each edge, twice the motion check, against 15% in the frame loop. On real photos, sharp background lines such as wood grain outside the card took all 5 line slots of an edge in the wider band, so the edge refiner never tried the card edge.
+- The size check refuses a refined outline more than 2% narrower or shorter than the moved outline. The inner frame is about 10% smaller. The motion check refuses a refined outline with a corner more than 2% of the moved outline's short side from the moved outline, about 1.3 mm on the card. The scanner evidence pack README (Photo refinement) has the replay results behind both limits.
+- On a refusal, or when the edge refiner finds no outline on the photo, `takePhoto` returns the moved outline. When the registration or reading the photo fails, or no kept frame has the held-still outline, it returns the held-still outline, as before photo refinement.
+- The camera session logs to the unified log, subsystem `dev.reilley.mtgscan`, category `card-detector`. When the camera starts, it logs whether zero shutter lag and geometric distortion correction are supported and on, and the photo size. After each photo, it logs the photo refinement outcome, its time, and how long after the analyzed frame the photo was taken, or `photo outline: held still, no analyzed frame with this outline` when no kept frame has the held-still outline.
+- On an iPhone 16e (#493, [device check](https://github.com/Reilley64/mtgscan/issues/493#issuecomment-6330746264)), the photo comes from the same moment as the kept frame, the registration is close to identity, and the intrinsic matrix is in buffer pixels with its principal point at the center. The failures there came from the edge refiner, and the two rules above fix them.
 - Taking a photo plays no haptic. On iOS 18 and later, the shutter sound is suppressed where iOS allows it. On iOS 17, and where the law requires the shutter sound, iOS still plays it.
 
 The capture rule from #75 lives in `apps/mobile/src/scan/capture.ts`. It takes one photo when a detected card holds still for 400 ms, and re-arms after the card leaves or changes. The app needs iOS 17, because the recognizer's model is a Core ML ML program for iOS 17.
 
 Vision's rectangle detector (`VNDetectRectanglesRequest`) was tried in #421 in place of the proposal and the edge refiner, and lost. `.out-of-scope/vision-rectangle-card-detector.md` says why.
 
-`bun run detector:test` in `apps/mobile` runs the Swift fixture tests for the detector on a Mac. Development builds log each capture event to Metro as a `CAPTURE` line, with the detector timing every 300 samples.
+`bun run detector:test` in `apps/mobile` runs the Swift fixture tests for the detector on a Mac, one at a time. Run in parallel on the 3-core `macos-15` runner, the suite hung with every test started and none finished, with or without any one of the tests of #493's device fixes. Each test passed alone, and the suite passed one at a time in 19 seconds. `bun run detector:replay` runs the detector replay: it measures the detector on synthetic frames on the branch and on the merge base, and fails when the branch misses a pass bar. The Detector workflow runs it on each pull request that changes the detector. The scanner evidence pack README describes it. Development builds log each capture event to Metro as a `CAPTURE` line, with the detector timing every 300 samples.
 
 ### Scan feedback
 
@@ -542,6 +553,24 @@ The evaluate script runs on the folder, from `apps/mobile`, with the macOS recog
 bun modules/card-recognizer/scripts/evaluate.mjs ~/Library/Caches/mtgscan/training-crops/labels.json \
   --gallery <gallery dir> --recognizer modules/card-recognizer/.data/build/release/card-recognizer
 ```
+
+The training crop scorer measures the card detector on real scans, with no phone. Run it after each release that changes the card detector. Pull the training crops with `bun run crops pull` in `supabase` first. Then run the scorer on the folder, from `apps/mobile`:
+
+```bash
+bun run training-crops:score ~/Library/Caches/mtgscan/training-crops
+```
+
+It needs `uv` and no hosted access. It aligns each crop with Scryfall's `normal` image of its saved card printing, both at 488 x 680, where 7.75 px is 1 mm. A SIFT affine fit (ratio test, RANSAC) gives the start, and ECC refines it on edge images. It reads the images from `~/Library/Caches/mtgscan/scryfall-images`, the folder of the gallery build. It downloads a missing image from Scryfall into that folder. `--images <dir>` names another folder.
+
+- A crop whose ECC correlation is below 0.6 is unscored, with no size or shift. In #421, good fits had 0.77 to 0.96, and a wrong fit had 0.46.
+- Each side is how far the crop edge sits inside the outer card edge, in mm. A negative side means the crop takes in some of the surface around the card.
+- Size is the mean of two opposite sides. A positive size means the card outline was smaller than the card.
+- Shift is half the difference of two opposite sides. It mostly comes from the hand moving between the card outline holding still and the photo.
+- An inside outline has a side more than 1 mm inside the card edge.
+
+It prints the totals by app build (`recognizer_version`), every inside outline, and every unscored crop. It writes each crop's scores to `crop-scores.json` in the folder. `--output <file>` names another file. Compare the inside outlines of the new app build with the build before.
+
+`bun run training-crops:test` checks the scorer on the 10 crops of the #421 A/B in `test/scanner-evidence/training-crops/fixture-421`. It must reproduce the #421 table within 0.3 mm. The fixture holds the Scryfall `normal` images of its 3 card printings, so the test does not download.
 
 ### User tags
 

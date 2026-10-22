@@ -1,6 +1,6 @@
 # Scanner evidence pack
 
-This folder holds the evidence for the scanner release gates in #10, #21, and #75. The gates measure the card recognizer module in `modules/card-recognizer`. Every command here runs from `apps/mobile`.
+This folder holds the evidence for the scanner release gates in #10, #21, and #75. The gates measure the card recognizer module in `modules/card-recognizer`. The detector replay (#493) measures the card detector module in `modules/card-detector`. Every command here runs from `apps/mobile`.
 
 ## Contents
 
@@ -19,6 +19,16 @@ This folder holds the evidence for the scanner release gates in #10, #21, and #7
 | `bin-deck/test-deck.tsv` | The fixed 30-card test deck, with the three corrected printings from #10. |
 | `bin-deck/<run>/` | The summary, results, and per-card detail of each physical run cited in #21. |
 | `check.mjs` | Compares a new result with an expected file and checks the gates. |
+| `image_download.py` | Downloads the card images and textures for `simulated/simulate.py` and `detector/frames.py`, once each. |
+| `detector/frames.py` | The recipe that renders the detector replay frames and clips. |
+| `detector/cards.json` | The 30 card printings that the detector replay frames show, 10 for each border color. |
+| `detector/frames.sha256` | The SHA-256 of every rendered detector replay frame, clip frame, and photo, and of `labels.json`. |
+| `detector/score.ts` | Scores the detection samples against the true corners, and compares the branch with the merge base. |
+| `detector/clips.ts` | Feeds each clip through the automatic capture rule, and scores its settle time, jitter, and photo outline. |
+| `detector/geometry.ts` | Maps an outline onto the card in mm, for the frames and the clips. |
+| `training-crops/score.py` | The training crop scorer (README, Training crops). |
+| `training-crops/fixture-421/` | The 10 training crops of the #421 A/B, in the layout of `crops pull`, with the Scryfall `normal` images of their card printings. |
+| `training-crops/test_score.py` | Checks that the scorer reproduces the #421 table on the fixture. |
 
 Each expected file has a `recordedWith` block. It names the recognizer commit, the model and its SHA-256, the gallery, the machine, and the command.
 
@@ -170,7 +180,180 @@ The first run had a bug that turned every card 90 degrees. The #21 resolution us
 
 `20261015-bin-deck` is the rerun in good light on the same table (#165), with the same gallery version. It passes every gate. 25 cards were accepted correctly and 5 abstained. The phone read the full collector line on 23 cards. It read Big Score `SLD 7096` as `SLD 1096`, so the recognizer abstained and showed Sword of Truth and Justice `SLD 1096` first, with Big Score second. That is the only card whose first candidate was another card. Since #206, a collector line that names a card the image does not support shows the image's top card printing first, and the card printing that the reading names stays among the candidates. The camera captured two foil Secret Lair cards, `SLD 7096` and `SLD 7094`, only after the owner moved them to the bin.
 
+## Detector replay
+
+```bash
+bun run detector:test
+bun run detector:replay
+```
+
+The detector replay measures the card detector on a Mac, with no phone and no hosted access. It runs the shipped detector code on synthetic frames and clips with known corners. It runs the branch and the merge base in the same run, and prints one table that compares them.
+
+What it runs:
+
+1. It renders the frames and the clips from `detector/frames.py` into `modules/card-detector/.data/frames`. It checks every frame, clip frame, photo, and `labels.json` against `detector/frames.sha256`. A frame with another hash fails the replay. It skips the render when the frames are already there and match.
+2. It builds the macOS detector command, `card-detector`, on the branch and on the merge base of `HEAD` and `origin/main`. The command is an executable target in `modules/card-detector/Package.swift`. It compiles the Swift files in `ios/Detector` unchanged. When the merge base has no detector command with the `step` mode, as on `main` before #493 landed, the merge base has no detector replay. The replay then prints that, and runs the branch alone against fixed limits (below).
+3. Both commands start at the same time in the `step` mode. Each reads every frame and every clip frame, and builds the buffer the phone analyzes. The buffer is a full-range `420f` buffer, landscape, with the `.right` orientation, and its colors are converted with BT.709. The replay then asks for one frame at a time, by its index on the command's input. After the index, it sends the frame's intrinsic matrix from `labels.json`, 9 numbers by row. The command turns the matrix of the portrait frame into the matrix the camera gives for the landscape buffer, and passes it to the detector, as the camera session does. The command runs the detector on that frame and writes one JSON line: the detection sample fields, with the time of the detector call in `nativeDurationMs`.
+4. The replay runs each frame on the merge base and on the branch back to back. It swaps which side goes first on each frame and each round. The first round runs every frame and every clip frame. Two more rounds run the frames again, for Mac timing. So a slow moment on the Mac slows both sides. The card outlines and the clips come from the first round.
+5. The scorer compares each card outline with the true corners. It maps the outline onto the card with the homography of the true corners, so every distance is in mm on the card.
+6. The scorer feeds the detection samples of each clip, in order, through `observeSample` in `src/scan/capture.ts`, the automatic capture rule that the app runs. It imports the rule and does not copy it.
+7. For each clip that asks for a photo, the replay asks each command for the photo outline. It sends the index of the frame of the sample that held still, the photo, that sample's outline, and the frame's intrinsic matrix, as one JSON line. The command runs `PhotoOutline.refine`, the photo refinement that `takePhoto` runs on the phone, and writes the photo outline and the outcome. Under the tables, the replay prints the outcomes on each side and the median time of photo refinement on the Mac.
+
+The frames:
+
+- `detector/cards.json` lists 30 Scryfall card printings: 10 with a black border, 10 with a white border, and 10 borderless, from Scryfall's `border_color`. The recipe downloads their `normal` images into `modules/card-detector/.data/images` once. Set `DETECTOR_IMAGES_DIR` to reuse a folder of them.
+- Each frame is a portrait frame of 720 x 1280, the analysis size. A camera pose places the card: a tilt angle about a random axis, and a focal length of 880 to 1000 px. The card is 300 to 500 px wide, turned up to 20 degrees, and upside down in 3 of 10 frames. Each frame has a slight blur and sensor noise.
+- Each condition has 30 frames in each tilt bucket, 1,080 frames in all. Within a bucket, the frames take the border colors in turn, so each condition, border color, and tilt bucket has 10 frames.
+- `labels.json` holds each frame's true corners in frame pixels, its condition, its card printing and border color, the tilt and its bucket, and the camera's intrinsic matrix.
+- The recipe needs `uv`. It pins `opencv-python-headless` 5.0.0.93 and `numpy` 2.5.3, as `simulate.py` does. Each frame takes its random numbers from its condition and its index, so a new condition leaves the other frames unchanged. It renders the frames in parallel, in about 30 seconds on an Apple M3.
+
+Tilt buckets, in degrees from straight above the card:
+
+| Bucket | Tilt | Frame indices |
+| --- | --- | --- |
+| `0` | 0 | 0 to 29 |
+| `0-7.5` | 0 to 7.5 | 30 to 59 |
+| `7.5-15` | 7.5 to 15 | 60 to 89 |
+| `15-25` | 15 to 25 | 90 to 119 |
+
+Conditions:
+
+| Condition | What the frame shows |
+| --- | --- |
+| `plain` | A card on a plain surface with a soft light ramp |
+| `patterned` | A card on a patterned surface. Half the surfaces are procedural: high-contrast stripes, checks, a grid like a cutting mat, dots, lines of text, or a clutter of 150 to 300 colored rectangles. The other half are CC0 photo textures. The pattern lies on the table plane, so it takes the camera pose too. |
+| `shadow` | A card on a plain surface with a hard shadow 1.5 to 5 mm to one side |
+| `sleeve` | A card in a clear sleeve 0.8 to 1.6 mm larger than the card on each side. The band between the card and the sleeve edge is darker or lighter than the surface. |
+| `glare` | A card on a plain surface with a bright glare band across it |
+| `motion-blur` | A card on a plain surface, blurred along a line of 6 to 24 px |
+| `hand` | A card on a plain surface with a thumb over one corner, 16 to 22 mm wide, with its shadow |
+| `empty-plain` | A plain surface with no card |
+| `empty-patterned` | A patterned surface with no card |
+
+The photo textures come from [Poly Haven](https://polyhaven.com), which licenses every asset as CC0 ([licence](https://polyhaven.com/license)). `detector/textures.json` lists each texture, its page, its download, and the licence. The recipe downloads them into `modules/card-detector/.data/textures` once. Use only CC0 textures and procedural patterns here. The Describable Textures Dataset, for example, is for research only.
+
+The clips:
+
+- 20 clips, 5 on each of the `plain`, `patterned`, `shadow`, and `sleeve` surfaces. Each clip has 10 frames at the analysis rate, one every 200 ms, and ends with a photo. The camera samples 30 frames a second and the detector analyzes one every 0.19 s or more, so it analyzes every sixth frame.
+- A clip renders one scene, the same way as a frame of its condition. Clip 0 to 4 of a condition take the tilt buckets in turn, from `0`, and the border colors in turn, from black. Each clip takes its random numbers from `20261021:<condition>:clip-<index>`.
+- The hand path moves the camera. It turns the camera about its centre, so the intrinsic matrix stays the same, and the whole scene moves on the table plane.
+  - **Arrival.** The card arrives 25 to 45 mm from where it comes to rest, and slows down until it rests at 600 ms. Arrival frames have motion blur for an exposure of 1/60 s.
+  - **Slow drift.** 1 to 8 mm a second in one direction, and up to 1 degree a second of turn, for the whole clip.
+  - **Shake.** Two waves of 3 to 10 Hz on each axis: 0.1 to 0.4 mm across the table, and 0.05 to 0.2 degrees of turn.
+- The photo is 2268 x 4032, the size of a 12 MP photo with the analysis frame's 9:16 aspect, as `takePhoto` takes it. It is a JPEG at quality 90. It shows the same scene with the hand path at the photo's time.
+- The photo comes about 400 ms after the outline holds still. The card rests at 600 ms, so automatic capture sees it hold still from the next frame, at 800 ms. A detector that finds the card on every frame asks for the photo on the frame at 1,200 ms. The photo comes 100 to 300 ms after that frame.
+- The photo has a fixed time. When a detector asks for the photo later, the replay still scores its outline on this photo.
+- `labels.json` holds each clip under `clips`: its condition, card printing, border color, tilt, the time the card rests, and for each frame and the photo, the file, the time, the true corners, and the intrinsic matrix. The photo also has its width and height.
+
+Metrics and pass bars, from #493:
+
+| Metric | What it counts | Bar against the merge base |
+| --- | --- | --- |
+| Detection rate | Frames with a correct outline over frames with a card. A correct outline has all four corners within 1 mm of the true corners. | Not lower by more than 1 frame in 30 |
+| Wrong outlines | Card outlines that are not correct | Not more than the merge base |
+| Corner error | The largest corner distance in mm on the card, median and p90 of the correct outlines. Wrong outlines have their own bar. | Median not worse by more than 0.1 mm. p90 not worse by more than 0.5 mm. Both bars compare only the frames with a correct outline on the merge base and on the branch. They apply when a group has at least 10 such frames (`minimumPairedFrames`). A smaller group is reported. The table shows each side's own median and p90. |
+| Inside outlines | Card outlines with a side more than 1 mm inside the card edge | Not more than the merge base plus 1 frame in 30 |
+| Size error | The mean of opposite sides in mm, median of the detected frames. Inside is positive, as in #421. | Reported |
+| False outlines | Card outlines on empty frames | Zero |
+| Mac timing | The median time of the detector call on each frame over the 3 rounds, then the p95 over every frame. Same Mac, same run. | At most 1.2 times the merge base. It is a proxy only: the 20 ms bar is on the iPhone. |
+| Same detector code | When the branch and the merge base have the same detector files and command, every number except timing must match | Same numbers |
+| Photo outline, all clips | The photo outline below, median over the clips of every condition that ask for a photo | Below 0.5 mm |
+
+Clip metrics and pass bars, from #493. Each bar applies to the 5 clips of a condition:
+
+| Metric | What it counts | Bar against the merge base |
+| --- | --- | --- |
+| Photo asked for | Clips on which automatic capture asks for a photo, not counting a clip whose photo outline is an inside outline | Not fewer |
+| Settle time | The time from the card's arrival, the first frame, until automatic capture asks for a photo. Median of the clips that ask. | Not worse |
+| Jitter | On the frames from the time the card rests, the standard deviation of each corner's error in mm on the card. A clip's jitter is its largest corner. Median of the clips with 2 or more detected frames at rest. | Not worse, to 0.01 mm |
+| Photo outline | The corner error of the photo outline that the command's photo refinement returns, in fractions of the photo. Median of the clips that ask. The bar is on the median over all clips, in the table above. | Reported |
+| Inside photo outlines | Photo outlines with a side more than 1 mm inside the card edge on the photo | No new one |
+| Hand shift | The photo outline error if that sample's outline were on the true corners. It is how far the hand moved the card between that frame and the photo. | Reported |
+
+The bars apply to each condition and tilt bucket, so an average over the tilt buckets cannot hide a regression. The table has one row for each, with the merge base and the branch side by side. The clips table has one row for each clip condition. Two more tables report each metric by condition and border color, and by border color and tilt bucket. They have no bars of their own.
+
+The replay writes `base.json`, `branch.json`, and `comparison.md` to `modules/card-detector/.data/reports`. Under the tables, for each failing bar, it lists the frames or clips behind it:
+
+- Detection rate: each frame with a correct outline on the merge base and not on the branch.
+- Wrong outlines and inside outlines: each new one on the branch.
+- Corner error: each frame with a correct outline on both sides that got worse by more than the bar.
+- False outlines: each one.
+- Same detector code: each frame and clip with other numbers.
+- Clip bars: each clip that stops asking for a photo, settles later, has more jitter, or has a new inside photo outline. The photo outline bar lists each clip at 0.5 mm or more.
+
+A frame shows its tilt bucket and border color, and the outline's corners in frame pixels, or "no outline". A card outline also shows how far each side is inside the card edge and its corner error. A clip shows its photo outline's corners in photo pixels, its corner error, its settle time, and its jitter. The replay also lists each new inside outline and each false outline, for information, and names each clip that asks for a photo on the merge base and not on the branch. It exits 0 when every bar passes, and 1 when a bar fails or a frame hash differs.
+
+When the merge base has no detector replay, the replay prints that and runs the branch alone. It prints the same tables with the branch's numbers, and checks these fixed limits (`branchAloneLimits` in `detector/score.ts`):
+
+- No false outline.
+- At most 1 inside outline on `plain` frames at tilt `0`. The merge base table has that one, on `plain-018.png`, a black-bordered card.
+
+It has no Mac timing limit, because with no merge base on the same runner a fixed time measures the runner: a `macos-15` runner took 65 ms where the M3 takes about 5 ms. It exits 0 only when both limits pass. It writes only `branch.json` and `comparison.md`. This is the case for a pull request into `main` before #493 lands, such as #504.
+
+Options:
+
+- `--base <ref>` compares with the merge base of `HEAD` and another ref, such as a spec's integration branch.
+- `--rounds <n>` runs every frame `n` times on each side, and every clip frame once. The default is 3. One round is enough to check the outlines, but its timing is noisy.
+- `--record-frame-hashes` renders the frames again and writes `detector/frames.sha256`. Use it only when the recipe or the card list changes, and say why in the pull request.
+
+Result on `main` at `a6fcfaf`, on an Apple M3 with macOS 27.0.1. It shows the known weak spots of the card detector:
+
+- **Inside outlines rise with tilt.** On black-bordered cards, over every condition, there are 3 inside outlines in 70 frames at no tilt, 12 at up to 7.5 degrees, 17 at 7.5 to 15 degrees, and 39 at 15 to 25 degrees. White-bordered cards rise the same way. Over all inside outlines, 9 in 10 sit 2.9 mm or more inside the card edge, so they are not small fit errors.
+- **Sleeves.** The outline sits on the sleeve edge. Up to 15 degrees of tilt, the size error is -0.7 to -1.1 mm, so the outline is larger than the card by about the sleeve margin.
+- **Patterned surfaces.** 61 of 120 frames are detected, against 82 of 120 on plain surfaces. For black and white borders it is 56 of 80, against 73 of 80.
+- **Borderless cards** are missed on every surface: 9 of 40 detected on plain surfaces. The bottom edge of a borderless card is dark, so its step has the other polarity from the other three edges, and the edge refiner refuses the outline.
+- **Hard shadows** put the outline off the card edge at no tilt: a median corner error of 2.6 mm.
+- **No false outlines** on the 240 empty plain and patterned frames.
+- On plain frames at no tilt, the median corner error is 0.01 mm and the p90 0.07 mm.
+- **Hand movement before the photo.** 16 of 20 clips ask for a photo, all at 1,200 ms except one sleeve clip at 1,800 ms. The hand moves the card 0.3 to 2.1 mm between the sample that held still and the photo, 0.9 mm at the median. On the 7 clips whose held-still outline sits on the card edge, the photo outline error is that shift: 0.2 to 1.7 mm. #421 measured shifts of 0.1 to 4.8 mm on the phone. The photo outline median is 0.83 mm on plain clips, 1.04 mm on patterned, 1.45 mm on shadow, and 2.79 mm on sleeve clips, where the outline is also on the sleeve edge.
+- **Clips that never ask for a photo.** 1 plain, 2 patterned, and 1 shadow clip. 3 of the 4 show a borderless card.
+- Jitter is 0.06 mm or less at the median on each surface.
+- Mac timing p95 is about 5 ms. The whole replay takes about 2.5 minutes from nothing, once the card images are downloaded, and about 70 seconds when the frames are already rendered. The clips add the 20 photos at 2268 x 4032. With them, one run from nothing took 3 minutes 38 seconds on the M3 while other work ran on it. The frames, clips, and photos take 1.9 GB on disk.
+- Timing noise: with the same detector code on both sides, the timing ratio stayed between 0.96 and 1.04 over 10 runs of 3 rounds on a busy M3, and the same with 5 rounds. One pass with the merge base first and the branch second gave 0.71 to 1.70 on the same Mac. These runs used the first 60 frames.
+
+Photo refinement (#500), on the same Mac, against the integration branch at `1e68ee5`, before the #493 code review:
+
+- 16 clips ask for a photo. 15 photo outlines passed both checks. The motion check refused one, on a sleeve clip at 15 to 25 degrees of tilt, where the refined outline moved out to the sleeve edge.
+- The photo outline median fell from 0.83 to 0.03 mm on plain clips, 1.04 to 0.06 mm on patterned, 1.45 to 0.03 mm on shadow, and 2.79 to 1.96 mm on sleeve clips. On sleeve clips, the outline stays on the sleeve edge.
+- Photo refinement takes 31 to 50 ms at the median on the Mac, most of it in reading the photo and in the registration. The edge refiner takes about 2 ms. The detector's frame loop is unchanged.
+- On the `macos-15` runner of the Detector workflow, photo refinement took 76 to 117 ms at the median over two runs.
+
+After #499 checked the card aspect on the card, the edge refiner on the photo still checked it in the frame, so the integration branch refused 5 of 16 photo outlines: 2 by the size check and 3 by the motion check. The #493 code review gave photo refinement the frame's intrinsic matrix, and a refusal now returns the moved outline. Against the integration branch at `204b40f`, on the same Mac:
+
+- All 16 photo outlines pass both checks.
+- The photo outline median over all clips falls from 0.90 to 0.06 mm. By condition it is 0.02 mm on plain clips, 0.06 mm on patterned, 0.03 mm on shadow, and 1.96 mm on sleeve clips.
+- Vision's registration moves the outline to within 0.2 mm of the card on all 20 photos, when the held-still outline is the true card edge.
+- The inside photo outline on a plain clip goes away. One sleeve clip at 15 to 25 degrees keeps its inside photo outline: its held-still outline is already 5.5 mm off, and the refined outline stays there.
+
+The refusal limits of `PhotoOutline` come from these runs. The fix round kept both limits, because they still separate the outlines on the card edge from the outlines on another edge:
+
+| Check | Refuses | Replay result |
+| --- | --- | --- |
+| Size check | A refined outline more than 2% narrower or shorter than the moved outline (`sizeShrinkMax`) | The 16 accepted outlines are within 0.4% of the moved outline's size. In a second run that starts each clip from the true card edge, one refined outline on the inner frame, on a sleeve clip at 15 to 25 degrees, is 5% to 6% smaller, and the size check refuses it. Before the intrinsic matrix, 3 such outlines were 6% to 9% smaller. |
+| Motion check | A refined outline with a corner more than 2% of the moved outline's short side from the moved outline (`cornerMotionMax`), about 1.3 mm on the card | The 16 accepted outlines move at most 0.4%. In the run from the true card edge, the 5 outlines that jump out to a sleeve or shadow edge move 2.6% to 3.6%, and the motion check refuses them. |
+
+The device check of #493 ([comment](https://github.com/Reilley64/mtgscan/issues/493#issuecomment-6330746264)) found two failures that the synthetic frames did not show: background lines outside the card filled the edge refiner's line slots on the photo, and an outline could sit on a line outside one edge and a line inside the other. The fix narrows the photo search band to 4% of the short side and refuses such an outline (`oppositeEdgeShiftMax`). `PhotoOutlineTests` checks the narrow band on one real photo from the phone, with its EXIF orientation, in `macos/CardDetectorTests/Fixtures/device-photo`. Against the integration branch at `9251240`, on the same Mac, every bar passes:
+
+- Wrong outlines fall in 7 condition and tilt rows, and inside outlines in 8. Detection rises by 1 in shadow at 7.5 to 15 and 15 to 25 degrees, and in white-bordered cards at 7.5 to 25 degrees.
+- One sleeve clip at 15 to 25 degrees, `sleeve-clip-003`, no longer asks for a photo. Its only photo outline on the integration branch was an inside outline, 5.5 mm off, so the photo asked for bar does not count it.
+- The photo outline median over all clips stays at 0.06 mm.
+
+Synthetic frames do not show what Vision does on real frames (#421). So the replay gates mechanisms and regressions, and the phone confirms real gains.
+
 ## GitHub Actions
+
+The Detector workflow runs on pull requests that change the detector module, the files in `detector/`, the automatic capture rule in `src/scan/capture.ts`, `src/scan/capture-log.ts`, `app.json`, or the workflow, and by hand. Its replay job runs `bun run detector:replay` on a `macos-15` runner, with the pull request's base branch as `--base`. Run by hand, it compares with `main`.
+
+- The branch and the merge base run in the same job, so Vision and the hardware are the same on both sides.
+- A missed bar fails the job.
+- When the runner renders a frame with other bytes than `detector/frames.sha256`, the job fails and names the first such frame. The job checks the hashes on every run, also when it restores the frames from the cache.
+- The job writes the table to its job summary, under a "Detector replay" heading.
+- The job uploads `base.json`, `branch.json`, and `comparison.md` as the `detector-replay-reports` artifact, also when a bar fails. The JSON files hold each frame's outline and corner error, so a failed bar can be traced to its frames. `gh run download <run> -n detector-replay-reports` downloads them.
+- It caches the card images by `detector/cards.json`, the textures by `detector/textures.json`, and the rendered frames by `detector/frames.sha256`. A re-run of a pull request skips the download and the render. The workflow does not run on pushes, so pull requests share no cache, and each new pull request renders the frames once.
+- On a runner, the detector call on a frame takes 45 to 100 ms, about 5 to 10 times as long as on a busy M3. With the 1,080 frames and the 20 clips, the job takes 8.5 to 12.5 minutes. The timeout is 30 minutes. Most of the job is the detector calls: 3 rounds of the 1,080 frames and one round of the clips, on both sides. Without the cache, the render takes about 1.5 minutes, and saving the 1.9 GB of frames takes 25 to 40 seconds. With the cache, restoring the frames takes about 25 to 40 seconds.
+- With the same detector code on both sides, the timing ratio stayed between 0.93 and 1.03 over 13 runs on runners: 7 runs with the first 60 frames, 3 with the 1,080 frames, and 3 with the clips too.
+
+A pull request that changes the card detector shows the replay table under a "Detector replay" heading. Copy the table from the job summary of its last run, and link the run.
 
 The Recognizer workflow runs on pull requests that change the recognizer module, this evidence pack, or the workflow, and by hand. It has one job.
 
