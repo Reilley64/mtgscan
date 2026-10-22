@@ -198,7 +198,7 @@ The capture rule from #75 lives in `apps/mobile/src/scan/capture.ts`. It takes o
 
 Vision's rectangle detector (`VNDetectRectanglesRequest`) was tried in #421 in place of the proposal and the edge refiner, and lost. `.out-of-scope/vision-rectangle-card-detector.md` says why.
 
-`bun run detector:test` in `apps/mobile` runs the Swift fixture tests for the detector on a Mac. `bun run detector:replay` runs the detector replay: it measures the detector on synthetic frames on the branch and on the merge base, and fails when the branch misses a pass bar. The Detector workflow runs it on each pull request that changes the detector. The scanner evidence pack README describes it. Development builds log each capture event to Metro as a `CAPTURE` line, with the detector timing every 300 samples.
+`bun run detector:test` in `apps/mobile` runs the Swift fixture tests for the detector on a Mac, one at a time. Run in parallel on the 3-core `macos-15` runner, the suite hung with every test started and none finished, with or without any one of the tests of #493's device fixes. Each test passed alone, and the suite passed one at a time in 19 seconds. `bun run detector:replay` runs the detector replay: it measures the detector on synthetic frames on the branch and on the merge base, and fails when the branch misses a pass bar. The Detector workflow runs it on each pull request that changes the detector. The scanner evidence pack README describes it. Development builds log each capture event to Metro as a `CAPTURE` line, with the detector timing every 300 samples.
 
 ### Scan feedback
 
