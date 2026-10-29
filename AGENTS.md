@@ -29,7 +29,7 @@ Review every diff against `CODING_STANDARDS.md`.
 
 ### Issue tracker
 
-Issues and specs live in GitHub Issues at `Reilley64/mtgscan`. Before you create, update, or close an issue, or link a PR to one, read `docs/agents/issue-tracker.md`.
+Issues and specs live in Plane, in the `mtgscan` project (identifier `MTGSCAN`). Before you create, update, or close an issue, or link a PR to one, read `docs/agents/issue-tracker.md`.
 
 ### Triage labels
 
