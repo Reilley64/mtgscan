@@ -27,7 +27,7 @@ One physical card that the user owns. It has a copy ID, a card printing, a finis
 _Avoid_: Card, item, owned card
 
 **Collection entry**:
-The copies that share a card printing, finish, condition, language, and protected flag. It is a group of copies, not a thing of its own. Its quantity is the number of its copies. User tags do not split or merge collection entries. Its entry total is the current price of its card printing and finish times its quantity. An entry total is not a collection total.
+The copies that share a card printing, finish, condition, language, and protected flag. It is a group of copies, not a thing of its own. Its quantity is the number of its copies. User tags do not split or merge collection entries. Collection search returns copies, not collection entries.
 _Avoid_: Stack, item
 
 **Copy page**:
@@ -220,7 +220,7 @@ _Avoid_: Library, the 99
 The link between a copy and the deck that uses it. A copy is allocated to at most one deck. Deleting an allocated copy removes it from its deck.
 
 **Free copy**:
-A copy that is not allocated to a deck or held by a planned swap. A collection entry's free quantity is the number of its free copies.
+A copy that is not allocated to a deck or held by a planned swap. A card's free quantity in catalog search and card details is the number of its free copies.
 _Avoid_: Spare, available copy
 
 **Basic land**:

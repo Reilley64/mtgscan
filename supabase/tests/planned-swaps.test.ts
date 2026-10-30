@@ -6,7 +6,7 @@ import { createPlannedSwaps, listPlannedSwaps, swapInPlannedSwap, type PlannedSw
 import { getCards } from '../search';
 import { aiClientCall, aiClientReply, connectedAiClient, type ClaimedAiClient } from './ai-clients';
 import { catalogFixtureManifest, resetCardCatalog, runCatalogImport } from './catalog-import-command';
-import { collectionCopies, collectionEntries } from './collection-pages';
+import { collectionCopies } from './collection-pages';
 import { call, failed, refused, replyOf } from './database-calls';
 import { setCatalogSucceededAt } from './deck-evaluation-seeds';
 import { anonymousClient, asDatabaseOwner, secretKeyClient, signUpNewUser, type AppClient, type TestUser } from './local-stack';
@@ -483,13 +483,18 @@ describe('held copies', () => {
     return { client, user: client.user, held: held!, free: free!, deckId };
   }
 
-  test('a held copy is not free in its collection entry, the Free filter, or the held quantity', async () => {
-    const { user, held, free } = await heldCopy();
+  test('a held copy is not free in the Free filter, and its copy row names the deck that holds it', async () => {
+    const { user, held, free, deckId } = await heldCopy();
 
-    const entries = await collectionEntries(user.client);
+    const copies = await collectionCopies(user.client);
     const freeCopies = await collectionCopies(user.client, { is_free: true });
 
-    expect(entries.items).toEqual([expect.objectContaining({ quantity: 2, free_quantity: 1, allocated_quantity: 0, held_quantity: 1 })]);
+    expect(copies.items.map((item) => [item.copy_id, item.held_for?.deck_id ?? null]).toSorted()).toEqual(
+      [
+        [held, deckId],
+        [free, null],
+      ].toSorted(),
+    );
     expect(freeCopies.items.map((item) => item.copy_id)).toEqual([free]);
     expect(await copyOf(user, held)).toMatchObject({ free: false, deck: null });
   });

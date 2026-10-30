@@ -4,7 +4,7 @@ import { searchCollection, type CollectionCopyRow, type CollectionQuery, type Cu
 import { usdPriceBounds, type PriceBounds } from '../converted-prices';
 import type { Finish } from '../search';
 import { catalogFixtureManifest, resetCardCatalog, runCatalogImport, runPriceImport } from './catalog-import-command';
-import { collectionCopies, collectionEntries } from './collection-pages';
+import { collectionCopies } from './collection-pages';
 import { secretKeyClient, signUpNewUser, type TestUser } from './local-stack';
 import { seedCopies } from './copy-seeds';
 import { call, refused } from './database-calls';
@@ -416,15 +416,15 @@ describe('pages of copy rows', () => {
     ['a cursor that is not a string', { cursor: 7 }, 'cursor'],
     ['an unknown field', { owned_only: true }, 'owned_only'],
     ['a price currency, even USD, as the app converts prices itself', { price_currency: 'USD' }, 'price_currency'],
-    ['rows other than entries or copies', { rows: 'printings' }, 'rows'],
+    ['rows, as collection search returns only copies', { rows: 'copies' }, 'rows'],
   ])('%s is refused with invalid_argument', async (_, query, field) => {
-    const result = await call(user.client, searchCollection, (Array.isArray(query) ? query : { rows: 'copies', ...query }) as never);
+    const result = await call(user.client, searchCollection, query as never);
 
     expect(result).toMatchObject(refused('invalid_argument', field));
   });
 
   test('a malformed cursor is refused with invalid_cursor', async () => {
-    const result = await call(user.client, searchCollection, { rows: 'copies', cursor: 'not a cursor' });
+    const result = await call(user.client, searchCollection, { cursor: 'not a cursor' });
 
     expect(result).toMatchObject(refused('invalid_cursor', 'cursor'));
   });
@@ -436,21 +436,13 @@ describe('pages of copy rows', () => {
       JSON.stringify({ ...payload, after: [...payload.after.slice(0, 5), 'first'] }),
     ).toString('base64');
 
-    const result = await call(user.client, searchCollection, { rows: 'copies', limit: 1, cursor: broken });
-
-    expect(result).toMatchObject(refused('invalid_cursor', 'cursor'));
-  });
-
-  test('a cursor from collection entries is refused for copy rows', async () => {
-    const { next_cursor } = await collectionEntries(user.client, { limit: 1 });
-
-    const result = await call(user.client, searchCollection, { rows: 'copies', limit: 1, cursor: next_cursor });
+    const result = await call(user.client, searchCollection, { limit: 1, cursor: broken });
 
     expect(result).toMatchObject(refused('invalid_cursor', 'cursor'));
   });
 });
 
-describe('collection entries and copy rows', () => {
+describe('free and protected copy rows', () => {
   let user: TestUser;
   let protectedCopies: string[];
 
@@ -468,35 +460,6 @@ describe('collection entries and copy rows', () => {
     );
   });
 
-  function entryKey(row: Pick<CollectionCopyRow, 'printing_id' | 'finish' | 'condition' | 'language' | 'protected'>) {
-    return [row.printing_id, row.finish, row.condition, row.language, row.protected].join(' ');
-  }
-
-  async function entryQuantities(query: CollectionQuery) {
-    const { items } = await collectionEntries(user.client, query);
-    return Object.fromEntries(items.map((row) => [entryKey(row), row.quantity]).toSorted());
-  }
-
-  async function copiesPerEntry(query: CollectionQuery) {
-    const counts = new Map<string, number>();
-    for (const row of (await collectionCopies(user.client, query)).items) {
-      counts.set(entryKey(row), (counts.get(entryKey(row)) ?? 0) + 1);
-    }
-    return Object.fromEntries([...counts].toSorted());
-  }
-
-  test.each<[string, CollectionQuery]>([
-    ['no chips', {}],
-    ['a name chip', { names: ['curator'] }],
-    ['a finish chip', { finishes: ['foil'] }],
-    ['a negated condition chip', { conditions_exclude: ['damaged'] }],
-  ])("with %s, each collection entry's quantity counts its matching copy rows", async (_, query) => {
-    const entries = await entryQuantities(query);
-
-    expect(Object.keys(entries).length).toBeGreaterThan(0);
-    expect(entries).toEqual(await copiesPerEntry(query));
-  });
-
   test('the free chip with the negated protected chip gives the free copies that are not protected', async () => {
     const every = copyIdsOf((await collectionCopies(user.client)).items);
     const free = copyIdsOf((await collectionCopies(user.client, { is_free: true })).items);
@@ -507,14 +470,8 @@ describe('collection entries and copy rows', () => {
     expect((await collectionCopies(user.client, { is_free: false })).items).toEqual([]);
   });
 
-  test('collection entries take a limit up to 100, and copy rows up to 120', async () => {
-    const entries = await call(user.client, searchCollection, { rows: 'entries', limit: 100 });
-    const tooManyEntries = await call(user.client, searchCollection, { rows: 'entries', limit: 101 });
-    const copies = await call(user.client, searchCollection, { rows: 'copies', limit: 120 });
-
-    expect(entries).toMatchObject({ status: 'replied' });
-    expect(tooManyEntries).toMatchObject(refused('invalid_argument', 'limit'));
-    expect(copies).toMatchObject({ status: 'replied' });
+  test('copy rows take a limit up to 120', async () => {
+    expect(await call(user.client, searchCollection, { limit: 120 })).toMatchObject({ status: 'replied' });
   });
 });
 
@@ -538,7 +495,6 @@ describe('telemetry', () => {
   test.each<[string, CollectionQuery]>([
     ['a plain binder read', {}],
     ['a plain binder read in another order', { sort: 'price', sort_order: 'desc', limit: 120 }],
-    ['a plain read of collection entries', { rows: 'entries' }],
   ])('%s writes no telemetry row', async (_, query) => {
     const before = await telemetryRows();
 
@@ -560,7 +516,7 @@ describe('telemetry', () => {
       {
         search_id: first.search_id,
         api: 'collection',
-        query: expect.objectContaining({ ...query, rows: 'copies', limit: 60 }),
+        query: expect.objectContaining({ ...query, limit: 60 }),
         result_count: first.items.length,
         result_ids: copyIdsOf(first.items),
       },

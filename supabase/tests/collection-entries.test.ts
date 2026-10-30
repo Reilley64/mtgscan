@@ -10,7 +10,6 @@ import {
   runCatalogImport,
   runPriceImport,
 } from './catalog-import-command';
-import { collectionEntries } from './collection-pages';
 import { seedCopies, seededCollectionEntryKey } from './copy-seeds';
 import { call, failed, refused } from './database-calls';
 import { anonymousClient, secretKeyClient, signUpNewUser, type AppClient, type TestUser } from './local-stack';
@@ -59,17 +58,26 @@ function byEntry(a: EntryRow, b: EntryRow) {
   return seededCollectionEntryKey(a).localeCompare(seededCollectionEntryKey(b));
 }
 
+const copyReadSize = 1000;
+
 async function entriesOf(user: { client: AppClient }): Promise<EntryRow[]> {
-  return (await collectionEntries(user.client, { limit: 50 })).items
-    .map((row) => ({
-      card_printing_id: row.printing_id,
-      finish: row.finish,
-      condition: row.condition,
-      language: row.language,
-      is_protected: row.protected,
-      quantity: row.quantity,
-    }))
-    .toSorted(byEntry);
+  const entries = new Map<string, EntryRow>();
+  for (let start = 0; ; start += copyReadSize) {
+    const { data, error } = await user.client
+      .from('copies')
+      .select('card_printing_id, finish, condition, language, is_protected')
+      .order('id')
+      .range(start, start + copyReadSize - 1);
+    expect(error).toBeNull();
+    for (const copy of data!) {
+      const key = seededCollectionEntryKey(copy);
+      const entry = entries.get(key) ?? { ...copy, quantity: 0 };
+      entries.set(key, { ...entry, quantity: entry.quantity + 1 });
+    }
+    if (data!.length < copyReadSize) {
+      return [...entries.values()].toSorted(byEntry);
+    }
+  }
 }
 
 function entries(...rows: EntryRow[]) {

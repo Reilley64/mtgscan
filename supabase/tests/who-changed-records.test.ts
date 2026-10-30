@@ -208,7 +208,7 @@ describe('who created and last changed a record', () => {
       await replyOf(client.user.client, listDeckChanges, { deck_id: deckId }),
       await replyOf(client.user.client, listPlannedSwaps, {}),
       await replyOf(client.user.client, listBuylist, {}),
-      await replyOf(client.user.client, searchCollection, { rows: 'copies' }),
+      await replyOf(client.user.client, searchCollection, {}),
       await replyOf(client.user.client, searchCollection, {}),
       await replyOf(client.user.client, listUserTags),
     ];

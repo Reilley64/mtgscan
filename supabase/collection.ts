@@ -15,7 +15,6 @@ export type CollectionSort = z.infer<typeof collectionSort>;
 
 const collectionQuery = z.strictObject({
   ...catalogFilters,
-  rows: z.enum(['entries', 'copies']).optional(),
   sort: collectionSort.optional(),
   finishes: z.array(finish).optional(),
   finishes_exclude: z.array(finish).optional(),
@@ -37,28 +36,6 @@ export type CollectionQuery = z.input<typeof collectionQuery>;
 const currentPrice = priceFrom.omit({ basis: true }).extend({ stale: z.boolean() });
 
 export type CurrentPrice = z.infer<typeof currentPrice>;
-
-const collectionRow = z.strictObject({
-  oracle_id: id,
-  printing_id: id,
-  name: z.string(),
-  set: z.string(),
-  collector_number: z.string(),
-  finish,
-  language,
-  condition,
-  protected: z.boolean(),
-  quantity: integer,
-  free_quantity: integer,
-  allocated_quantity: integer,
-  held_quantity: integer,
-  commander_legal: z.boolean(),
-  price: currentPrice.nullable(),
-  total: z.string().nullable(),
-  oracle_text: z.string().optional(),
-});
-
-export type CollectionRow = z.infer<typeof collectionRow>;
 
 export const copyRowDeck = z.strictObject({ deck_id: id, name: z.string() });
 
@@ -87,16 +64,12 @@ export const collectionCopyRow = z.strictObject({
 
 export type CollectionCopyRow = z.infer<typeof collectionCopyRow>;
 
-const collectionPage = z.strictObject({
+export const collectionCopyPage = z.strictObject({
   ...searchPage,
   total_count: integer.nullable(),
   basic_lands: z.array(basicLandCard).nullable(),
-  items: z.array(z.union([collectionRow, collectionCopyRow])),
+  items: z.array(collectionCopyRow),
 });
-
-export const collectionEntryPage = collectionPage.extend({ items: z.array(collectionRow) });
-
-export const collectionCopyPage = collectionPage.extend({ items: z.array(collectionCopyRow) });
 
 export type CollectionCopyPage = z.infer<typeof collectionCopyPage>;
 
@@ -212,7 +185,7 @@ export const searchCollection = databaseFunction({
   name: 'search_collection',
   argument: 'query',
   request: collectionQuery,
-  reply: collectionPage,
+  reply: collectionCopyPage,
   errorCodes: ['invalid_argument', 'invalid_cursor', 'data_unavailable'],
 });
 
