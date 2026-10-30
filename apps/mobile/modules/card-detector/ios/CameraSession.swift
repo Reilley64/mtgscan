@@ -28,8 +28,6 @@ struct CapturedPhoto: Sendable {
 private enum PhotoOption: String {
   case current
   case speed
-  case smaller
-  case speedSmaller = "speed-smaller"
 
   static let chosen: PhotoOption = {
     #if DEBUG
@@ -46,11 +44,7 @@ private enum PhotoOption: String {
   }()
 
   var qualityPrioritization: AVCapturePhotoOutput.QualityPrioritization {
-    self == .speed || self == .speedSmaller ? .speed : .balanced
-  }
-
-  var takesSmallestSize: Bool {
-    self == .smaller || self == .speedSmaller
+    self == .speed ? .speed : .balanced
   }
 }
 
@@ -83,7 +77,6 @@ final class CameraSession: NSObject, @unchecked Sendable {
   private var configured = false
   private var lastAnalyzedAt = CMTime.invalid
   private var photoCaptures: [Int64: PhotoCapture] = [:]
-  private var photoSizes: [CMVideoDimensions] = []
   private let keptFramesLock = NSLock()
   private var keptFrames = KeptFrames<AnalyzedFrame>()
 
@@ -131,13 +124,9 @@ final class CameraSession: NSObject, @unchecked Sendable {
         return
       }
       let settings = AVCapturePhotoSettings(format: [AVVideoCodecKey: AVVideoCodecType.jpeg])
-      let option = PhotoOption.chosen
-      let smallestSize = option.takesSmallestSize
-        ? PhotoSize.smallest(of: photoSizes, orientation: Self.displayOrientation, readingCard: outline)
-        : nil
-      settings.maxPhotoDimensions = smallestSize ?? photoOutput.maxPhotoDimensions
+      settings.maxPhotoDimensions = photoOutput.maxPhotoDimensions
       settings.flashMode = .off
-      settings.photoQualityPrioritization = option.qualityPrioritization
+      settings.photoQualityPrioritization = PhotoOption.chosen.qualityPrioritization
       if #available(iOS 18.0, *), photoOutput.isShutterSoundSuppressionSupported {
         settings.isShutterSoundSuppressionEnabled = true
       }
@@ -225,12 +214,11 @@ final class CameraSession: NSObject, @unchecked Sendable {
       connection.isCameraIntrinsicMatrixDeliveryEnabled = true
     }
     photoOutput.maxPhotoDimensions = photoDimensions
-    photoSizes = Self.photoSizes(of: format)
     photoOutput.maxPhotoQualityPrioritization = .balanced
     if let connection = photoOutput.connection(with: .video), connection.isVideoRotationAngleSupported(90) {
       connection.videoRotationAngle = 90
     }
-    let supportedSizes = photoSizes.map { "\($0.width) x \($0.height)" }.joined(separator: ", ")
+    let supportedSizes = Self.photoSizes(of: format).map { "\($0.width) x \($0.height)" }.joined(separator: ", ")
     Self.log.info(
       "camera: zero shutter lag supported \(self.photoOutput.isZeroShutterLagSupported, privacy: .public), enabled \(self.photoOutput.isZeroShutterLagEnabled, privacy: .public); geometric distortion correction supported \(device.isGeometricDistortionCorrectionSupported, privacy: .public), enabled \(device.isGeometricDistortionCorrectionEnabled, privacy: .public); photo \(photoDimensions.width, privacy: .public) x \(photoDimensions.height, privacy: .public); photo sizes \(supportedSizes, privacy: .public); photo option \(PhotoOption.chosen.rawValue, privacy: .public)"
     )
