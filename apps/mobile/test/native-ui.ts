@@ -1182,22 +1182,45 @@ function listItemsHeight(list: HostElement) {
   return StyleSheet.flatten(cell?.parent?.props.style)?.height ?? 0;
 }
 
-export async function scrollToEnd(tab: HostElement) {
+function tabList(tab: HostElement) {
   const [list] = tab.queryAll((instance) => instance.type === "RCTScrollView");
   if (!list) {
     throw new Error("No scroll view is in this tab");
   }
+  return list;
+}
+
+function scrolledTo(list: HostElement, y: number) {
   const viewport = measureParentSize(list as never);
-  const itemsHeight = listItemsHeight(list);
-  const scrolledTo = (y: number) => ({
+  return {
     nativeEvent: {
       contentOffset: { x: 0, y },
-      contentSize: { width: viewport.width, height: itemsHeight },
+      contentSize: { width: viewport.width, height: listItemsHeight(list) },
       layoutMeasurement: viewport,
     },
-  });
-  const scrolledToEnd = scrolledTo(Math.max(0, itemsHeight - viewport.height));
-  await fireEvent.scroll(list, scrolledTo(0));
+  };
+}
+
+export function scrollsOf(tab: HostElement) {
+  const list = tabList(tab);
+  const { calls, contexts } = scrollToCalls();
+  return calls.filter((_, index) => contexts[index]?.props.onScroll === list.props.onScroll).map(([options]) => options);
+}
+
+export async function applyLastScroll(tab: HostElement) {
+  const list = tabList(tab);
+  const last = scrollsOf(tab).at(-1);
+  if (typeof last !== "object") {
+    throw new Error("The scroll view in this tab was never scrolled to an offset");
+  }
+  await fireEvent.scroll(list, scrolledTo(list, last.y ?? 0));
+}
+
+export async function scrollToEnd(tab: HostElement) {
+  const list = tabList(tab);
+  const viewport = measureParentSize(list as never);
+  const scrolledToEnd = scrolledTo(list, Math.max(0, listItemsHeight(list) - viewport.height));
+  await fireEvent.scroll(list, scrolledTo(list, 0));
   await fireEvent.scroll(list, scrolledToEnd);
   await act(async () => {
     jest.advanceTimersByTime(1000);

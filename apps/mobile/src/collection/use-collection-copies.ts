@@ -17,6 +17,9 @@ function collectionCopies(search: CollectionQuery) {
 }
 
 export function useCollectionCopies(search: CollectionQuery | null) {
-  const { read, reload, loadMore } = usePagedScreenRead(search && collectionCopies(search), { refused: ['invalid_argument'] });
+  const { read, reload, loadMore } = usePagedScreenRead(search && collectionCopies(search), {
+    refused: ['invalid_argument'],
+    restartsOnFocus: true,
+  });
   return { binder: read, reload, loadMore };
 }

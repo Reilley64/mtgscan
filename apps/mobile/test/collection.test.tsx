@@ -23,8 +23,11 @@ import {
   pressSearchCancel,
   pressSearchKey,
   pressTab,
+  applyLastScroll,
+  scrollsOf,
   scrollToEnd,
   selectedTab,
+  swipeBackFromThePushedScreen,
   shownSearchText,
   symbolNames,
   symbolTintColor,
@@ -342,6 +345,44 @@ test('the Collection tab shows newly added copies when it gains focus again', as
   expect(await within(selectedTab()).findByRole('button', { name: /^Ribbons of Night/ })).toBeOnTheScreen();
 });
 
+test('when the Collection tab gains focus again, the binder grid scrolls to the top and reads only its first page again', async () => {
+  ownCollectionCopies(Array.from({ length: 70 }, (_, index) => collectionEntryCopies(`Card ${index + 1}`, 1)).flat());
+  const collection = await openCollection();
+  await scrollToEnd(selectedTab());
+  await collection.findByRole('button', { name: /^Card 70,/ });
+  const readsBefore = requestsSent('search_collection').length;
+  const scrollsBefore = scrollsOf(selectedTab()).length;
+  const reads = hold('search_collection');
+
+  await pressTab('Recent');
+  await pressTab('Collection');
+
+  expect(scrollsOf(selectedTab()).slice(scrollsBefore)).toEqual([expect.objectContaining({ y: 0 })]);
+  await applyLastScroll(selectedTab());
+  await reads.finish();
+  await waitFor(() => expect(within(selectedTab()).queryByRole('button', { name: /^Card 70,/ })).not.toBeOnTheScreen());
+  expect(requestsSent('search_collection').slice(readsBefore).map(({ cursor }) => cursor)).toEqual([null]);
+});
+
+test('after the user opens a copy and goes back, the binder grid scrolls to the top and reads only its first page again', async () => {
+  ownCollectionCopies(Array.from({ length: 70 }, (_, index) => collectionEntryCopies(`Card ${index + 1}`, 1)).flat());
+  const collection = await openCollection();
+  await scrollToEnd(selectedTab());
+  const lastTile = await collection.findByRole('button', { name: /^Card 70,/ });
+  await fireEvent.press(lastTile);
+  const readsBefore = requestsSent('search_collection').length;
+  const scrollsBefore = scrollsOf(selectedTab()).length;
+  const reads = hold('search_collection');
+
+  await swipeBackFromThePushedScreen();
+
+  expect(scrollsOf(selectedTab()).slice(scrollsBefore)).toEqual([expect.objectContaining({ y: 0 })]);
+  await applyLastScroll(selectedTab());
+  await reads.finish();
+  await waitFor(() => expect(within(selectedTab()).queryByRole('button', { name: /^Card 70,/ })).not.toBeOnTheScreen());
+  expect(requestsSent('search_collection').slice(readsBefore).map(({ cursor }) => cursor)).toEqual([null]);
+});
+
 test('a failed binder grid read offers Try again, which shows the tiles', async () => {
   ownCollectionCopies(collectionEntryCopies('Angelic Curator', 1));
   fail('search_collection', 1);
@@ -419,7 +460,7 @@ describe('the skeleton grid', () => {
     expect(collection.getByRole('button', { name: /^Angelic Curator/ })).toBeOnTheScreen();
   });
 
-  test('after a long time on another tab, Collection keeps the tiles shown when it gains focus and reads as many pages again as it showed', async () => {
+  test('after a long time on another tab, Collection keeps the tiles shown when it gains focus, then shows only the first page read again', async () => {
     ownCollectionCopies(Array.from({ length: 70 }, (_, index) => collectionEntryCopies(`Card ${index + 1}`, 1)).flat());
     const collection = await openCollection();
     await scrollToEnd(selectedTab());
@@ -435,9 +476,11 @@ describe('the skeleton grid', () => {
 
     expect(within(selectedTab()).getByRole('button', { name: /^Card 70,/ })).toBeOnTheScreen();
     expect(skeletonGrid()).not.toBeOnTheScreen();
+    await applyLastScroll(selectedTab());
     await reads.finish();
-    await waitFor(() => expect(requestsSent('search_collection').slice(readsBefore).map(({ cursor }) => cursor)).toEqual([null, expect.any(String)]));
-    expect(collection.getByRole('button', { name: /^Card 70,/ })).toBeOnTheScreen();
+    await waitFor(() => expect(collection.queryByRole('button', { name: /^Card 70,/ })).not.toBeOnTheScreen());
+    expect(requestsSent('search_collection').slice(readsBefore).map(({ cursor }) => cursor)).toEqual([null]);
+    expect(collection.getByRole('button', { name: /^Card 1,/ })).toBeOnTheScreen();
   });
 
   test('a new page keeps the tiles already shown and brings no skeleton grid back', async () => {
