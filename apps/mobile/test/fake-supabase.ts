@@ -553,10 +553,7 @@ const handlers: { [Name in FunctionName]?: Handler<Name> } = {
     })),
   }),
   search_collection: (query) => {
-    const { rows, cursor, limit = 60, ...search } = query;
-    if (rows !== 'copies') {
-      throw new Error('The fake Supabase client searches the collection only for copy rows');
-    }
+    const { cursor, limit = 60, ...search } = query;
     const answer = store.collectionSearchAnswer
       ? store.collectionSearchAnswer(search)
       : { copies: store.copies.map(binderRowOf), basicLands: store.copies.length > 0 ? basicLandNames : [] };
@@ -1264,7 +1261,7 @@ export function answerCollectionSearches(answer: (query: CollectionQuery) => Col
 }
 
 export function collectionSearchesSent() {
-  return requestsSent('search_collection').flatMap(({ rows, cursor, limit, ...search }) => (cursor ? [] : [search]));
+  return requestsSent('search_collection').flatMap(({ cursor, limit, ...search }) => (cursor ? [] : [search]));
 }
 
 export function expirePageCursors() {

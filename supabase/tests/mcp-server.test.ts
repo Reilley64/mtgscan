@@ -337,7 +337,7 @@ describe('the MCP server over HTTP', () => {
     for (const sentence of [
       'Put a user tag on 1 to 100 copies, or take it off them, in one call.',
       'A refused call changes no copy.',
-      'Find copy IDs with search_collection and rows: copies.',
+      'Find copy IDs with search_collection.',
       "A copy ID that is not one of the user's copies, such as a copy that the user deleted, is skipped as missing. It does not refuse the call, so the other copies still change.",
       'A copy that already has the asked state counts as changed.',
       'A deleted user tag is not-found.',
@@ -577,8 +577,8 @@ describe('the read tools over HTTP', () => {
 
   test.each<[string, () => Record<string, unknown>, string]>([
     ['search_catalog', () => ({ types: ['angel'], limit: 2 }), '2 cards. More with next_cursor.'],
-    ['search_collection', () => ({}), '2 of 2 collection entries.'],
-    ['search_collection', () => ({ rows: 'copies', deck_ids: [deckId], include_oracle_text: true }), '2 of 2 copies.'],
+    ['search_collection', () => ({}), '3 of 3 copies.'],
+    ['search_collection', () => ({ deck_ids: [deckId], include_oracle_text: true }), '2 of 2 copies.'],
     ['search_collection', () => ({ user_tags: ['Signed'], is_allocated: true }), 'Nothing in the collection matches.'],
     ['search_oracle_tags', () => ({ text: 'burn', limit: 3 }), '3 Oracle tags.'],
     ['get_cards', () => ({ oracle_ids: [curatorOracleId, crypto.randomUUID()] }), '1 card. 1 not found.'],
@@ -636,17 +636,17 @@ describe('the read tools over HTTP', () => {
     expect(result.structuredContent).toMatchObject({ type: `${problems}invalid-argument`, pointer: '/deck_id' });
   });
 
-  test('a page holds 20 rows by default, for copies too', async () => {
+  test('a page holds 20 rows by default', async () => {
     const user = await signUpNewUser();
     await committed(user, scanBatch([stack(gristModernHorizons, { copies: 25 })]));
     const { mcp } = await connected(user);
 
-    expect(await summaryOf(mcp, 'search_collection', { rows: 'copies' })).toBe('20 of 25 copies. More with next_cursor.');
+    expect(await summaryOf(mcp, 'search_collection', {})).toBe('20 of 25 copies. More with next_cursor.');
   });
 
   test.each<[string, Record<string, unknown>, number]>([
     ['search_catalog', { types: ['angel'] }, 50],
-    ['search_collection', { rows: 'copies' }, 100],
+    ['search_collection', {}, 100],
     ['list_card_printings', {}, 50],
     ['list_deck_changes', {}, 50],
     ['list_planned_swaps', {}, 50],

@@ -763,7 +763,7 @@ A preview judges a deck as a change would leave it and compares the result with 
 
 ### Collection search
 
-Signed-in users search their own collection with `supabase.rpc('search_collection', { query })`. It takes the same typed query as catalog search, plus the collection chips and `rows`. `supabase/collection.ts` has the shared types for the query and the result rows. The Collection tab reads its binder grid only through collection search, with `rows: 'copies'`. Its search bar and its Filters drawer turn the typed text and chips into the typed query.
+Signed-in users search their own collection with `supabase.rpc('search_collection', { query })`. It takes the same typed query as catalog search, plus the collection chips. Each row is one copy. `supabase/collection.ts` has the shared types for the query and the copy rows. The Collection tab reads its binder grid only through collection search. Its search bar and its Filters drawer turn the typed text and chips into the typed query.
 
 Basic lands are not copies, so collection search never returns them as rows. A first page also has `basic_lands`: the basic land cards that the query matches, in the order of `list_basic_land_cards` and with its fields. Later pages have `basic_lands: null`. `private.matching_basic_lands` matches them with `private.text_search` and `private.card_filter_conditions`, as for copies. A chip of a card printing or a copy matches none. These are the chips of `private.printing_filter_conditions` (`sets` and `rarities`) and of `private.copy_filter_conditions` (`finishes`, `conditions`, `languages`, `deck_ids`, and `user_tags`, each with its `_exclude`, and `is_free`, `is_protected`, `is_allocated`, `price_min`, and `price_max`). A query with no text and no chip matches every basic land card when the collection has at least one copy, and none for an empty collection. The Collection tab shows `basic_lands` after the last page of copies.
 
@@ -774,19 +774,18 @@ Basic lands are not copies, so collection search never returns them as rows. A f
 - `is_allocated` true matches copies in a deck, and false matches copies in no deck.
 - `deck_ids` and `deck_ids_exclude` take up to 10 of the caller's deck IDs. A copy matches `deck_ids` when it is in one of the listed decks, and `deck_ids_exclude` when it is in none of them. An ID that is not one of the caller's decks is refused with `invalid_argument` on that list item, such as `deck_ids[1]`. The server never matches deck names. The Collection tab turns a typed `deck:` name into the IDs of every deck with exactly that name, ignoring case.
 - Collection search also returns cards that are not Commander-legal, and copies whose card printing is marked absent.
-- `rows` is `entries` or `copies`, and defaults to `entries`.
-  - With `entries`, each row is one collection entry: the matching copies that share a card printing, finish, condition, language, and protected flag. A collection entry has no ID of its own. Each row has the quantity, free quantity, allocated quantity, and held quantity of its matching copies. `limit` is 1 to 100 and defaults to 20.
-  - With `copies`, each row is one copy, with its `copy_id`. `limit` is 1 to 120 and defaults to 60. The card printing is `printing_id`, `name`, `set`, `collector_number`, `rarity`, and `image_uris`. The copy gives `finish`, `condition`, `language`, and `protected`. `deck` is the copy's deck with `deck_id` and `name`, or null for a copy in no deck. `held_for` is the deck of the open planned swap that holds the copy, with `deck_id` and `name`, or null. `created_at` is when the copy was added to the collection, the time of its addition.
+- Each row is one copy, with its `copy_id`. `limit` is 1 to 120 and defaults to 60. The card printing is `printing_id`, `name`, `set`, `collector_number`, `rarity`, and `image_uris`. The copy gives `finish`, `condition`, `language`, and `protected`. `deck` is the copy's deck with `deck_id` and `name`, or null for a copy in no deck. `held_for` is the deck of the open planned swap that holds the copy, with `deck_id` and `name`, or null. `created_at` is when the copy was added to the collection, the time of its addition.
   - A copy row's `price` is the current USD price of the card printing and finish: `amount` as a decimal string, `currency`, `finish`, and `stale`. `stale` is true when the price snapshot is more than 24 hours old, as `catalog_freshness` says. Condition and language do not change it. `price` is null when `card_prices` has no USD price for that card printing and finish. A price is never taken from another finish.
-  - A collection entry row's `price` is the current price of its card printing and finish, in the shape of a copy row's `price`. Its `total` is the entry total: `price` times the row's `quantity`, as a USD decimal string. The app converts both with the shared module. Condition and language do not change either. Both are null when `price` is null.
 - `sort` is `relevance` by default, with or without text. Without text, relevance means `added`, so an empty query lists the newest copy first.
-- `sort: 'added'` lists the newest copy first, by its `created_at`. An older copy of the same card printing keeps its own place. With `entries`, a collection entry sorts by its newest copy. `sort_order: 'asc'` puts the oldest copy first.
+- `sort: 'added'` lists the newest copy first, by its `created_at`. An older copy of the same card printing keeps its own place. `sort_order: 'asc'` puts the oldest copy first.
 - Rows with the same sort value sort by name, then by card printing ID, then by copy ID.
-- Each row counts the copies in the collection availability view. The view has one row for each copy of the caller, with its allocated, held, and free flags. A copy in a deck is allocated. A copy that an open planned swap holds is held. A free copy is neither, so free quantities, the Free filter, the Add to deck drawer, protecting, and the MCP reads leave held copies out.
+- Each row reads its copy from the collection availability view. The view has one row for each copy of the caller, with its allocated, held, and free flags. A copy in a deck is allocated. A copy that an open planned swap holds is held. A free copy is neither, so the Free filter, the Add to deck drawer, protecting, and the MCP reads leave held copies out.
 - Collection search runs with the caller's rights, like catalog search. The views set `security_invoker`, so the read policy on `copies` keeps only the caller's rows.
 - Catalog search, `get_cards`, and `list_card_printings` read owned quantities from the same view. A printing list keeps an absent card printing when the caller owns it.
 - A first page also has `total_count`, the number of matching rows. Later pages have `total_count: null`. The Collection tab shows it in its count line, such as "6 of 27 copies".
-- A first page with text or a filter writes one row to `search_telemetry` with the API `collection`. A read with no text and no filter writes none, so a plain binder read is not recorded. `rows`, `sort`, `sort_order`, `limit`, and `include_oracle_text` are not filters. The secret key cannot call collection search.
+- A first page with text or a filter writes one row to `search_telemetry` with the API `collection`. A read with no text and no filter writes none, so a plain binder read is not recorded. `sort`, `sort_order`, `limit`, and `include_oracle_text` are not filters. The secret key cannot call collection search.
+- Collection search returned collection entry rows until 30 October 2026 (owner decision). It no longer takes `rows`. App builds from before then send `rows: 'copies'`, so their Collection tab fails until they update.
+- `private.run_catalog_search` and `private.run_collection_search` each run one search. They share the query check, the cursor, the text search, the card filters, the sort keys, and the page read.
 
 ### Search release check
 
@@ -887,7 +886,7 @@ The tools come in this order: the read tools, then the write tools. Every read t
 | Tool | Postgres function |
 | --- | --- |
 | `search_catalog` | `search_catalog` |
-| `search_collection` | `search_collection`, with collection entries or copies |
+| `search_collection` | `search_collection` |
 | `search_oracle_tags` | `search_oracle_tags` |
 | `get_cards` | `get_cards`, up to 20 IDs |
 | `list_card_printings` | `list_card_printings` |
@@ -925,7 +924,7 @@ The tools come in this order: the read tools, then the write tools. Every read t
 
 - Each user can make 120 tool calls a minute. This rate limit is the only limit on the number of calls. `begin_mcp_call` counts tool calls in `mcp_call_counts`, by UTC minute. A request that is not a tool call, such as `tools/list`, is not counted.
 - A tool call over the rate limit gets `rate-limited` with `retry_after_seconds`.
-- Pages hold 20 rows by default and 50 at most. This holds for `search_catalog`, `list_card_printings`, `list_deck_changes`, `list_planned_swaps`, and `list_buylist`. `search_collection` pages also hold 20 rows by default, but 100 at most. The function sends `limit: 20` when the call has none, so copies also come 20 at a time, not 60 as in the app. A `limit` over the maximum gets `invalid-argument` on `/limit`. Postgres checks the rest of the query.
+- Pages hold 20 rows by default and 50 at most. This holds for `search_catalog`, `list_card_printings`, `list_deck_changes`, `list_planned_swaps`, and `list_buylist`. `search_collection` pages also hold 20 rows by default, but 100 at most. The function sends `limit: 20` when the call has none, so copies come 20 at a time, not 60 as in the app. A `limit` over the maximum gets `invalid-argument` on `/limit`. Postgres checks the rest of the query.
 - `get_cards` reads up to 20 IDs in one call.
 - A request body over 64 KB gets 413 with `request-too-large`.
 - Results aim for under 16 KB. A result over 48 KB gets `result-too-large`. Its detail says how to narrow the request, such as a lower `limit` or no `include_oracle_text`.

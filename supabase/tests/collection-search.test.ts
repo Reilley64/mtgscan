@@ -1,4 +1,4 @@
-import { afterAll, beforeAll, describe, expect, setDefaultTimeout, test } from 'bun:test';
+import { beforeAll, describe, expect, setDefaultTimeout, test } from 'bun:test';
 
 import {
   createUserTag,
@@ -7,15 +7,13 @@ import {
   type CardCondition,
   type CardLanguage,
   type CollectionQuery,
-  type CurrentPrice,
 } from '../collection';
 import { addDeckCard, createDeck, listBasicLandCards } from '../decks';
 import { getCards, listCardPrintings, searchCatalog } from '../search';
 import { catalogFixture, resetCardCatalog, runCatalogImport, runOracleTagImport, runPriceImport } from './catalog-import-command';
-import { collectionCopies, collectionEntries } from './collection-pages';
+import { collectionCopies } from './collection-pages';
 import { collectionEntryKey, seedCopies, seededCollectionEntryKey, type SeededCopies } from './copy-seeds';
 import { call, failed, refused, replyOf } from './database-calls';
-import { storeExchangeRates } from './exchange-rate-seeds';
 import { anonymousClient, secretKeyClient, signUpNewUser, type TestUser } from './local-stack';
 
 setDefaultTimeout(60_000);
@@ -68,25 +66,23 @@ function search(query: CollectionQuery, user: TestUser = alice) {
 }
 
 function page(query: CollectionQuery, user: TestUser = alice) {
-  return collectionEntries(user.client, query);
+  return collectionCopies(user.client, query);
+}
+
+function labelOfRow(row: Parameters<typeof collectionEntryKey>[0]) {
+  return labelOf.get(collectionEntryKey(row))!;
 }
 
 async function labels(query: CollectionQuery) {
-  return (await page({ limit: 50, ...query })).items.map((row) => labelOf.get(collectionEntryKey(row))!).toSorted();
+  return [...new Set((await page({ limit: 50, ...query })).items.map(labelOfRow))].toSorted();
+}
+
+function labelsInOrder(rows: Parameters<typeof collectionEntryKey>[0][]) {
+  return rows.map(labelOfRow).filter((label, index, all) => label !== all[index - 1]);
 }
 
 async function names(query: CollectionQuery) {
   return (await page(query)).items.map((row) => row.name);
-}
-
-function usdPrice(amount: string, finish: CurrentPrice['finish']): CurrentPrice {
-  return { amount, currency: 'USD', finish, stale: false };
-}
-
-async function pricesAndTotals(query: CollectionQuery = {}) {
-  return Object.fromEntries(
-    (await page({ limit: 50, ...query })).items.map((row) => [labelOf.get(collectionEntryKey(row))!, [row.price, row.total]]),
-  );
 }
 
 function everyLabelExcept(...excluded: EntryLabel[]) {
@@ -135,15 +131,15 @@ describe('after a catalog import', () => {
   });
 
   describe('callers', () => {
-    test("a user's collection search returns only their own collection entries", async () => {
-      const aliceEntryKeys = (await page({ limit: 50 })).items.map(collectionEntryKey);
-      const bobEntryKeys = (await page({ limit: 50 }, bob)).items.map(collectionEntryKey);
+    test("a user's collection search returns only their own copies", async () => {
+      const aliceEntryKeys = new Set((await page({ limit: 50 })).items.map(collectionEntryKey));
+      const bobEntryKeys = new Set((await page({ limit: 50 }, bob)).items.map(collectionEntryKey));
 
-      expect(aliceEntryKeys.toSorted()).toEqual([...labelOf.keys()].toSorted());
-      expect(bobEntryKeys.toSorted()).toEqual(bobEntries.map(seededCollectionEntryKey).toSorted());
+      expect([...aliceEntryKeys].toSorted()).toEqual([...labelOf.keys()].toSorted());
+      expect([...bobEntryKeys].toSorted()).toEqual(bobEntries.map(seededCollectionEntryKey).toSorted());
     });
 
-    test("another user's collection entries never appear, whatever the chips", async () => {
+    test("another user's copies never appear, whatever the chips", async () => {
       const { items } = await page({ names: ['counterspell'] });
 
       expect(items).toEqual([]);
@@ -159,55 +155,18 @@ describe('after a catalog import', () => {
   });
 
   describe('result rows', () => {
-    test('sort by name returns every collection entry from A to Z, including cards that are not Commander-legal', async () => {
+    test('sort by name returns every copy from A to Z, including cards that are not Commander-legal', async () => {
       const { items } = await page({ sort: 'name' });
 
       expect(items.map((row) => row.name)).toEqual([
-        'Angelic Curator',
-        'Angelic Curator',
-        'Angelic Curator',
+        ...Array(4).fill('Angelic Curator'),
         'Black Lotus',
-        'Delver of Secrets // Insectile Aberration',
+        ...Array(4).fill('Delver of Secrets // Insectile Aberration'),
         'Fog',
         'Fog Bank',
-        'Lightning Bolt',
+        ...Array(3).fill('Lightning Bolt'),
         'Primeval Titan',
       ]);
-      expect(items.filter((row) => !row.commander_legal).map((row) => row.name)).toEqual([
-        'Black Lotus',
-        'Primeval Titan',
-      ]);
-    });
-
-    test('a row is a collection entry: the copies that share a card printing, finish, condition, language, and protected flag, with their free, allocated, and held quantities', async () => {
-      const { items, next_cursor, rules_stale, prices_observed_at, prices_stale } = await page({
-        names: ['delver'],
-      });
-
-      expect(items).toEqual([
-        {
-          oracle_id: delverOfSecretsCard,
-          printing_id: printings.delverInnistrad,
-          name: 'Delver of Secrets // Insectile Aberration',
-          set: 'isd',
-          collector_number: '51',
-          finish: 'nonfoil',
-          language: 'en',
-          condition: 'near_mint',
-          protected: true,
-          quantity: 4,
-          free_quantity: 4,
-          allocated_quantity: 0,
-          held_quantity: 0,
-          commander_legal: true,
-          price: usdPrice('0.32', 'nonfoil'),
-          total: '1.28',
-        },
-      ]);
-      expect(next_cursor).toBeNull();
-      expect(rules_stale).toBe(false);
-      expect(prices_observed_at).not.toBeNull();
-      expect(prices_stale).toBe(false);
     });
 
     test('a row includes Oracle text when asked', async () => {
@@ -218,101 +177,6 @@ describe('after a catalog import', () => {
 
     test('a text search ranks an exact name first', async () => {
       expect(await names({ text: 'fog' })).toEqual(['Fog', 'Fog Bank']);
-    });
-  });
-
-  describe('current prices of collection entries', () => {
-    test('each collection entry has the current price of its card printing and finish, whatever its condition and language, and its entry total', async () => {
-      expect(await pricesAndTotals()).toEqual({
-        curator: [usdPrice('0.21', 'nonfoil'), '0.42'],
-        etchedCurator: [usdPrice('0.44', 'etched'), '0.44'],
-        japaneseCurator: [usdPrice('1.97', 'foil'), '1.97'],
-        protectedDelver: [usdPrice('0.32', 'nonfoil'), '1.28'],
-        blackLotus: [null, null],
-        germanFog: [usdPrice('62.96', 'nonfoil'), '62.96'],
-        bolt: [usdPrice('626.67', 'nonfoil'), '1880.01'],
-        fogBank: [usdPrice('1.11', 'nonfoil'), '1.11'],
-        frenchTitan: [usdPrice('54.09', 'foil'), '54.09'],
-      });
-    });
-
-    test('collection entries of the same card printing and finish have the same current price, whatever their condition and language', async () => {
-      const user = await signUpNewUser();
-      await seedCopies(user, [
-        entry(printings.angelicCuratorMh2, { quantity: 2 }),
-        entry(printings.angelicCuratorMh2, { condition: 'damaged', language: 'ja' }),
-      ]);
-
-      const { items } = await page({ limit: 50 }, user);
-
-      expect(items.map((row) => [row.condition, row.language, row.price, row.total]).toSorted()).toEqual([
-        ['damaged', 'ja', usdPrice('0.21', 'nonfoil'), '0.21'],
-        ['near_mint', 'en', usdPrice('0.21', 'nonfoil'), '0.42'],
-      ]);
-    });
-
-    test('a collection entry with no price for its finish has no price and no entry total, never the price of another finish', async () => {
-      const user = await signUpNewUser();
-      await seedCopies(user, [
-        entry(printings.jinnieFayNonfoilOnly, { quantity: 2 }),
-        entry(printings.jinnieFayNonfoilOnly, { finish: 'foil', quantity: 3 }),
-      ]);
-
-      const { items } = await page({ limit: 50 }, user);
-
-      expect(items.map((row) => [row.finish, row.price, row.total]).toSorted()).toEqual([
-        ['foil', null, null],
-        ['nonfoil', usdPrice('4.41', 'nonfoil'), '8.82'],
-      ]);
-    });
-
-    describe('when the current prices age', () => {
-      let snapshotAt: string;
-
-      beforeAll(async () => {
-        const { data, error } = await secretKeyClient().from('import_snapshots').select('snapshot_at').eq('source', 'prices').single();
-        expect(error).toBeNull();
-        snapshotAt = data!.snapshot_at;
-      });
-
-      afterAll(async () => {
-        await setPriceSnapshotAt(snapshotAt);
-      });
-
-      async function setPriceSnapshotAt(at: string) {
-        const { error } = await secretKeyClient().from('import_snapshots').update({ snapshot_at: at }).eq('source', 'prices');
-        expect(error).toBeNull();
-      }
-
-      function hoursAgo(hours: number) {
-        return new Date(Date.now() - hours * 60 * 60 * 1000).toISOString();
-      }
-
-      async function staleFlags() {
-        return (await page({ limit: 50 })).items.map((row) => row.price?.stale).toSorted();
-      }
-
-      test('every current price of a collection entry is stale once the price snapshot is more than 24 hours old', async () => {
-        await setPriceSnapshotAt(hoursAgo(23.9));
-        const fresh = await staleFlags();
-        await setPriceSnapshotAt(hoursAgo(24.1));
-        const aged = await staleFlags();
-
-        expect(fresh).toEqual([...Array(8).fill(false), undefined]);
-        expect(aged).toEqual([...Array(8).fill(true), undefined]);
-      });
-    });
-
-    describe('with exchange rates stored', () => {
-      beforeAll(async () => {
-        await storeExchangeRates();
-      });
-
-      test('the current price and the entry total of a collection entry stay in USD, for an AI chat to convert', async () => {
-        const { items } = await page({ names: ['delver'] });
-
-        expect(items.map((row) => [row.price, row.total])).toEqual([[{ amount: '0.32', currency: 'USD', finish: 'nonfoil', stale: false }, '1.28']]);
-      });
     });
   });
 
@@ -340,31 +204,31 @@ describe('after a catalog import', () => {
         { identity_subset_of: ['W'] },
         ['blackLotus', 'curator', 'etchedCurator', 'japaneseCurator'],
       ],
-      ["a set chip matches the entry's own card printing", { sets: ['mh2'] }, ['curator', 'etchedCurator']],
+      ["a set chip matches the copy's own card printing", { sets: ['mh2'] }, ['curator', 'etchedCurator']],
       [
-        "a negated set chip leaves out the entry's own card printing",
+        "a negated set chip leaves out the copy's own card printing",
         { names: ['curator'], sets_exclude: ['mh2'] },
         ['japaneseCurator'],
       ],
       [
-        "a rarity chip matches the entry's own card printing",
+        "a rarity chip matches the copy's own card printing",
         { rarities: ['common'] },
         ['germanFog', 'japaneseCurator', 'protectedDelver', 'bolt'],
       ],
       [
-        "a negated rarity chip leaves out the entry's own card printing",
+        "a negated rarity chip leaves out the copy's own card printing",
         { names: ['curator'], rarities_exclude: ['common'] },
         ['curator', 'etchedCurator'],
       ],
-      ['a finish chip matches the collection entry finish', { finishes: ['foil'] }, ['frenchTitan', 'japaneseCurator']],
+      ['a finish chip matches the copy finish', { finishes: ['foil'] }, ['frenchTitan', 'japaneseCurator']],
       [
         'a negated finish chip leaves out that finish',
         { finishes_exclude: ['nonfoil'] },
         ['etchedCurator', 'frenchTitan', 'japaneseCurator'],
       ],
-      ['two finish chips must both match, so no collection entry matches', { finishes: ['foil', 'etched'] }, []],
+      ['two finish chips must both match, so no copy matches', { finishes: ['foil', 'etched'] }, []],
       [
-        'a condition chip matches the collection entry condition',
+        'a condition chip matches the copy condition',
         { conditions: ['lightly_played'] },
         ['etchedCurator'],
       ],
@@ -374,27 +238,27 @@ describe('after a catalog import', () => {
         ['blackLotus', 'etchedCurator', 'germanFog', 'bolt'],
       ],
       [
-        'two condition chips must both match, so no collection entry matches',
+        'two condition chips must both match, so no copy matches',
         { conditions: ['near_mint', 'damaged'] },
         [],
       ],
-      ['a language chip matches the collection entry language', { languages: ['ja'] }, ['japaneseCurator']],
+      ['a language chip matches the copy language', { languages: ['ja'] }, ['japaneseCurator']],
       [
         'negated language chips leave out each language',
         { languages_exclude: ['en', 'ja'] },
         ['frenchTitan', 'germanFog'],
       ],
-      ['two language chips must both match, so no collection entry matches', { languages: ['en', 'ja'] }, []],
-      ['the is protected chip matches protected collection entries', { is_protected: true }, ['protectedDelver']],
+      ['two language chips must both match, so no copy matches', { languages: ['en', 'ja'] }, []],
+      ['the is protected chip matches protected copies', { is_protected: true }, ['protectedDelver']],
       [
-        'the negated is protected chip leaves out protected collection entries',
+        'the negated is protected chip leaves out protected copies',
         { is_protected: false },
         everyLabelExcept('protectedDelver'),
       ],
       ['the is free chip counts a protected copy as a free copy', { is_free: true }, everyLabel],
-      ['the negated is free chip matches no collection entry while every copy is free', { is_free: false }, []],
+      ['the negated is free chip matches no copy while every copy is free', { is_free: false }, []],
       [
-        'the is free chip with the negated is protected chip leaves out protected collection entries',
+        'the is free chip with the negated is protected chip leaves out protected copies',
         { is_free: true, is_protected: false },
         everyLabelExcept('protectedDelver'),
       ],
@@ -409,7 +273,7 @@ describe('after a catalog import', () => {
         { price_min: '1.00', price_max: '2.00' },
         ['fogBank', 'japaneseCurator'],
       ],
-      ['an entry with no USD price never matches a price bound', { price_min: '0' }, everyLabelExcept('blackLotus')],
+      ['a copy with no USD price never matches a price bound', { price_min: '0' }, everyLabelExcept('blackLotus')],
     ])('%s', async (_, query, expected) => {
       expect(await labels(query)).toEqual(expected.toSorted());
     });
@@ -435,9 +299,11 @@ describe('after a catalog import', () => {
     }
 
     async function quantities(query: CollectionQuery) {
-      return Object.fromEntries(
-        (await page({ limit: 50, ...query })).items.map((row) => [labelOf.get(collectionEntryKey(row))!, row.quantity]),
-      );
+      const counts: Partial<Record<EntryLabel, number>> = {};
+      for (const label of (await page({ limit: 50, ...query })).items.map(labelOfRow)) {
+        counts[label] = (counts[label] ?? 0) + 1;
+      }
+      return counts;
     }
 
     beforeAll(async () => {
@@ -463,18 +329,11 @@ describe('after a catalog import', () => {
       expect(left.bolt).toBe(1);
     });
 
-    test('with rows entries, the quantity of each collection entry counts only its matching copies', async () => {
+    test('a user tag chip leaves out the other copies of the same card printing', async () => {
       expect(await quantities({ user_tags: ['Trade binder'] })).toEqual({ curator: 1, bolt: 2 });
     });
 
-    test('with rows entries, the entry total of each collection entry counts only its matching copies', async () => {
-      expect(await pricesAndTotals({ user_tags: ['Trade binder'] })).toEqual({
-        curator: [usdPrice('0.21', 'nonfoil'), '0.21'],
-        bolt: [usdPrice('626.67', 'nonfoil'), '1253.34'],
-      });
-    });
-
-    test('with rows copies, a user tag chip returns each matching copy', async () => {
+    test('a user tag chip returns each matching copy', async () => {
       const { items } = await collectionCopies(alice.client, { user_tags: ['signed'] });
 
       expect(items.map((row) => row.copy_id).toSorted()).toEqual(
@@ -619,8 +478,8 @@ describe('after a catalog import', () => {
       expect(basic_lands?.map((land) => land.name)).toEqual(everyBasicLand);
     });
 
-    test('the sort, rows, limit, and Oracle text fields are not chips, so every basic land card still matches', async () => {
-      expect(await basicLandNames({ rows: 'copies', sort: 'name', sort_order: 'desc', limit: 1, include_oracle_text: true })).toEqual(
+    test('the sort, limit, and Oracle text fields are not chips, so every basic land card still matches', async () => {
+      expect(await basicLandNames({ sort: 'name', sort_order: 'desc', limit: 1, include_oracle_text: true })).toEqual(
         everyBasicLand,
       );
     });
@@ -634,8 +493,8 @@ describe('after a catalog import', () => {
     });
 
     test('only the first page returns basic land cards', async () => {
-      const first = await replyOf(dave.client, searchCollection, { rows: 'copies', limit: 1 });
-      const next = await replyOf(dave.client, searchCollection, { rows: 'copies', limit: 1, cursor: first.next_cursor });
+      const first = await replyOf(dave.client, searchCollection, { limit: 1 });
+      const next = await replyOf(dave.client, searchCollection, { limit: 1, cursor: first.next_cursor });
 
       expect(first.basic_lands).toHaveLength(12);
       expect(next.basic_lands).toBeNull();
@@ -789,10 +648,10 @@ describe('after a catalog import', () => {
     ])('%s', async (_, query, expected) => {
       const { items } = await page(query);
 
-      expect(items.map((row) => labelOf.get(collectionEntryKey(row)))).toEqual(expected);
+      expect(labelsInOrder(items)).toEqual(expected);
     });
 
-    test('an empty query lists the collection entry with the newest copy first, as sort added does', async () => {
+    test('an empty query lists the newest copy first, as sort added does', async () => {
       const user = await signUpNewUser();
       await seedCopies(user, [
         entry(printings.fogAlpha, { added_at: '2026-10-01T09:00:00.000Z' }),
@@ -810,7 +669,7 @@ describe('after a catalog import', () => {
       expect(oldestFirst).toEqual(['Fog', 'Lightning Bolt', 'Black Lotus', 'Fog']);
     });
 
-    test("sort by release date uses the release date of the entry's own card printing", async () => {
+    test("sort by release date uses the release date of the copy's own card printing", async () => {
       const oldestFirst = (await page({ names: ['curator'], sort: 'release_date' })).items;
       const newestFirst = (await page({ names: ['curator'], sort: 'release_date', sort_order: 'desc' })).items;
 
@@ -842,11 +701,11 @@ describe('after a catalog import', () => {
       await seedCopies(collector, seeded);
     });
 
-    test.each([undefined, 50])('pages of %p cover every collection entry once, from A to Z', async (limit) => {
+    test.each([undefined, 25])('pages of %p cover every copy once, from A to Z', async (limit) => {
       const pages = await allPages((cursor) => page({ limit, sort: 'name', cursor }, collector));
       const rows = pages.flatMap((next) => next.items);
 
-      expect(pages.map((next) => next.items.length)).toEqual(limit === 50 ? [50, 10] : [20, 20, 20]);
+      expect(pages.map((next) => next.items.length)).toEqual(limit === 25 ? [25, 25, 10] : [60]);
       expect(rows.map(collectionEntryKey).toSorted()).toEqual(seeded.map(seededCollectionEntryKey).toSorted());
       expect(rows.map((row) => row.name)).toEqual(
         ['Angelic Curator', 'Delver of Secrets // Insectile Aberration', 'Fog Bank'].flatMap((name) => Array(20).fill(name)),
@@ -854,22 +713,19 @@ describe('after a catalog import', () => {
       expect(new Set(pages.map((next) => next.search_id)).size).toBe(1);
     });
 
-    test.each(['entries', 'copies'] as const)(
-      'with %s rows, the first page counts every match, and later pages carry no count',
-      async (rows) => {
-        const pages = await allPages((cursor) => replyOf(collector.client, searchCollection, { rows, limit: 15, names: ['curator'], cursor }));
+    test('the first page counts every match, and later pages carry no count', async () => {
+      const pages = await allPages((cursor) => replyOf(collector.client, searchCollection, { limit: 15, names: ['curator'], cursor }));
 
-        expect(pages.map((next) => next.items.length)).toEqual([15, 5]);
-        expect(pages.map((next) => next.total_count)).toEqual([20, null]);
-      },
-    );
+      expect(pages.map((next) => next.items.length)).toEqual([15, 5]);
+      expect(pages.map((next) => next.total_count)).toEqual([20, null]);
+    });
 
     test('a malformed cursor fails with invalid_cursor', async () => {
       expect(await search({ cursor: 'not a cursor' }, collector)).toMatchObject(refused('invalid_cursor', 'cursor'));
     });
 
     test('a cursor older than 15 minutes fails with invalid_cursor', async () => {
-      const { next_cursor } = await page({}, collector);
+      const { next_cursor } = await page({ limit: 20 }, collector);
       const sixteenMinutesAgo = Date.now() / 1000 - 16 * 60;
       const result = await search({ cursor: withIssueTime(next_cursor!, sixteenMinutesAgo) }, collector);
 
@@ -877,7 +733,7 @@ describe('after a catalog import', () => {
     });
 
     test('a cursor from another query fails with invalid_cursor', async () => {
-      const { next_cursor } = await page({}, collector);
+      const { next_cursor } = await page({ limit: 20 }, collector);
       const result = await search({ finishes: ['nonfoil'], cursor: next_cursor }, collector);
 
       expect(result).toMatchObject(refused('invalid_cursor', 'cursor'));
@@ -892,7 +748,7 @@ describe('after a catalog import', () => {
   });
 
   describe('telemetry', () => {
-    test('a first page writes one collection row with a copy ID from each collection entry', async () => {
+    test('a first page writes one collection row with the copy IDs of the page', async () => {
       const first = await page({ names: ['curator'] });
 
       const { data, error } = await secretKeyClient()
@@ -908,24 +764,13 @@ describe('after a catalog import', () => {
         caller: 'app',
         query: {
           names: ['curator'],
-          rows: 'entries',
           sort: 'relevance',
           sort_order: 'desc',
-          limit: 20,
+          limit: 60,
         },
-        result_count: 3,
+        result_count: 4,
+        result_ids: first.items.map((row) => row.copy_id),
       });
-      const { data: copies } = await alice.client
-        .from('copies')
-        .select('id, card_printing_id, finish, condition, language, is_protected')
-        .in('id', data!.result_ids);
-      const entryKeyOfCopy = new Map(
-        copies!.map((copy) => [
-          copy.id,
-          collectionEntryKey({ ...copy, printing_id: copy.card_printing_id, protected: copy.is_protected }),
-        ]),
-      );
-      expect(data!.result_ids.map((copyId) => entryKeyOfCopy.get(copyId))).toEqual(first.items.map(collectionEntryKey));
     });
 
     test('later pages and refused input write no row', async () => {
@@ -1020,7 +865,7 @@ describe('after a catalog import', () => {
       expect((await runCatalogImport(manifest)).exitCode).toBe(0);
     });
 
-    test('collection search still returns collection entries of the absent card printing', async () => {
+    test('collection search still returns copies of the absent card printing', async () => {
       expect(await labels({ names: ['curator'] })).toEqual(['curator', 'etchedCurator', 'japaneseCurator']);
     });
 
