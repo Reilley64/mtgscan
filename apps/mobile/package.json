@@ -11,11 +11,14 @@
     "lint": "expo lint",
     "test": "jest",
     "test:production-bundle": "bun scripts/check-production-bundle.mjs",
-    "detector:test": "swift test --package-path modules/card-detector --scratch-path modules/card-detector/.data/build",
+    "detector:test": "swift test --no-parallel --package-path modules/card-detector --scratch-path modules/card-detector/.data/build",
+    "detector:replay": "bun modules/card-detector/scripts/replay.ts",
     "scan-sounds": "bun scripts/generate-scan-sounds.mjs",
     "recognizer:test": "swift test --package-path modules/card-recognizer --scratch-path modules/card-recognizer/.data/build",
     "recognizer:replay": "bun modules/card-recognizer/scripts/replay.mjs",
-    "bin-deck:score": "bun test/scanner-evidence/score-bin-deck.ts"
+    "bin-deck:score": "bun test/scanner-evidence/score-bin-deck.ts",
+    "training-crops:score": "uv run test/scanner-evidence/training-crops/score.py",
+    "training-crops:test": "uv run test/scanner-evidence/training-crops/test_score.py"
   },
   "dependencies": {
     "@expo/ui": "~58.0.21",
