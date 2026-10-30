@@ -33,7 +33,20 @@ function testAppConfig(config: ExpoConfig): ExpoConfig {
   };
 }
 
+function withCameraPhotoOption(config: ExpoConfig): ExpoConfig {
+  const option = process.env.CAMERA_PHOTO_OPTION;
+  if (!option) {
+    return config;
+  }
+  if (process.env.EAS_BUILD) {
+    throw new Error('CAMERA_PHOTO_OPTION is for local development builds only. Unset it for EAS builds.');
+  }
+  return { ...config, ios: { ...config.ios, infoPlist: { ...config.ios?.infoPlist, CardDetectorPhotoOption: option } } };
+}
+
 export default ({ config }: ConfigContext): ExpoConfig => {
   const appConfig: ExpoConfig = { ...config, name: config.name ?? 'mtgscan', slug: config.slug ?? 'mtgscan' };
-  return withGoogleIosUrlScheme(process.env.EXPO_PUBLIC_APP_VARIANT === 'test' ? testAppConfig(appConfig) : appConfig);
+  return withGoogleIosUrlScheme(
+    withCameraPhotoOption(process.env.EXPO_PUBLIC_APP_VARIANT === 'test' ? testAppConfig(appConfig) : appConfig),
+  );
 };
