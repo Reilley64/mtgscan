@@ -1,10 +1,11 @@
 import type { BasicLandCard, CollectionCopyRow } from '@mtgscan/supabase/collection';
 import { convertedPrice } from '@mtgscan/supabase/converted-prices';
-import { router, usePathname } from 'expo-router';
-import { useState } from 'react';
+import { router, useFocusEffect, usePathname } from 'expo-router';
+import { useCallback, useRef, useState } from 'react';
 import { View } from 'react-native';
 
 import { useSetIcons } from '@/catalog/use-set-icons';
+import type { FlashListRef } from '@/components/atoms/flash-list';
 import { CardGrid, CardGridSkeleton } from '@/components/molecules/card-grid';
 import { CardTile } from '@/components/molecules/card-tile';
 import { FloatingButton } from '@/components/molecules/floating-button';
@@ -158,6 +159,8 @@ export default function CollectionScreen() {
   const search = useCollectionSearchState();
   const filtersOpen = usePathname() === filtersDrawerPath;
   const [order, setOrder] = useState(defaultCollectionOrder);
+  const binderGrid = useRef<FlashListRef<CollectionCopyRow>>(null);
+  useFocusEffect(useCallback(() => binderGrid.current?.scrollToTop(), []));
   const { binder: searchedBinder, reload, loadMore } = useCollectionCopies(
     search.query && { ...search.query, ...collectionOrderQuery(order) },
   );
@@ -193,6 +196,7 @@ export default function CollectionScreen() {
           countLine={!suggesting && matchCount && total ? shownMatchCount(matchCount, total) : undefined}
         />
       }
+      ref={binderGrid}
       data={copies}
       keyExtractor={(copy) => copy.copy_id}
       isTile={() => true}

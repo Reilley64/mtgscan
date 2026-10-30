@@ -8,6 +8,7 @@ export type BinderRead = PagedRead<CollectionCopyPage, 'invalid_argument'>;
 export function useCollectionCopies(search: CollectionQuery | null) {
   const { read, reload, loadMore } = usePagedScreenRead(search && pagedDatabaseRead(databaseFunctions.search_collection, search), {
     refused: ['invalid_argument'],
+    restartsOnFocus: true,
   });
   return { binder: read, reload, loadMore };
 }

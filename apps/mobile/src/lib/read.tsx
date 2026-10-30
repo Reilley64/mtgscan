@@ -24,7 +24,7 @@ import {
   type Updater,
 } from '@tanstack/react-query';
 import { useIsFocused } from 'expo-router';
-import { useCallback, useEffect, useState, type ReactNode } from 'react';
+import { useCallback, useEffect, useEffectEvent, useState, type ReactNode } from 'react';
 import { AppState } from 'react-native';
 
 import { supabase } from '@/lib/supabase';
@@ -222,19 +222,39 @@ function isExpiredCursor(error: unknown) {
   return error instanceof RefusedRead && error.refusal.code === 'invalid_cursor';
 }
 
+type PagedReadRules<Code extends string> = ReadRules<Code> & {
+  restartsOnFocus?: boolean;
+};
+
 export function usePagedScreenRead<FirstPage extends Page<unknown>, Code extends string, const Refusable extends Code = never>(
   source: PagedServerRead<FirstPage, Code> | null,
-  rules: ReadRules<Refusable> = {},
+  { restartsOnFocus = false, ...rules }: PagedReadRules<Refusable> = {},
 ) {
+  const queryClient = useQueryClient();
+  const focused = useIsFocused();
   const options = infiniteQueryOptions({
     ...ruleOptions(source?.key, ['no paged read'], rules),
+    ...(restartsOnFocus ? { refetchOnMount: false } : {}),
     queryFn: source ? ({ pageParam }) => source.readPage(pageParam) : skipToken,
     initialPageParam: null as string | null,
     getNextPageParam: (lastPage) => lastPage.next_cursor,
     select: loadedPages,
   });
-  const query = useInfiniteQuery({ ...options, subscribed: useIsFocused() });
+  const query = useInfiniteQuery({ ...options, subscribed: focused });
   useInfiniteQuery({ ...options, ...keptWhileHidden });
+
+  const restart = useEffectEvent(() => {
+    if (source) {
+      void queryClient.infiniteQuery({ ...options, pages: 1, staleTime: 0 }).catch(() => {});
+    }
+  });
+
+  useEffect(() => {
+    if (restartsOnFocus && focused) {
+      restart();
+    }
+  }, [restartsOnFocus, focused]);
+
   const { data, error, isFetchingNextPage, hasNextPage, fetchNextPage, refetch } = query;
 
   const read: PagedRead<FirstPage, Refusable> = readOf(
