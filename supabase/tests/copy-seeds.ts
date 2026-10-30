@@ -1,6 +1,6 @@
 import { expect } from 'bun:test';
 
-import type { CardCondition, CardLanguage, CollectionRow } from '../collection';
+import type { CardCondition, CardLanguage, CollectionCopyRow } from '../collection';
 import type { Finish } from '../search';
 import { secretKeyClient, type TestUser } from './local-stack';
 
@@ -14,7 +14,7 @@ export type SeededCopies = {
   added_at?: string;
 };
 
-type CollectionEntryProperties = Pick<CollectionRow, 'printing_id' | 'finish' | 'condition' | 'language' | 'protected'>;
+type CollectionEntryProperties = Pick<CollectionCopyRow, 'printing_id' | 'finish' | 'condition' | 'language' | 'protected'>;
 
 export function collectionEntryKey(entry: CollectionEntryProperties) {
   return [entry.printing_id, entry.finish, entry.condition, entry.language, entry.protected].join(' ');

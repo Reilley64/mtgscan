@@ -7,7 +7,7 @@ A collection entry was stored as a stack: one row with a quantity, keyed by card
 - Scanned copies keep the copy ID the phone gave them. Copies from before this change get a new one.
 - User tags are not part of any identity. Tagging a copy never splits or merges collection entries.
 - Decks point to exact copies, not to a collection entry and a quantity (spec 6). Deleting a copy removes it from its deck, so no deck picker is needed. This replaces #13 rule 7 ("free copies go first").
-- Collection search can still return one row per collection entry, as a group of copies.
+- Collection search returned one row per collection entry, as a group of copies, until 30 October 2026. Then only AI clients asked for those rows, and the owner dropped them. Collection search now returns copies only, and AI clients count copies with the owned quantities of catalog search and card details.
 
 ## Considered options
 

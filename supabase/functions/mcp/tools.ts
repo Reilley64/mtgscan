@@ -201,8 +201,8 @@ export const tools = [
     title: 'Search the collection',
     description: [
       "Search the user's copies with the filters of search_catalog, plus finish, condition, language, deck, user tag, free, protected, and allocated filters.",
-      'rows entries, the default, returns collection entries: the copies that share a card printing, finish, condition, language, and protected flag, with their quantity and free quantity.',
-      'rows copies returns each copy with its copy_id, the deck it is in, held_for, the deck of the planned swap that holds it, and created_at, when it was added to the collection.',
+      'Each row is one copy with its copy_id, the deck it is in, held_for, the deck of the planned swap that holds it, and created_at, when it was added to the collection.',
+      'To count the copies of a card, use the owned quantities of search_catalog or get_cards.',
       'A free copy is not in a deck or held by a planned swap. A protected copy is one the user keeps out of decks.',
       usdPrices,
     ].join(' '),
@@ -220,9 +220,10 @@ export const tools = [
       if (result.items.length === 0) {
         return 'Nothing in the collection matches.';
       }
-      const [one, many] = result.items.some((item) => 'copy_id' in item) ? ['copy', 'copies'] : ['collection entry', 'collection entries'];
       const rows =
-        result.total_count === null ? plural(result.items.length, one, many) : `${result.items.length} of ${plural(result.total_count, one, many)}`;
+        result.total_count === null
+          ? plural(result.items.length, 'copy', 'copies')
+          : `${result.items.length} of ${plural(result.total_count, 'copy', 'copies')}`;
       return pageSummary(rows, result.next_cursor);
     },
     tooLargeHint: 'Ask for fewer rows with limit, or leave out include_oracle_text.',
@@ -394,7 +395,7 @@ export const tools = [
       'The incoming card is a free copy that the user owns, or a basic land. The outgoing card is a copy in the deck, or a basic land, which means one fewer of it.',
       'Send the deck revision from get_deck, and a new idempotency_key for each new call. A retry with the same key and input returns the first result.',
       'This tool does not change any deck. The planned swap holds the copy until the user swaps it in or closes it in the app.',
-      'Find free copies with search_collection, rows copies, and is_free. Never choose a protected copy.',
+      'Find free copies with search_collection and is_free. Never choose a protected copy.',
       'Read past planned swaps with list_planned_swaps first.',
       declinedWrite,
     ].join(' '),
@@ -551,7 +552,7 @@ export const tools = [
       'Put a user tag on 1 to 100 copies, or take it off them, in one call.',
       'A refused call changes no copy.',
       'A user tag goes on exact copies, never on a card, so copies that the user scans later do not get it.',
-      'Find copy IDs with search_collection and rows: copies. To put the user tag on every copy of a card, search its copies first.',
+      'Find copy IDs with search_collection. To put the user tag on every copy of a card, search its copies first.',
       'Find user tag IDs with list_user_tags, or create one with create_user_tag. A deleted user tag is not-found.',
       "A copy ID that is not one of the user's copies, such as a copy that the user deleted, is skipped as missing. It does not refuse the call, so the other copies still change.",
       'A copy that already has the asked state counts as changed. A retry gives the same answer.',
@@ -561,7 +562,7 @@ export const tools = [
     annotations: write,
     contract: databaseFunctions.mcp_set_copies_user_tag,
     input: z.strictObject({
-      copy_ids: z.array(id).min(1).max(100).meta({ uniqueItems: true }).describe('1 to 100 unique copy IDs from search_collection with rows: copies.'),
+      copy_ids: z.array(id).min(1).max(100).meta({ uniqueItems: true }).describe('1 to 100 unique copy IDs from search_collection.'),
       user_tag_id: id.describe("The user tag's ID."),
       tagged: z.boolean().describe('true puts the user tag on the copies. false takes it off.'),
     }),

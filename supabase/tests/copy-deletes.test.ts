@@ -4,7 +4,7 @@ import { deleteCopy, getCopy, type CollectionTotal } from '../collection';
 import { addDeckCard, listDeckChanges, listDecks, setDeckCommander } from '../decks';
 import { getCards, listCardPrintings, searchCatalog } from '../search';
 import { catalogFixtureManifest, resetCardCatalog, runCatalogImport, runPriceImport } from './catalog-import-command';
-import { collectionCopies, collectionEntries, collectionTotal } from './collection-pages';
+import { collectionCopies, collectionTotal } from './collection-pages';
 import { call, failed, refused, replyOf } from './database-calls';
 import { createdDeck, deckOf } from './deck-calls';
 import { anonymousClient, asDatabaseOwner, secretKeyClient, signUpNewUser, type AppClient, type TestUser } from './local-stack';
@@ -66,11 +66,8 @@ describe('deleting a copy', () => {
 
   test('the copy is gone from collection search, and the other copies stay', async () => {
     expect(await copyIdsInTheCollection(alice)).toEqual([keptCopyId, delverCopyId].toSorted());
-    const { items: entries } = await collectionEntries(alice.client);
-    expect(entries.map((row) => [row.name, row.quantity]).toSorted()).toEqual([
-      ['Angelic Curator', 1],
-      ['Delver of Secrets // Insectile Aberration', 1],
-    ]);
+    const { items: copies } = await collectionCopies(alice.client);
+    expect(copies.map((row) => row.name).toSorted()).toEqual(['Angelic Curator', 'Delver of Secrets // Insectile Aberration']);
   });
 
   test('the copy read says the copy is not_found', async () => {

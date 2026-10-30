@@ -12,7 +12,7 @@ import {
   type UserTag,
 } from '../collection';
 import { catalogFixtureManifest, resetCardCatalog, runCatalogImport } from './catalog-import-command';
-import { collectionCopies, collectionEntries } from './collection-pages';
+import { collectionCopies } from './collection-pages';
 import { call, failed, refused, replyOf } from './database-calls';
 import { anonymousClient, secretKeyClient, signUpNewUser, type AppClient, type TestUser } from './local-stack';
 import { scannedCopies } from './planned-swap-seeds';
@@ -41,8 +41,8 @@ async function putOnCopy(user: TestUser, copyId: string, userTag: UserTag, tagge
   await replyOf(user.client, setCopyUserTag, { copy_id: copyId, user_tag_id: userTag.user_tag_id, tagged });
 }
 
-async function collectionEntriesOf(user: TestUser) {
-  return (await collectionEntries(user.client, { limit: 50 })).items;
+async function copyRowsOf(user: TestUser) {
+  return (await collectionCopies(user.client, { limit: 120 })).items;
 }
 
 async function copiesFound(user: TestUser, query: CollectionQuery) {
@@ -179,19 +179,19 @@ describe('putting a user tag on a copy', () => {
     expect(await userTagsOnCopy(user, copyId)).toEqual([alpha, signed, trade]);
   });
 
-  test('putting a user tag on a copy and taking it off change no collection entry', async () => {
+  test('putting a user tag on a copy and taking it off change no copy row', async () => {
     const user = await signUpNewUser();
     const [copyId] = (await scannedCopies(user, angelicCurator, 3)) as [string];
     const signed = await created(user, 'Signed');
-    const before = await collectionEntriesOf(user);
+    const before = await copyRowsOf(user);
 
     await putOnCopy(user, copyId, signed);
-    const whileTagged = await collectionEntriesOf(user);
+    const whileTagged = await copyRowsOf(user);
     await putOnCopy(user, copyId, signed, false);
 
     expect(whileTagged).toEqual(before);
-    expect(await collectionEntriesOf(user)).toEqual(before);
-    expect(before.map((entry) => entry.quantity)).toEqual([3]);
+    expect(await copyRowsOf(user)).toEqual(before);
+    expect(before).toHaveLength(3);
   });
 
   test.each<[string, Record<string, unknown>, string | null]>([
@@ -342,7 +342,7 @@ describe('renaming a user tag', () => {
 });
 
 describe('deleting a user tag', () => {
-  test('deletes the user tag and takes it off every copy, and changes no collection entry', async () => {
+  test('deletes the user tag and takes it off every copy, and changes no copy row', async () => {
     const user = await signUpNewUser();
     const curators = (await scannedCopies(user, angelicCurator, 2)) as [string, string];
     const [delver] = (await scannedCopies(user, delverInnistrad)) as [string];
@@ -352,7 +352,7 @@ describe('deleting a user tag', () => {
       await putOnCopy(user, copyId, signed);
     }
     await putOnCopy(user, delver, trade);
-    const before = await collectionEntriesOf(user);
+    const before = await copyRowsOf(user);
 
     expect(await call(user.client, deleteUserTag, { user_tag_id: signed.user_tag_id })).toEqual({ status: 'replied', reply: null });
 
@@ -360,7 +360,7 @@ describe('deleting a user tag', () => {
     expect(await userTagsOnCopy(user, curators[0])).toEqual([]);
     expect(await userTagsOnCopy(user, curators[1])).toEqual([]);
     expect(await userTagsOnCopy(user, delver)).toEqual([trade]);
-    expect(await collectionEntriesOf(user)).toEqual(before);
+    expect(await copyRowsOf(user)).toEqual(before);
   });
 
   test('deleting a user tag keeps it marked deleted and leaves its links as they are', async () => {
