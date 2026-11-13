@@ -634,6 +634,8 @@ Sets lists every released set that has a card printing in the card catalog, with
 
 ### Sign-in screen
 
+The first converted GPUI account shell in `apps/native` uses the existing sign-in title, subtitle, provider order and privacy copy without initializing the binder wall or collection slice. GPUI owns the window and page layout. Native atoms wrap Apple's white sign-in control and Google's branded dark sign-in button. Native text uses Dynamic Type. Generated colors, spacing, corners and touch targets come from `theme.ts`. This bounded shell shows **Signed in** with the verified account ID, **Sign out**, and **Try again** after a session error. Until the isolated test app's public provider configuration is supplied, both provider controls are disabled and the shell says **Sign-in is not configured for this test app.** It never substitutes a password form.
+
 The app shows the sign-in screen whenever there is no session. It is the binder wall design (prototype `prototypes/sign-in/index.html?variant=D`, commit 4b31c79 on `prototype/first-release`).
 
 - **Binder wall.** Three columns of card images fill the screen behind everything else. The wall is tilted 6 degrees, dimmed to half opacity, and darkened at the top and bottom. Some tiles carry a quantity badge. Each column drifts slowly upward at its own speed, between 70 and 90 seconds per loop. With Reduce Motion on, the wall stands still.

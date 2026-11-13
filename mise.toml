@@ -1,6 +1,29 @@
 [tools]
 rust = "1.98.1"
 actionlint = "1.7.12"
+cloudflared = "2026.10.7"
 
 [tasks.rust-components]
 run = "rustup component add rustfmt clippy"
+
+[tasks.native-prepare]
+run = "python3 apps/native/prepare.py"
+
+[tasks.native-unit]
+run = """
+set -eu
+unit=$(mktemp "${TMPDIR:-/tmp}/mtgscan-session-unit.XXXXXX")
+trap 'rm -f "$unit"' EXIT
+xcrun swiftc -warnings-as-errors apps/native/TestAppIdleTimer.swift apps/native/auth/SessionController.swift apps/native/auth/ServiceClients.swift apps/native/tests/*.swift -o "$unit"
+"$unit"
+"""
+
+[tasks.rust-check]
+run = """
+set -eu
+cargo fmt --all --check
+cargo check --workspace --all-targets --locked
+cargo clippy --workspace --all-targets --locked -- -D warnings
+cargo test --workspace --lib --locked
+python3 scripts/check-rust-boundaries.py
+"""

@@ -1,0 +1,7 @@
+{
+  "supabaseURL": "https://PROJECT.supabase.co",
+  "publishableKey": "sb_publishable_REPLACE",
+  "apiURL": "https://mtgscan.reilley.dev",
+  "googleIOSClientID": "REPLACE.apps.googleusercontent.com",
+  "googleServerClientID": "REPLACE.apps.googleusercontent.com"
+}

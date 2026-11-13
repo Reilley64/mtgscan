@@ -2,6 +2,18 @@
 
 The review agent checks each diff against these rules. CI already runs the type check, lint, tests, the generated types check, and the PR title check, so this file holds only judgement calls. Each rule points to where its detail lives.
 
+## Rust conversion scope
+
+For the migrated MTGSCAN-273 paths, ADR 0016 supersedes the framework-specific rules below. Legacy TypeScript, Expo, Supabase and database paths keep their existing rules and checks.
+
+- The domain has no framework dependencies. Application depends inward on domain and owns its external ports. API depends on application. Identity infrastructure implements the verification port. Only the server composition links API and infrastructure.
+- Mobile calls the API. It does not link backend application code. Keep native sign-in and session coordination in `apps/native/auth`.
+- Native UI keeps the Atomic Design import direction in `apps/native/components`. Only atoms create raw controls. Templates own layout without feature state. Organisms may use session presentation types. GPUI owns the window and page composition.
+- Generate native token values from the existing `apps/mobile/src/theme.ts`. Do not create another editable palette. Suitable native system controls may use their platform typography and provider branding.
+- Run the root Mise tasks for Rust compilation, format, Clippy, dependency boundaries and unit checks. Do not add a second toolchain pin.
+- New automated coverage is unit-only at the approved public use-case, domain and presentation seams. Mock external identity, network, clock, platform and keychain capabilities. Never assert source strings. Do not add a new integration or E2E suite.
+- Keep errors and diagnostics free of tokens, refresh tokens, provider credentials and request headers. Use a publishable Supabase key, not a backend credential, in the native app and the identity adapter.
+
 ## Domain language
 
 - Use `GLOSSARY.md` terms exactly in code names, SQL names, UI copy, docs, test names, and PR text. A synonym from a term's _Avoid_ list is a finding.
