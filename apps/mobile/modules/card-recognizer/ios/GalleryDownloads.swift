@@ -139,7 +139,16 @@ final class GalleryDownloads: NSObject, URLSessionDownloadDelegate, @unchecked S
             didCancel = false
           }
         } else {
-          self.status = nil
+          let cancellation = Self.downloadsDirectory.appendingPathComponent("cancelled")
+          do {
+            if FileManager.default.fileExists(atPath: cancellation.path) {
+              try FileManager.default.removeItem(at: cancellation)
+            }
+            self.status = nil
+          } catch {
+            self.send(GalleryDownloadStatus(version: version, state: .failed))
+            didCancel = false
+          }
         }
         self.job = nil
         tasks.forEach(self.cancelOnPurpose)

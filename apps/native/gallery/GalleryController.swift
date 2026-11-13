@@ -136,6 +136,8 @@ final class GalleryController {
         throw GalleryFailure.unsupported
       }
       guard pointer.version != installed?.version else {
+        guard await device.cancel(persist: false) else { throw GalleryFailure.unavailable }
+        guard operation == generation else { return }
         presentation.phase = .ready
         onChange?()
         return

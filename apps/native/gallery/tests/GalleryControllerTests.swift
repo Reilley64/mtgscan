@@ -141,4 +141,11 @@ func runGalleryControllerTests() async throws {
   precondition(
     restarted.presentation.phase == .cancelled && device.downloads == downloadsBeforeCancel,
     "A late request cannot restart a cancelled gallery update")
+  storage.suspend = false
+  await restarted.check(accessToken: "synthetic-session")
+  let current = GalleryController(source: storage, device: device)
+  await current.restore()
+  precondition(
+    current.presentation.phase == .ready,
+    "Retry clears cancellation when the installed gallery is already the published version")
 }
