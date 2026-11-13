@@ -6,6 +6,7 @@ import pathlib
 import plistlib
 import re
 import shutil
+import subprocess
 import tarfile
 import urllib.request
 
@@ -31,6 +32,17 @@ if not upstream.exists():
     with tarfile.open(fileobj=io.BytesIO(archive), mode="r:gz") as tar:
         tar.extractall(cache)
     (cache / f"zed-{pin['revision']}").rename(upstream)
+
+cached_upstream = upstream
+upstream = build / "gpui"
+if not upstream.exists():
+    shutil.copytree(cached_upstream, upstream, ignore=shutil.ignore_patterns("target", "rust-toolchain.toml"))
+delegate = pathlib.Path("crates/gpui_ios/src/ios/application.rs")
+shutil.copy(cached_upstream / delegate, upstream / delegate)
+subprocess.run(
+    ["patch", "--batch", "-p1", "-i", str(source / "gpui-background-session.patch")],
+    cwd=upstream, check=True,
+)
 
 example = upstream / "crates/gpui_ios/examples"
 shutil.copy(source / "shell.rs", example / "mtgscan_mobile.rs")
@@ -109,7 +121,7 @@ def ref(path, kind):
 sources = sorted(source.rglob("*.swift"))
 sources = [path for path in sources if "tests" not in path.parts] + [build / "Tokens.swift"]
 recognizer = repo / "apps/mobile/modules/card-recognizer/ios"
-sources += [recognizer / "GalleryDownloads.swift"]
+sources += [recognizer / "GalleryDownloads.swift", recognizer / "GalleryBackgroundEvents.swift"]
 sources += [recognizer / "Recognizer" / name for name in [
     "GalleryFormat.swift", "GalleryInstaller.swift", "GalleryEncoding.swift", "ModelPackage.swift", "SHA256Hex.swift",
 ]]

@@ -77,7 +77,9 @@ final class GalleryDownloads: NSObject, URLSessionDownloadDelegate, @unchecked S
   private var status: GalleryDownloadStatus?
   private var lastProgressSentAt = Date.distantPast
   private var cancelledOnPurpose: Set<Int> = []
-  private var backgroundEventsDone: (@Sendable () -> Void)?
+  private static let backgroundEvents = GalleryBackgroundEvents(identifier: sessionIdentifier) { completion in
+    DispatchQueue.main.async(execute: DispatchWorkItem(block: completion))
+  }
   private var listener: (@Sendable (GalleryDownloadStatus) -> Void)?
   private var session: URLSession!
 
@@ -91,13 +93,18 @@ final class GalleryDownloads: NSObject, URLSessionDownloadDelegate, @unchecked S
 
   override private init() {
     super.init()
-    let configuration = URLSessionConfiguration.background(withIdentifier: Self.sessionIdentifier)
-    configuration.sessionSendsLaunchEvents = true
-    configuration.isDiscretionary = false
-    let delegateQueue = OperationQueue()
-    delegateQueue.maxConcurrentOperationCount = 1
-    delegateQueue.underlyingQueue = queue
-    session = URLSession(configuration: configuration, delegate: self, delegateQueue: delegateQueue)
+    queue.sync {
+      removeAbandonedStaging()
+      restoreJob()
+      if job?.pending.isEmpty == true { Self.backgroundEvents.beginInstallation() }
+      let configuration = URLSessionConfiguration.background(withIdentifier: Self.sessionIdentifier)
+      configuration.sessionSendsLaunchEvents = true
+      configuration.isDiscretionary = false
+      let delegateQueue = OperationQueue()
+      delegateQueue.maxConcurrentOperationCount = 1
+      delegateQueue.underlyingQueue = queue
+      session = URLSession(configuration: configuration, delegate: self, delegateQueue: delegateQueue)
+    }
     pathMonitor.pathUpdateHandler = { [weak self] path in
       guard let self else { return }
       self.path = path
@@ -105,8 +112,11 @@ final class GalleryDownloads: NSObject, URLSessionDownloadDelegate, @unchecked S
     }
     pathMonitor.start(queue: queue)
     queue.async {
-      self.removeAbandonedStaging()
-      self.restoreJob()
+      if self.job?.pending.isEmpty == true {
+        self.install()
+      } else {
+        self.sendPendingStatus(force: true)
+      }
     }
   }
 
@@ -114,8 +124,10 @@ final class GalleryDownloads: NSObject, URLSessionDownloadDelegate, @unchecked S
     queue.async { self.listener = listener }
   }
 
-  func handleBackgroundEvents(completion: @escaping @Sendable () -> Void) {
-    queue.async { self.backgroundEventsDone = completion }
+  static func handleBackgroundEvents(identifier: String, completion: @escaping @Sendable () -> Void) {
+    if !backgroundEvents.handleEvents(identifier: identifier, reconnect: { _ = shared }, completion: completion) {
+      DispatchQueue.main.async { completion() }
+    }
   }
 
   func cancel(persistCancellation: Bool = true) async -> Bool {
@@ -380,6 +392,7 @@ final class GalleryDownloads: NSObject, URLSessionDownloadDelegate, @unchecked S
     guard var job, !job.installing else { return }
     job.installing = true
     self.job = job
+    Self.backgroundEvents.beginInstallation()
     send(GalleryDownloadStatus(version: job.version, state: .installing, bytesDone: job.bytesTotal, bytesTotal: job.bytesTotal))
     let directory = job.directory
     let version = job.version
@@ -393,6 +406,7 @@ final class GalleryDownloads: NSObject, URLSessionDownloadDelegate, @unchecked S
         try GalleryInstaller.install(from: directory, into: Self.installedDirectory)
       })
       self.queue.async {
+        defer { Self.backgroundEvents.endInstallation() }
         guard self.job?.version == version else { return }
         self.job = nil
         switch result {
@@ -528,9 +542,8 @@ final class GalleryDownloads: NSObject, URLSessionDownloadDelegate, @unchecked S
   }
 
   func urlSessionDidFinishEvents(forBackgroundURLSession session: URLSession) {
-    let done = backgroundEventsDone
-    backgroundEventsDone = nil
-    if let done { DispatchQueue.main.async { done() } }
+    guard let identifier = session.configuration.identifier else { return }
+    Self.backgroundEvents.didFinishEvents(identifier: identifier)
   }
 }
 

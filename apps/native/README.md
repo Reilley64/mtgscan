@@ -54,7 +54,13 @@ A cancelled update keeps verified parts and a cancellation marker. Foreground re
 Sign-out cancels authenticated coordination without removing the active gallery. A later session can resume from verified parts.
 The gallery units exercise real planning, SHA-256, compatibility and controller presentation. External Storage, native download, filesystem and model effects are substituted.
 The in-memory HTTP checks cover Storage URL mapping and refusal. They do not contact a provider.
-Real background transfer/relaunch, device model behavior, spoken VoiceOver and recognition parity still need manual acceptance.
+The GPUI application delegate forwards background URLSession events directly to `GalleryAppLifecycle`, even when no scene exists.
+Only the gallery session reconnects `GalleryDownloads.shared`. Its completion is retained before reconnection, even without a scene.
+Unknown sessions release their own completion without starting the engine.
+The engine restores the persisted job before reconnecting the session. A fully verified download resumes installation without needing a scene or a fresh sign-in.
+`GalleryBackgroundEvents` owns each completion until the matching session drains and any installation commits or fails, then releases it once on the main queue.
+Its unit checks substitute only the external main-thread delivery scheduler. They cover session matching, startup ordering, stale foreground drains, retained callback ownership and installation deferral.
+Real OS background transfer/relaunch, device model behavior, spoken VoiceOver and recognition parity still need manual acceptance.
 
 ## Build the isolated app
 
@@ -63,8 +69,10 @@ Discover the owner's existing selected iPhone 17 with the T3 device tools. Do no
 The actual local Xcode 27.1 is `/Applications/Xcode.app`. Use its explicit `DEVELOPER_DIR`; do not change `xcode-select`.
 
 `prepare.py` fetches GPUI at the revision and checksum in `gpui.json`.
-It keeps source in `~/Library/Caches/mtgscan/gpui`, not a previous agent's `/tmp` checkout.
-The upstream lockfile is retained. Rust still comes from root Mise.
+It caches source in `~/Library/Caches/mtgscan/gpui`, not a previous agent's `/tmp` checkout.
+Each build copies that source into its own `gpui` directory before adding the shell and applying the tracked `gpui-background-session.patch`.
+The patch adds one direct application-delegate forwarder to the native gallery adapter. It does not swizzle methods or change shared cached code.
+The upstream dependency lockfile is retained. Upstream Rust toolchain files are omitted from the build copy so root Mise remains the tool source. Rust still comes from root Mise.
 Generated native tokens come from the existing app theme, not a second palette.
 GoogleSignIn uses an exact SPM version and the checked-in transitive resolution.
 

@@ -85,6 +85,7 @@ struct GalleryUnitTests {
       !GalleryInstaller.modelShapeMatches(
         input: [1, 3, 384, 384], output: [1, 3], model: base.model),
       "A gallery never activates with a different feature print size")
+    runGalleryBackgroundEventsTests()
     try await runGalleryControllerTests()
     try await runGalleryStorageTests()
     print("Gallery unit checks passed")
