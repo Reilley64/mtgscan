@@ -44,5 +44,5 @@ jobs:
       - run: mise run native-unit
       - name: Check the native external adapters
         run: |
-          mise exec -- xcrun swiftc -warnings-as-errors -typecheck apps/native/auth/SessionController.swift apps/native/auth/ServiceClients.swift apps/native/auth/KeychainSessionStore.swift apps/native/collection/CollectionAPI.swift apps/native/collection/CollectionModels.swift apps/native/collection/CollectionController.swift
+          mise exec -- xcrun swiftc -warnings-as-errors -typecheck apps/native/auth/SessionController.swift apps/native/auth/ServiceClients.swift apps/native/auth/KeychainSessionStore.swift apps/native/collection/CollectionAPI.swift apps/native/collection/CollectionModels.swift apps/native/collection/CollectionSearchModels.swift apps/native/collection/CollectionController.swift
           find apps/native -name '*.swift' -exec xcrun swift-format lint --strict {} +

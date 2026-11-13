@@ -1,4 +1,7 @@
 select copy.user_id::text as owner_id, copy.id::text as copy_id,
+  card.oracle_id::text,
+  extract(epoch from copy.created_at)::double precision as created_at,
+  (printing.released_at - date '1970-01-01')::double precision as released_at,
   copy.card_printing_id::text as printing_id, card.name, printing.set_code, printing.set_name,
   printing.collector_number, printing.rarity::text, printing.image_uris, printing.art_crop_uri,
   printing.artist, card.type_line, card.mana_cost, card.commander_legality::text,

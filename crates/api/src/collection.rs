@@ -1,4 +1,6 @@
-use crate::collection_contract::{BrowseResult, CopyResult, FieldError, RefusedResult};
+use crate::collection_contract::{
+    BrowseResult, CopyResult, FieldError, RefusedResult, SearchResult,
+};
 use axum::{
     Json, Router,
     extract::{Path, RawQuery, State},
@@ -16,6 +18,7 @@ use std::sync::Arc;
 
 pub const COLLECTION_PATH: &str = "/api/v1/collection/copies";
 pub const COPY_PATH: &str = "/api/v1/collection/copies/{copy_id}";
+pub const SEARCH_OPTIONS_PATH: &str = "/api/v1/collection/search-options";
 
 pub struct CollectionResponse {
     pub status: u16,
@@ -28,6 +31,7 @@ fn refused(refusal: CollectionRefusal, field: Option<&'static str>) -> Collectio
         CollectionRefusal::Forbidden => (403, "forbidden"),
         CollectionRefusal::NotFound => (404, "not_found"),
         CollectionRefusal::Unavailable => (503, "unavailable"),
+        CollectionRefusal::DataUnavailable => (503, "data_unavailable"),
         CollectionRefusal::InvalidRequest => (400, "invalid_request"),
     };
     CollectionResponse {
@@ -46,18 +50,15 @@ pub async fn collection_response(
     query: &str,
     copy_id: Option<&str>,
 ) -> CollectionResponse {
-    let credential = authorization.and_then(|value| {
-        let (scheme, credential) = value.split_once(' ')?;
-        (scheme.eq_ignore_ascii_case("bearer")
-            && !credential.is_empty()
-            && !credential.chars().any(char::is_whitespace))
-        .then_some(credential)
-    });
+    let credential = bearer(authorization);
     if credential.is_none() {
         return refused(CollectionRefusal::Unauthenticated, None);
     }
     if !query.is_empty() {
-        return refused(CollectionRefusal::InvalidRequest, Some("query"));
+        if copy_id.is_some() {
+            return refused(CollectionRefusal::InvalidRequest, Some("query"));
+        }
+        return search_response(identity, database, credential, query).await;
     }
     if let Some(id) = copy_id {
         let Ok(id) = uuid::Uuid::parse_str(id) else {
@@ -84,6 +85,91 @@ pub async fn collection_response(
     }
 }
 
+async fn search_response(
+    identity: &impl VerifyIdentity,
+    database: &impl ReadCollection,
+    credential: Option<&str>,
+    raw: &str,
+) -> CollectionResponse {
+    use axum::extract::Query;
+    use std::collections::BTreeMap;
+    let parsed = (|| {
+        let uri = format!("/?{raw}").parse().ok()?;
+        let Query(pairs) = Query::<Vec<(String, String)>>::try_from_uri(&uri).ok()?;
+        if pairs.len() != 1 || pairs[0].0 != "query" {
+            return None;
+        }
+        serde_json::from_str::<BTreeMap<String, Value>>(&pairs[0].1).ok()
+    })();
+    let Some(fields) = parsed else {
+        return refused(CollectionRefusal::InvalidRequest, Some("query"));
+    };
+    let query = match crate::collection_contract::query_from_value(fields) {
+        Ok(query) => query,
+        Err(error) => {
+            return CollectionResponse {
+                status: 400,
+                body: serde_json::json!({"error":{"code":error.code,"field":error.field,"message":error.message}}),
+            };
+        }
+    };
+    match mtgscan_application::collection::search_collection(identity, database, credential, &query)
+        .await
+    {
+        Ok(page) => CollectionResponse {
+            status: 200,
+            body: serde_json::to_value(SearchResult::from(page)).unwrap(),
+        },
+        Err(mtgscan_application::collection::SearchFailure::Refused(error)) => refused(error, None),
+        Err(mtgscan_application::collection::SearchFailure::Query(error)) => CollectionResponse {
+            status: 400,
+            body: serde_json::json!({"error":{"code":error.code,"field":error.field,"message":error.message}}),
+        },
+    }
+}
+
+fn bearer(authorization: Option<&str>) -> Option<&str> {
+    authorization.and_then(|value| {
+        let (scheme, credential) = value.split_once(' ')?;
+        (scheme.eq_ignore_ascii_case("bearer")
+            && !credential.is_empty()
+            && !credential.chars().any(char::is_whitespace))
+        .then_some(credential)
+    })
+}
+
+async fn options<I: VerifyIdentity, D: ReadCollection>(
+    State(services): State<Arc<Services<I, D>>>,
+    headers: HeaderMap,
+    RawQuery(query): RawQuery,
+) -> Response {
+    let credential = bearer(authorization(&headers));
+    if credential.is_none() {
+        return response(refused(CollectionRefusal::Unauthenticated, None));
+    }
+    if query.is_some_and(|query| !query.is_empty()) {
+        return response(refused(CollectionRefusal::InvalidRequest, Some("query")));
+    }
+    response(
+        match mtgscan_application::collection::collection_search_options(
+            &services.identity,
+            &services.database,
+            credential,
+        )
+        .await
+        {
+            Ok(options) => CollectionResponse {
+                status: 200,
+                body: serde_json::to_value(crate::collection_contract::SearchOptionsResult::from(
+                    options,
+                ))
+                .unwrap(),
+            },
+            Err(error) => refused(error, None),
+        },
+    )
+}
+
 struct Services<I, D> {
     identity: I,
     database: D,
@@ -96,6 +182,7 @@ pub fn router<I: VerifyIdentity + 'static, D: ReadCollection + 'static>(
     Router::new()
         .route(COLLECTION_PATH, get(browse::<I, D>))
         .route(COPY_PATH, get(copy::<I, D>))
+        .route(SEARCH_OPTIONS_PATH, get(options::<I, D>))
         .with_state(Arc::new(Services { identity, database }))
 }
 
@@ -165,6 +252,85 @@ mod tests {
     use mtgscan_application::collection::{CollectionRefusal, OwnedCopy, ReadCollection};
     use mtgscan_domain::{Caller, Refusal};
 
+    #[tokio::test]
+    async fn collection_search_accepts_combined_canonical_filters_and_returns_a_page() {
+        let result = collection_response(
+            &Auth, &Database, Some("Bearer token"),
+            "query=%7B%22types%22%3A%5B%22snow%22%5D%2C%22sets_exclude%22%3A%5B%22lea%22%5D%2C%22is_protected%22%3Afalse%2C%22limit%22%3A1%7D",
+            None,
+        ).await;
+        assert_eq!(result.status, 200);
+        assert_eq!(result.body["total_count"], 0);
+        assert_eq!(result.body["copies"], serde_json::json!([]));
+        assert_eq!(result.body["basic_lands"], serde_json::json!([]));
+        assert!(result.body["next_cursor"].is_null());
+    }
+
+    #[tokio::test]
+    async fn collection_search_options_are_authenticated_and_cannot_select_an_owner() {
+        use axum::{
+            body::{Body, to_bytes},
+            http::Request,
+        };
+        use tower::ServiceExt;
+        for (query, authorized, expected) in [
+            ("", true, 200),
+            ("", false, 401),
+            ("?owner=another", true, 400),
+        ] {
+            let mut request =
+                Request::builder().uri(format!("/api/v1/collection/search-options{query}"));
+            if authorized {
+                request = request.header("Authorization", "Bearer token");
+            }
+            let response = router(Auth, Database)
+                .oneshot(request.body(Body::empty()).unwrap())
+                .await
+                .unwrap();
+            assert_eq!(response.status(), expected);
+            assert_eq!(response.headers()["cache-control"], "no-store");
+            if expected == 200 {
+                let body = to_bytes(response.into_body(), usize::MAX).await.unwrap();
+                assert_eq!(
+                    serde_json::from_slice::<Value>(&body).unwrap(),
+                    serde_json::json!({"decks":[],"user_tags":[]})
+                );
+            }
+        }
+    }
+
+    fn encoded_query(value: Value) -> String {
+        format!(
+            "query={}",
+            value
+                .to_string()
+                .bytes()
+                .map(|byte| format!("%{byte:02X}"))
+                .collect::<String>()
+        )
+    }
+
+    #[tokio::test]
+    async fn malformed_cursors_and_mixed_lists_keep_their_exact_error_field() {
+        for (query, field) in [
+            (serde_json::json!({"cursor":{}}), "cursor"),
+            (serde_json::json!({"sets":["lea", 1]}), "sets[1]"),
+            (serde_json::json!({"owner_id":"another-owner"}), "owner_id"),
+        ] {
+            let result = collection_response(
+                &Auth,
+                &Database,
+                Some("Bearer token"),
+                &encoded_query(query),
+                None,
+            )
+            .await;
+            assert_eq!(result.status, 400);
+            assert_eq!(result.body["error"]["code"], "invalid_argument");
+            assert_eq!(result.body["error"]["field"], field);
+        }
+    }
+
     struct Auth;
     impl VerifyIdentity for Auth {
         async fn verify(&self, _: &str) -> Result<Caller, Refusal> {
@@ -173,6 +339,19 @@ mod tests {
     }
     struct Database;
     impl ReadCollection for Database {
+        async fn read_search(
+            &self,
+            _: &str,
+            _: &mtgscan_domain::collection_query::CollectionQuery,
+        ) -> Result<mtgscan_application::collection::SearchSnapshot, CollectionRefusal> {
+            Ok(mtgscan_application::collection::SearchSnapshot {
+                known_values: std::collections::BTreeMap::from([(
+                    "sets".into(),
+                    vec!["lea".into()],
+                )]),
+                ..Default::default()
+            })
+        }
         async fn read_copies(
             &self,
             _: &str,

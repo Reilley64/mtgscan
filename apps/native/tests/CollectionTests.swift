@@ -15,6 +15,12 @@ final class CollectionRemote: CollectionService {
     return copies
   }
 
+  func search(accountID: String, query: CollectionSearchQuery, cursor: String?) async throws
+    -> CollectionSearchPage
+  {
+    CollectionSearchPage(copies: try await browse(accountID: accountID))
+  }
+
   func copy(accountID: String, copyID: String) async throws -> CollectionCopy {
     if let failure { throw failure }
     if suspendCopy { return try await withCheckedThrowingContinuation { pendingCopy = $0 } }
