@@ -11,7 +11,7 @@ private func catalogRequestBody(_ request: URLRequest) throws -> Data {
     let count = stream.read(&buffer, maxLength: buffer.count)
     if count < 0 { throw CatalogFailure.unavailable }
     if count == 0 { break }
-    data.append(buffer, count: count)
+    data.append(contentsOf: buffer.prefix(count))
   }
   return data
 }
@@ -78,4 +78,26 @@ func runCatalogServiceTests() async throws {
     _ = try await api.tags(text: "mana", accessToken: "credential")
     preconditionFailure("A refused session must not expose upstream diagnostics")
   } catch CatalogFailure.refused {}
+
+  let session = SessionController(
+    provider: NativeProvider(), store: MemoryKeychain(), auth: AuthService(), api: AccountService(),
+    now: { 1000 })
+  let service = SessionCatalogService(session: session, api: api)
+  let catalog = CatalogController(api: service)
+  session.onAccountChange = { catalog.setAccount($0) }
+  await session.signIn(.apple)
+  AuthHTTPStub.reply = { request in
+    precondition(request.url?.path == "/api/v1/catalog/search")
+    precondition(request.value(forHTTPHeaderField: "Authorization") == "Bearer access")
+    return (200, data)
+  }
+  let query = CatalogQuery(fields: ["text": .text("ring")])
+  await catalog.search(query)
+  precondition(catalog.presentation.state == .loaded)
+  await session.signOut()
+  precondition(catalog.presentation.state == .signedOut && catalog.presentation.items.isEmpty)
+  do {
+    _ = try await service.search(accountID: "account-1", query: query)
+    preconditionFailure("A signed-out session cannot supply a catalog credential")
+  } catch SessionFailure.unauthenticated {}
 }

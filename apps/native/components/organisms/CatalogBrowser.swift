@@ -56,7 +56,10 @@ final class CatalogBrowser: UIStackView {
       addArrangedSubview(
         AuthControls.label("\(row.owned.quantity) owned · \(row.owned.freeQuantity) free"))
       addArrangedSubview(
-        AuthControls.label("Lowest current price: \(price(row.priceFrom))", style: .caption2))
+        CollectionControls.row(
+          "Lowest current price", value: price(row.priceFrom),
+          spoken: row.priceFrom == nil ? "no price" : nil,
+          hint: state.pricesStale ? "The price may be out of date." : nil))
     }
     if state.nextCursor != nil {
       let button = AuthControls.button(state.loadingMore ? "Loading cards" : "Load more") {
@@ -102,6 +105,7 @@ final class CatalogBrowser: UIStackView {
     addArrangedSubview(
       CollectionControls.row(
         "Lowest current price", value: price(card.priceFrom),
+        spoken: card.priceFrom == nil ? "no price" : nil,
         hint: state.pricesStale ? "The price may be out of date." : nil))
     addArrangedSubview(AuthControls.label("Current prices from Scryfall, in USD", style: .caption2))
     addArrangedSubview(CollectionControls.heading("Rules"))
