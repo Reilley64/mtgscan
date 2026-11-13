@@ -7,17 +7,19 @@ final class CollectionBrowser: UIStackView {
   private let onClose: () -> Void
   private let onRetry: () -> Void
   private let onSignOut: () -> Void
+  private let onTags: (() -> Void)?
 
   init(
     images: any CardImages, onOpen: @escaping (String) -> Void,
     onClose: @escaping () -> Void, onRetry: @escaping () -> Void,
-    onSignOut: @escaping () -> Void
+    onSignOut: @escaping () -> Void, onTags: (() -> Void)? = nil
   ) {
     self.images = images
     self.onOpen = onOpen
     self.onClose = onClose
     self.onRetry = onRetry
     self.onSignOut = onSignOut
+    self.onTags = onTags
     super.init(frame: .zero)
     axis = .vertical
     spacing = Tokens.lg
@@ -118,10 +120,15 @@ final class CollectionBrowser: UIStackView {
     addArrangedSubview(AuthControls.label(CollectionLabels.chips(copy)))
     if let deck = copy.deck ?? copy.heldFor { addArrangedSubview(AuthControls.label(deck.name)) }
     addArrangedSubview(CollectionControls.heading("User tags"))
-    addArrangedSubview(
-      AuthControls.label(
-        copy.userTags.isEmpty ? "Add user tags" : copy.userTags.map(\.name).joined(separator: ", "))
-    )
+    let tagsLabel =
+      copy.userTags.isEmpty ? "Add user tags" : copy.userTags.map(\.name).joined(separator: ", ")
+    if let onTags {
+      let button = OrganizationControls.action(tagsLabel, symbol: "chevron.right", action: onTags)
+      button.accessibilityLabel = "User tags, \(tagsLabel)"
+      addArrangedSubview(button)
+    } else {
+      addArrangedSubview(AuthControls.label(tagsLabel))
+    }
     addArrangedSubview(CollectionControls.heading("Price"))
     addArrangedSubview(
       CollectionControls.row(

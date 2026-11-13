@@ -1,5 +1,7 @@
 pub mod collection;
 pub mod collection_contract;
+pub mod organization;
+pub mod organization_contract;
 
 use axum::{
     Json, Router,

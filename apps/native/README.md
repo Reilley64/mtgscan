@@ -1,7 +1,7 @@
 # Native account and collection presentation
 
 Part of [MTGSCAN-275](https://app.plane.so/reilley/browse/MTGSCAN-275/) and [MTGSCAN-276](https://app.plane.so/reilley/browse/MTGSCAN-276/).
-The signed-in shell now opens the collection browse and read-only copy page. It is not the scanner replacement.
+The signed-in shell opens the collection binder and copy page. Its protection and user-tag controls use the opt-in [organization API](../../docs/collection-organization-api.md). It is not the scanner replacement.
 [Collection API and limits](../../docs/collection-api.md) describe the new read path and the later slices.
 MTGSCAN-274 passed under separate owner acceptance. Its historical stop reports do not re-block this slice.
 
@@ -36,6 +36,7 @@ DEVELOPER_DIR=/Applications/Xcode.app/Contents/Developer mise run native-unit
 The Swift unit executable runs real session and collection controllers with fake external provider, keychain, Auth, API and clock capabilities.
 It also generates symbols, labels, sheen stops and aspect ratio from the existing mobile sources.
 The collection checks include copy metadata, account changes, sign-out, late replies, refusal, failure, empty state and retry.
+The organization unit checks add exact-copy actions, invalidation, tag filtering, field errors, deletion/restoration and HTTP refusal mapping. Their local execution remains pending while MTGSCAN-279 owns the compiler/device turn.
 The Rust tests run real API mapping, application and domain behavior. Identity tests substitute the trusted remote Auth capability.
 They make no network requests. They cannot establish real provider configuration, keychain behavior, session revocation or native bridge behavior.
 CI retains all legacy checks and adds scoped Rust and native session unit checks.
