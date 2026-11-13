@@ -328,6 +328,8 @@ The app is on Expo SDK 58, with React Native 0.88. Local builds and EAS builds u
 
 ### Catalog search
 
+The Rust native path also exposes catalog search, card queries, printing lists and Oracle-tag lookup through one backend application entry point. [Catalog API and native interactions](docs/catalog-api.md) describe its versioned routes, scoped persistence, canonical contracts and verification limits. This path does not replace collection search or local gallery name search.
+
 Signed-in users search the card catalog with `supabase.rpc('search_catalog', { query })`. The query is a typed object, never a query string. `supabase/search.ts` has its contract, `searchCatalog`, with the query and the result page.
 
 - A text search ranks an exact full card name first. Next come exact face names, then other name matches, Oracle tag matches, type line matches, and Oracle text matches.

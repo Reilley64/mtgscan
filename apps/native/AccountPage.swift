@@ -34,6 +34,8 @@ private final class AccountPage: UIView {
   private var controller: SessionController?
   private var provider: NativeSignIn?
   private var collectionPage: CollectionPage?
+  private var catalogPage: CatalogPage?
+  private var showingCatalog = false
   private var timer: Timer?
   private let idleTimer = TestAppIdleTimer(bundleIdentifier: Bundle.main.bundleIdentifier) {
     UIApplication.shared.isIdleTimerDisabled = $0
@@ -63,12 +65,36 @@ private final class AccountPage: UIView {
       let collection = CollectionController(
         api: SessionCollectionService(
           session: controller, api: CollectionAPI(origin: config.apiURL)))
-      collection.bind(to: controller)
-      let collectionPage = CollectionPage(controller: collection) { [weak controller] in
-        Task { await controller?.signOut() }
-      }
+      let collectionPage = CollectionPage(
+        controller: collection,
+        onCatalog: { [weak self] in
+          self?.endEditing(true)
+          self?.showingCatalog = true
+          self?.display()
+          Task { await self?.catalogPage?.refresh() }
+        },
+        onSignOut: { [weak controller] in
+          Task { await controller?.signOut() }
+        })
       self.collectionPage = collectionPage
       addSubview(collectionPage)
+      let catalog = CatalogController(
+        api: SessionCatalogService(session: controller, api: CatalogAPI(origin: config.apiURL)))
+      let catalogPage = CatalogPage(controller: catalog) { [weak self] in
+        self?.endEditing(true)
+        self?.showingCatalog = false
+        self?.display()
+      }
+      self.catalogPage = catalogPage
+      addSubview(catalogPage)
+      controller.onAccountChange = { [weak self, weak collection] accountID in
+        if let collection, collection.setAccount(accountID), accountID != nil {
+          Task { await collection.reload() }
+        }
+        self?.catalogPage?.setAccount(accountID)
+        if accountID == nil { self?.showingCatalog = false }
+      }
+      controller.onAccountChange?(controller.presentation.accountID)
       controller.onChange = { [weak self] in self?.display() }
     }
     display()
@@ -90,6 +116,7 @@ private final class AccountPage: UIView {
     super.layoutSubviews()
     layout.frame = bounds
     collectionPage?.frame = bounds
+    catalogPage?.frame = bounds
   }
 
   override func didMoveToWindow() {
@@ -104,7 +131,8 @@ private final class AccountPage: UIView {
 
   private func display() {
     let accountID = controller?.presentation.accountID
-    collectionPage?.isHidden = accountID == nil
+    collectionPage?.isHidden = accountID == nil || showingCatalog
+    catalogPage?.isHidden = accountID == nil || !showingCatalog
     layout.isHidden = accountID != nil
     authentication.display(
       controller?.presentation ?? SessionPresentation(), configured: controller != nil)

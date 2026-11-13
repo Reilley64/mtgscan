@@ -7,17 +7,19 @@ final class CollectionBrowser: UIStackView {
   private let onClose: () -> Void
   private let onRetry: () -> Void
   private let onSignOut: () -> Void
+  private let onCatalog: (() -> Void)?
 
   init(
     images: any CardImages, onOpen: @escaping (String) -> Void,
     onClose: @escaping () -> Void, onRetry: @escaping () -> Void,
-    onSignOut: @escaping () -> Void
+    onCatalog: (() -> Void)? = nil, onSignOut: @escaping () -> Void
   ) {
     self.images = images
     self.onOpen = onOpen
     self.onClose = onClose
     self.onRetry = onRetry
     self.onSignOut = onSignOut
+    self.onCatalog = onCatalog
     super.init(frame: .zero)
     axis = .vertical
     spacing = Tokens.lg
@@ -42,6 +44,9 @@ final class CollectionBrowser: UIStackView {
       let heading = AuthControls.label("Collection", style: .largeTitle)
       heading.accessibilityTraits.insert(.header)
       addArrangedSubview(heading)
+      if let onCatalog {
+        addArrangedSubview(AuthControls.button("Search card catalog", action: onCatalog))
+      }
       addArrangedSubview(AuthControls.button("Sign out", action: onSignOut))
     }
     if let message = state.message {
