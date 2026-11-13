@@ -37,6 +37,7 @@ final class SetBanner: UIControl {
   private let gray = UIImageView()
   private let colorClip = UIView()
   private let color = UIImageView()
+  private let fillEdge = UIView()
   private let shade = CAGradientLayer()
   private let text = UIStackView()
   private let share: Double
@@ -52,7 +53,7 @@ final class SetBanner: UIControl {
     backgroundColor = Tokens.surface
     layer.cornerRadius = Tokens.corner
     layer.borderColor = Tokens.primary.cgColor
-    layer.borderWidth = complete ? 1 : 0
+    layer.borderWidth = complete ? Tokens.selectedOutline : 0
     clipsToBounds = true
     gray.contentMode = .scaleAspectFill
     color.contentMode = .scaleAspectFill
@@ -61,29 +62,48 @@ final class SetBanner: UIControl {
     colorClip.clipsToBounds = true
     colorClip.addSubview(color)
     addSubview(colorClip)
-    shade.colors = [UIColor.clear.cgColor, Tokens.background.cgColor]
+    fillEdge.backgroundColor = Tokens.primary
+    fillEdge.isHidden = artURI == nil || share <= 0 || share >= 1
+    addSubview(fillEdge)
+    shade.colors = PresentationData.setArtScrim.map { stop in
+      UIColor(
+        red: stop.rgba[0] / 255, green: stop.rgba[1] / 255, blue: stop.rgba[2] / 255,
+        alpha: stop.rgba[3]
+      ).cgColor
+    }
+    shade.locations = PresentationData.setArtScrim.map { NSNumber(value: $0.location) }
     shade.startPoint = CGPoint(x: 0, y: 0)
-    shade.endPoint = CGPoint(x: 0, y: 1)
+    shade.endPoint = CGPoint(x: 1, y: 0)
+    shade.isHidden = artURI == nil
     layer.addSublayer(shade)
-    text.axis = .vertical
-    text.spacing = Tokens.xs
+    text.axis = .horizontal
+    text.alignment = .center
+    text.spacing = Tokens.sm
     text.isUserInteractionEnabled = false
-    let title = AuthControls.label(name, style: large ? .title1 : .headline)
-    let completion = [count, percent.map { "\($0)%" }, complete ? "✓" : nil].compactMap { $0 }
-      .joined(separator: " · ")
-    text.addArrangedSubview(title)
-    text.addArrangedSubview(AuthControls.label(completion, style: .caption1))
-    let progress = UIProgressView(progressViewStyle: .bar)
-    progress.progressTintColor = Tokens.primary
-    progress.trackTintColor = Tokens.line
-    progress.progress = Float(share)
-    progress.heightAnchor.constraint(equalToConstant: Tokens.progressBar).isActive = true
-    progress.isAccessibilityElement = false
-    text.addArrangedSubview(progress)
+    let icon = symbols.symbol(uri: iconURI, share: share, filled: artURI == nil)
+    let iconSize = large ? Tokens.setPageBannerSymbol : Tokens.setBannerSymbol
+    icon.heightAnchor.constraint(equalToConstant: iconSize).isActive = true
+    icon.widthAnchor.constraint(equalToConstant: iconSize).isActive = true
+    text.addArrangedSubview(icon)
+    let information = UIStackView()
+    information.axis = .vertical
+    information.spacing = Tokens.xs
+    information.addArrangedSubview(AuthControls.label(name, style: large ? .title1 : .headline))
+    information.addArrangedSubview(AuthControls.label(count, style: .caption1))
     if artURI == nil {
-      let icon = symbols.symbol(uri: iconURI, share: share)
-      icon.heightAnchor.constraint(equalToConstant: Tokens.setBannerSymbol).isActive = true
-      text.insertArrangedSubview(icon, at: 0)
+      let progress = UIProgressView(progressViewStyle: .bar)
+      progress.progressTintColor = Tokens.primary
+      progress.trackTintColor = Tokens.line
+      progress.progress = Float(share)
+      progress.heightAnchor.constraint(equalToConstant: Tokens.progressBar).isActive = true
+      progress.isAccessibilityElement = false
+      information.addArrangedSubview(progress)
+    }
+    text.addArrangedSubview(information)
+    if let percent {
+      let label = AuthControls.label(complete ? "✓" : "\(percent)%", style: .headline)
+      label.setContentCompressionResistancePriority(.required, for: .horizontal)
+      text.addArrangedSubview(label)
     }
     addSubview(text)
     text.translatesAutoresizingMaskIntoConstraints = false
@@ -126,6 +146,9 @@ final class SetBanner: UIControl {
     shade.frame = bounds
     colorClip.frame = CGRect(
       x: 0, y: 0, width: bounds.width * max(0, min(1, share)), height: bounds.height)
+    fillEdge.frame = CGRect(
+      x: colorClip.frame.maxX - Tokens.selectedOutline, y: 0, width: Tokens.selectedOutline,
+      height: bounds.height)
     color.frame = bounds
   }
 }

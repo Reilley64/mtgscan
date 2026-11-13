@@ -57,14 +57,22 @@ for (const [name, value] of Object.entries({
 })) {
   console.log(`  static let ${name}: Double = ${value}`);
 }
-for (const name of ["foilSheen", "etchedSheen"] as const) {
+for (const name of ["foilSheen", "etchedSheen", "setArtScrim"] as const) {
   const stops = [
-    ...gradients[name].matchAll(/(transparent|rgba\([^)]+\)) ([\d.]+)%/g),
+    ...gradients[name].matchAll(
+      /(transparent|rgba\([^)]+\)|#[0-9a-f]{8}) ([\d.]+)%/g,
+    ),
   ].map((match) => {
     const rgba =
       match[1] === "transparent"
         ? [0, 0, 0, 0]
-        : match[1].slice(5, -1).split(",").map(Number);
+        : match[1].startsWith("#")
+          ? [1, 3, 5, 7].map(
+              (start, index) =>
+                parseInt(match[1].slice(start, start + 2), 16) /
+                (index === 3 ? 255 : 1),
+            )
+          : match[1].slice(5, -1).split(",").map(Number);
     return `NativeSheenStop(rgba: [${rgba.join(", ")}], location: ${Number(match[2]) / 100})`;
   });
   console.log(

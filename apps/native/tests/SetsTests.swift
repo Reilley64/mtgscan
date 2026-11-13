@@ -89,6 +89,9 @@ enum SetsTests {
     precondition(controller.presentation.state == .signedOut)
     precondition(controller.presentation.finishView == .foil)
     precondition(SetCompletion(owned: 2, size: 3).percent == 66)
+    precondition(PresentationData.setArtScrim.count == 2)
+    precondition(PresentationData.setArtScrim[0].rgba[3] == 0.8509803921568627)
+    precondition(PresentationData.setArtScrim[1].location == 0.7)
     let pagedRemote = SetsRemote(details: details)
     let rows = (0..<20).map { index in
       CardSet(

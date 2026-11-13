@@ -44,7 +44,7 @@ async fn read_catalog(database: &PostgresCollection) -> Result<SetCatalog, sqlx:
     let rows = sqlx::query("select card_set.code, card_set.name, card_set.icon_svg_uri, card_set.released_at::text,
         coalesce((select jsonb_agg(jsonb_build_object('position', section.position, 'name', section.name) order by section.position)
           from public.set_sections section where section.set_code = card_set.code), '[]'::jsonb) as sections
-        from public.card_sets card_set").fetch_all(&mut *transaction).await?;
+        from public.card_sets card_set where card_set.released_at is not null").fetch_all(&mut *transaction).await?;
     let sets = rows
         .iter()
         .map(|row| {

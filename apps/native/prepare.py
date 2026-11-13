@@ -83,6 +83,8 @@ for name, value in {
     "setBanner": number("sizes", "setBanner"),
     "setPageBanner": number("sizes", "setPageBanner"),
     "setBannerSymbol": number("sizes", "setBannerSymbol"),
+    "setPageBannerSymbol": number("sizes", "setPageBannerSymbol"),
+    "selectedOutline": number("sizes", "selectedOutline"),
     "progressBar": number("sizes", "progressBar"),
     "quantityBadgeHeight": number("sizes", "quantityBadge"),
     "quantityBadgeInset": number("sizes", "quantityBadgeInset"),

@@ -3,12 +3,12 @@ import WebKit
 
 @MainActor
 protocol SetSymbols {
-  func symbol(uri: String, share: Double) -> UIView
+  func symbol(uri: String, share: Double, filled: Bool) -> UIView
 }
 
 @MainActor
 final class HTTPSSetSymbols: SetSymbols {
-  func symbol(uri: String, share: Double) -> UIView {
+  func symbol(uri: String, share: Double, filled: Bool) -> UIView {
     let configuration = WKWebViewConfiguration()
     configuration.websiteDataStore = .nonPersistent()
     let view = WKWebView(frame: .zero, configuration: configuration)
@@ -36,7 +36,7 @@ final class HTTPSSetSymbols: SetSymbols {
     view.loadHTMLString(
       """
       <meta name="viewport" content="width=device-width,initial-scale=1">
-      <style>body{margin:0}div{position:absolute;inset:0;background:\(color(Tokens.line));-webkit-mask:url('\(escaped)') center/contain no-repeat}#owned{background:\(color(Tokens.primary));clip-path:inset(0 \((1 - max(0, min(1, share))) * 100)% 0 0)}</style>
+      <style>body{margin:0}div{position:absolute;inset:0;background:\(color(filled ? Tokens.line : Tokens.text));-webkit-mask:url('\(escaped)') center/contain no-repeat}#owned{background:\(color(filled ? Tokens.primary : Tokens.text));clip-path:inset(0 \((1 - max(0, min(1, share))) * 100)% 0 0)}</style>
       <div></div><div id="owned"></div>
       """, baseURL: url)
     return view
