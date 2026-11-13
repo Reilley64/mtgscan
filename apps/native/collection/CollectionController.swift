@@ -81,6 +81,7 @@ final class CollectionController {
     generation += 1
     let operation = generation
     let copyID = presentation.selectedCopyID
+    let previousState = presentation.state
     if presentation.copy == nil && (copyID != nil || presentation.copies.isEmpty) {
       presentation.state = .loading
     }
@@ -101,18 +102,29 @@ final class CollectionController {
       }
     } catch {
       guard operation == generation else { return }
-      presentation.copy = nil
-      if copyID == nil { presentation.copies.removeAll() }
       switch error {
       case CollectionFailure.unauthenticated, CollectionFailure.forbidden,
         SessionFailure.unauthenticated:
         copyCache.removeAll()
+        presentation.copy = nil
         presentation.copies.removeAll()
         presentation.state = .refused
       case CollectionFailure.notFound:
-        if let copyID { copyCache.removeValue(forKey: copyID) }
+        presentation.copy = nil
+        if let copyID {
+          copyCache.removeValue(forKey: copyID)
+        } else {
+          presentation.copies.removeAll()
+        }
         presentation.state = .missing
-      default: presentation.state = .failed
+      default:
+        if previousState == .loaded || previousState == .empty {
+          presentation.state = previousState
+        } else {
+          presentation.copy = nil
+          if copyID == nil { presentation.copies.removeAll() }
+          presentation.state = .failed
+        }
       }
     }
     presentation.refreshing = false

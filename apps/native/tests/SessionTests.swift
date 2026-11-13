@@ -67,6 +67,8 @@ struct SessionTests {
   @MainActor
   static func main() async throws {
     IdleTimerTests.run()
+    try await successfulReadsSurviveSameAccountRevalidation()
+    try await invalidatedReadsStayRefusedAfterSigningInAgain()
     try await CollectionTests.run()
     try await runCollectionServiceTests()
     let keychain = MemoryKeychain()
@@ -215,5 +217,49 @@ struct SessionTests {
     print(
       "Session unit checks passed: Apple/Google, restore, cancellation, refresh rotation, refusal, outage, storage failure, sign-out race."
     )
+  }
+
+  @MainActor
+  static func successfulReadsSurviveSameAccountRevalidation() async throws {
+    let session = SessionController(
+      provider: NativeProvider(), store: MemoryKeychain(), auth: AuthService(),
+      api: AccountService(), now: { 1000 })
+    await session.signIn(.apple)
+    var pending: CheckedContinuation<String, Error>?
+    let read = Task {
+      try await session.withAccessToken(for: "account-1") { _ in
+        try await withCheckedThrowingContinuation { pending = $0 }
+      }
+    }
+    while pending == nil { await Task.yield() }
+    await session.resume()
+    pending?.resume(returning: "owned-copy")
+    let copy = try await read.value
+    precondition(copy == "owned-copy")
+    precondition(session.presentation.accountID == "account-1")
+  }
+
+  @MainActor
+  static func invalidatedReadsStayRefusedAfterSigningInAgain() async throws {
+    let session = SessionController(
+      provider: NativeProvider(), store: MemoryKeychain(), auth: AuthService(),
+      api: AccountService(), now: { 1000 })
+    await session.signIn(.apple)
+    var pending: CheckedContinuation<String, Error>?
+    let read = Task {
+      try await session.withAccessToken(for: "account-1") { _ in
+        try await withCheckedThrowingContinuation { pending = $0 }
+      }
+    }
+    while pending == nil { await Task.yield() }
+    await session.signOut()
+    await session.signIn(.google)
+    pending?.resume(returning: "obsolete-copy")
+    do {
+      _ = try await read.value
+      preconditionFailure("Signing in again must not restore an invalidated read")
+    } catch SessionFailure.unauthenticated {
+      precondition(session.presentation.accountID == "account-1")
+    }
   }
 }

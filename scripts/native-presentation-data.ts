@@ -1,4 +1,10 @@
-import { aspectRatios, gradients } from "../apps/mobile/src/theme";
+import {
+  aspectRatios,
+  gradients,
+  printedCardCornerPerWidth,
+  sizes,
+  typography,
+} from "../apps/mobile/src/theme";
 import { cardSymbols } from "../apps/mobile/src/lib/card-symbols";
 import {
   commanderLegalityLabels,
@@ -41,6 +47,16 @@ console.log("  ]");
 console.log(
   `  static let cardImageAspectRatio: Double = ${aspectRatios.cardImage}`,
 );
+for (const [name, value] of Object.entries({
+  printedCardCornerPerWidth,
+  manaSymbolSize: sizes.manaSymbol,
+  manaSymbolFontSize: typography.manaSymbol.fontSize,
+  manaSymbolSplitFontSize: typography.manaSymbolSplit.fontSize,
+  manaSymbolBareFontSize: typography.manaSymbolBare.fontSize,
+  manaSymbolSplitInset: sizes.manaSymbolSplitInset,
+})) {
+  console.log(`  static let ${name}: Double = ${value}`);
+}
 for (const name of ["foilSheen", "etchedSheen"] as const) {
   const stops = [
     ...gradients[name].matchAll(/(transparent|rgba\([^)]+\)) ([\d.]+)%/g),

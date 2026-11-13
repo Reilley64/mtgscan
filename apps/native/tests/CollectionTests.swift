@@ -58,6 +58,13 @@ enum CollectionTests {
     precondition(
       CardSymbols.spokenText("{2/W}{G}{E}{UNKNOWN}")
         == "two generic or white mana green mana energy{UNKNOWN}")
+    precondition(PresentationData.symbols["{G}"]?.glyphFontSize == 9)
+    precondition(PresentationData.symbols["{W/U}"]?.glyphFontSize == 5)
+    precondition(PresentationData.symbols["{E}"]?.glyphFontSize == 12)
+    precondition(PresentationData.symbols["{Q}"]?.glyphFontSize == 12)
+    precondition(PresentationData.manaSymbolSize == 12)
+    precondition(PresentationData.manaSymbolSplitInset == 1)
+    precondition(PresentationData.printedCardCornerPerWidth == 0.05)
     precondition(CollectionLabels.printing(copy) == "C21 263 · LP")
     precondition(CollectionLabels.chips(copy) == "C21 · 263 · Foil · LP · English")
     precondition(
@@ -66,8 +73,9 @@ enum CollectionTests {
 
     remote.failure = .unavailable
     await controller.reload()
-    precondition(controller.presentation.state == .failed && controller.presentation.copy == nil)
-    precondition(controller.presentation.message == "Could not load this card")
+    precondition(controller.presentation.state == .loaded)
+    precondition(controller.presentation.copy?.copyID == copy.copyID)
+    precondition(controller.presentation.message == nil)
     remote.failure = nil
     await controller.reload()
     precondition(controller.presentation.copy?.copyID == copy.copyID)
@@ -91,10 +99,26 @@ enum CollectionTests {
     }
     remote.failure = .unavailable
     await controller.reload()
-    precondition(controller.presentation.state == .failed)
-    precondition(controller.presentation.message == "Could not load your collection")
+    precondition(controller.presentation.state == .loaded)
+    precondition(controller.presentation.copies.first?.copyID == copy.copyID)
+    precondition(controller.presentation.message == nil)
     remote.failure = nil
     await controller.reload()
+
+    let uncachedRemote = CollectionRemote()
+    uncachedRemote.failure = .unavailable
+    let uncached = CollectionController(api: uncachedRemote)
+    uncached.setAccount("owner-a")
+    await uncached.reload()
+    precondition(uncached.presentation.state == .failed)
+    precondition(uncached.presentation.message == "Could not load your collection")
+    uncachedRemote.failure = nil
+    await uncached.reload()
+    precondition(uncached.presentation.state == .empty)
+    uncachedRemote.failure = .unavailable
+    await uncached.reload()
+    precondition(uncached.presentation.state == .empty)
+    precondition(uncached.presentation.message == "Your collection is empty")
 
     remote.suspend = true
     let late = Task { await controller.reload() }

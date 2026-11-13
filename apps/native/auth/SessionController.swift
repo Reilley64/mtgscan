@@ -68,6 +68,7 @@ final class SessionController {
   private var session: StoredSession?
   private var pendingRevocationToken: String?
   private var generation = 0
+  private var accountGeneration = 0
   private(set) var presentation = SessionPresentation()
   var onChange: (() -> Void)?
   var onAccountChange: ((String?) -> Void)?
@@ -86,6 +87,7 @@ final class SessionController {
 
   func signIn(_ selected: Provider) async {
     guard presentation.canSignIn else { return }
+    accountGeneration += 1
     generation += 1
     let operation = generation
     presentation = SessionPresentation(busy: true)
@@ -149,15 +151,16 @@ final class SessionController {
     guard presentation.accountID == accountID, let session, !presentation.requiresRemoval else {
       throw SessionFailure.unauthenticated
     }
-    let expected = generation
+    let expected = accountGeneration
     let result = try await operation(session.accessToken)
-    guard expected == generation, presentation.accountID == accountID else {
+    guard expected == accountGeneration, presentation.accountID == accountID else {
       throw SessionFailure.unauthenticated
     }
     return result
   }
 
   func signOut() async {
+    accountGeneration += 1
     generation += 1
     let operation = generation
     let token = session?.accessToken ?? pendingRevocationToken
@@ -189,11 +192,13 @@ final class SessionController {
   private func checkAccount(_ candidate: StoredSession, operation: Int) async throws {
     let accountID = try await api.currentAccount(accessToken: candidate.accessToken)
     guard operation == generation else { return }
+    if presentation.accountID != accountID { accountGeneration += 1 }
     presentation.accountID = accountID
   }
 
   private func failed(_ error: Error, operation: Int) async {
     guard operation == generation else { return }
+    if presentation.accountID != nil { accountGeneration += 1 }
     presentation.accountID = nil
     if case SessionFailure.unauthenticated = error {
       session = nil

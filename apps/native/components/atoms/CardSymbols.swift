@@ -16,6 +16,12 @@ struct NativeCardSymbol {
   let glyphs: [String]
   let circle: SymbolCircle
   let half: Bool
+
+  var glyphFontSize: Double {
+    if glyphs.count > 1 { return PresentationData.manaSymbolSplitFontSize }
+    if case .colors = circle { return PresentationData.manaSymbolFontSize }
+    return PresentationData.manaSymbolBareFontSize
+  }
 }
 
 enum CardSymbols {

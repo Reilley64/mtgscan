@@ -17,10 +17,12 @@ enum CardSymbolLabel {
       let token = source.substring(with: match.range)
       if let symbol = PresentationData.symbols[token] {
         let attachment = NSTextAttachment()
-        attachment.image = draw(symbol, size: label.font.lineHeight)
-        let width = symbol.half ? label.font.lineHeight / 2 : label.font.lineHeight
+        let size = UIFontMetrics(forTextStyle: .body).scaledValue(
+          for: PresentationData.manaSymbolSize)
+        attachment.image = draw(symbol, size: size)
+        let width = symbol.half ? size / 2 : size
         attachment.bounds = CGRect(
-          x: 0, y: label.font.descender, width: width, height: label.font.lineHeight)
+          x: 0, y: label.font.descender, width: width, height: size)
         result.append(NSAttributedString(attachment: attachment))
       } else {
         result.append(NSAttributedString(string: token))
@@ -77,15 +79,17 @@ enum CardSymbolLabel {
       }
       for (index, glyph) in symbol.glyphs.enumerated() {
         let split = symbol.glyphs.count > 1
-        let fontSize = size * (split ? 0.42 : 0.75)
+        let scale = size / PresentationData.manaSymbolSize
+        let fontSize = symbol.glyphFontSize * scale
+        let inset = PresentationData.manaSymbolSplitInset * scale
         let font = UIFont(name: "Mana", size: fontSize) ?? UIFont.systemFont(ofSize: fontSize)
         let attributes: [NSAttributedString.Key: Any] = [.font: font, .foregroundColor: glyphColor]
         let dimensions = (glyph as NSString).size(withAttributes: attributes)
         let origin =
           split
           ? CGPoint(
-            x: index == 0 ? 1 : size - dimensions.width - 1,
-            y: index == 0 ? 0 : size - dimensions.height)
+            x: index == 0 ? inset : size - dimensions.width - inset,
+            y: index == 0 ? inset : size - dimensions.height - inset)
           : CGPoint(x: (size - dimensions.width) / 2, y: (size - dimensions.height) / 2)
         (glyph as NSString).draw(at: origin, withAttributes: attributes)
       }

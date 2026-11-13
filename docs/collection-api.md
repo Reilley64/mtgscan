@@ -70,14 +70,18 @@ This PR authorizes none of those live changes.
 The signed-in account opens a three-column binder. Tapping a tile opens that exact copy.
 Close and the left-edge gesture return to the binder and read it again.
 Loading, empty, failed, refused, missing-copy, and retry states have distinct presentation output.
-A failed read is not an empty success. A refused read hides account data.
+An uncached failed read is not an empty success.
+A transient refresh failure keeps the last successful same-account content, including an empty result.
+A refused read hides account data.
 Account changes and sign-out synchronously clear collection output and the copy cache.
 Generation guards discard late replies after navigation, reload, or account change.
+Successful same-account session revalidation does not invalidate a collection read.
+Sign-out and a new sign-in still invalidate the previous session's reads.
 Tokens stay inside the existing session controller and network call. They never enter collection presentation models or caches.
 
 The native controls reuse the existing layout and authentication atoms.
 Card images and blurred art use a separate HTTPS image capability, with no bearer header, redirect, disk cache, or owner credential.
-The Mana font, symbol meanings, copy labels, gradient stops, aspect ratio, and palette come from existing mobile sources.
+The Mana font, symbol meanings, symbol metrics, copy labels, gradient stops, aspect ratio, printed-card corners, and palette come from existing mobile sources.
 The build generates native presentation data rather than maintaining a second editable symbol or label list.
 Text uses Dynamic Type. Interactive controls have at least 44-point touch targets.
 

@@ -41,7 +41,7 @@ final class CardArtwork: UIView {
     super.layoutSubviews()
     imageView.frame = bounds
     sheen.frame = bounds
-    layer.cornerRadius = bounds.width * 0.05
+    layer.cornerRadius = bounds.width * PresentationData.printedCardCornerPerWidth
   }
 }
 
