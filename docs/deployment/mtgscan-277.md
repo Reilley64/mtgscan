@@ -1,7 +1,7 @@
 # Backend deployment candidate
 
-MTGSCAN-277 prepares configuration. It does not activate the backend.
-MTGSCAN-278 requires a separate reviewed provider plan and owner approval.
+MTGSCAN-277 prepares configuration and requires provider-backed validation plus a sanitized summary of the actual provider plans. It does not activate the backend.
+MTGSCAN-278 requires explicit owner approval before activation. Replan and review again if source, state or external image digests have changed.
 No provider plan, image build, apply, Vault write, job submission or production query was performed for this candidate.
 
 ## Repository ownership
@@ -151,5 +151,7 @@ No replacement is intended. Actual creates, changes and replacements are unknown
 Unrelated digest changes are also unknown. The service module resolves other image tags at plan time, so a fresh plan may include them even though this patch does not touch them.
 No targeted apply or ignored drift should hide those changes.
 
-Activation gates belong to MTGSCAN-278: approved secret provisioning, actual plan review, compatible schema and role verification, allocation-network TLS connectivity, public DNS and certificates, authentication, Alloy delivery, canary rollback, and public incremental MCP streaming when its adapter exists.
+MTGSCAN-277 remains partial until provider-backed validation and an observed, sanitized platform/services plan summary are recorded, including replacements and unrelated image-digest changes. The expected counts above do not satisfy that gate.
+
+Activation gates belong to MTGSCAN-278: explicit approval of the reviewed current plan, approved secret provisioning, compatible schema and role verification, allocation-network TLS connectivity, public DNS and certificates, authentication, Alloy delivery, canary rollback, and public incremental MCP streaming when its adapter exists.
 Do not mark the endpoint ready from this candidate.

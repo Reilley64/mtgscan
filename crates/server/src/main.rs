@@ -25,7 +25,7 @@ async fn run(telemetry: Arc<Telemetry>) -> Result<(), &'static str> {
     let identity = Arc::new(SupabaseIdentity::new(auth, SystemClock, issuer));
     let database_url =
         env::var("COLLECTION_DATABASE_URL").map_err(|_| "COLLECTION_DATABASE_URL is required")?;
-    let database = PostgresCollection::connect(&database_url).await?;
+    let database = PostgresCollection::connect_lazy(&database_url)?;
     let dependencies = SupabaseDependencies::new(database.clone(), &url, key)?;
     let health = Health::default();
     let routes = telemetry.instrument(

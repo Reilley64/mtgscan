@@ -16,7 +16,7 @@ pub struct PostgresCollection {
 }
 
 impl PostgresCollection {
-    pub async fn connect(url: &str) -> Result<Self, &'static str> {
+    pub fn connect_lazy(url: &str) -> Result<Self, &'static str> {
         let pool = PgPoolOptions::new()
             .max_connections(5)
             .acquire_timeout(Duration::from_secs(10))
