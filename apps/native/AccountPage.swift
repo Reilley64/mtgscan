@@ -34,6 +34,9 @@ private final class AccountPage: UIView {
   private var controller: SessionController?
   private var provider: NativeSignIn?
   private var timer: Timer?
+  private let idleTimer = TestAppIdleTimer(bundleIdentifier: Bundle.main.bundleIdentifier) {
+    UIApplication.shared.isIdleTimerDisabled = $0
+  }
   private lazy var authentication = Authentication(
     onApple: { [weak self] in self?.signIn(.apple) },
     onGoogle: { [weak self] in self?.signIn(.google) },
@@ -65,6 +68,9 @@ private final class AccountPage: UIView {
     NotificationCenter.default.addObserver(
       self, selector: #selector(background), name: UIApplication.willResignActiveNotification,
       object: nil)
+    NotificationCenter.default.addObserver(
+      self, selector: #selector(background), name: UIApplication.didEnterBackgroundNotification,
+      object: nil)
     Task { await controller?.resume() }
   }
 
@@ -91,6 +97,7 @@ private final class AccountPage: UIView {
   }
 
   @objc private func foreground() {
+    idleTimer.setActive(UIApplication.shared.applicationState == .active)
     timer?.invalidate()
     Task { await controller?.resume() }
     timer = Timer.scheduledTimer(withTimeInterval: 30, repeats: true) { [weak self] _ in
@@ -99,6 +106,7 @@ private final class AccountPage: UIView {
   }
 
   @objc private func background() {
+    idleTimer.setActive(false)
     timer?.invalidate()
     timer = nil
   }

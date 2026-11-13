@@ -62,6 +62,9 @@ mise exec -- xcodebuild -onlyUsePackageVersionsFromResolvedFile -project "$BUILD
 ```
 
 The bundle is always `dev.reilley.mtgscan.test`. Never replace the production app.
+Only this isolated test shell disables the idle timer while active in the foreground.
+It restores normal idle behavior when it resigns active or enters the background.
+It does not change the device Auto-Lock setting or affect the production bundle.
 For an approved physical test, omit `--simulator`, use target `aarch64-apple-ios` and the matching device destination with development signing.
 There is no export, upload, distribution or deployment step.
 After device work, restore changed settings, close the device with shutdown, remove generated build folders and release only your device lock.

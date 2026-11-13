@@ -66,6 +66,7 @@ final class AccountService: CurrentAccountService {
 struct SessionTests {
   @MainActor
   static func main() async throws {
+    IdleTimerTests.run()
     let keychain = MemoryKeychain()
     let controller = SessionController(
       provider: NativeProvider(), store: keychain, auth: AuthService(),
