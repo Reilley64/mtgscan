@@ -12,6 +12,7 @@ final class CollectionPage: UIView, UIScrollViewDelegate {
     self?.closeCopy()
   }
   private var selectedCopyID: String?
+  var onNavigationChange: ((Bool) -> Void)?
   private let onClose: (() -> Void)?
   private let onDeck: ((String) -> Void)?
   private lazy var browser = CollectionBrowser(
@@ -78,6 +79,7 @@ final class CollectionPage: UIView, UIScrollViewDelegate {
     header.isHidden = state.selectedCopyID == nil
     if selectedCopyID != state.selectedCopyID {
       selectedCopyID = state.selectedCopyID
+      onNavigationChange?(selectedCopyID != nil)
       layout.setContentOffset(.zero, animated: false)
     }
     setNeedsLayout()

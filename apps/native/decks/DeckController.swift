@@ -76,7 +76,11 @@ final class DeckController {
     let read = readGeneration
     let operation = generation
     let previous = presentation.state
-    if presentation.deck == nil && presentation.decks.isEmpty { presentation.state = .loading }
+    if presentation.deck == nil && presentation.decks.isEmpty && previous != .empty
+      && previous != .loaded
+    {
+      presentation.state = .loading
+    }
     onChange?()
     do {
       if let id = presentation.selectedDeckID {

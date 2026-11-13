@@ -1,7 +1,7 @@
 import UIKit
 
 @MainActor
-final class DeckPage: UIView {
+final class DeckPage: UIView, UIGestureRecognizerDelegate {
   private let controller: DeckController
   private let copies: CollectionController
   private let images: any CardImages
@@ -11,6 +11,7 @@ final class DeckPage: UIView {
   private let header = UIStackView()
   private let ordering = UIStackView()
   private var selectedDeckID: String?
+  var onNavigationChange: ((Bool) -> Void)?
   private var copyIsOpen = false
   private weak var namePrompt: UIAlertController?
   private lazy var browser = DeckBrowser(
@@ -61,6 +62,7 @@ final class DeckPage: UIView {
     controller.onChange = { [weak self] in self?.display() }
     let back = UIScreenEdgePanGestureRecognizer(target: self, action: #selector(goBack(_:)))
     back.edges = .left
+    back.delegate = self
     addGestureRecognizer(back)
     registerForTraitChanges([UITraitPreferredContentSizeCategory.self]) {
       (view: DeckPage, _: UITraitCollection) in view.display()
@@ -158,6 +160,7 @@ final class DeckPage: UIView {
     }
     if selectedDeckID != state.selectedDeckID {
       selectedDeckID = state.selectedDeckID
+      onNavigationChange?(selectedDeckID != nil)
       layout.setContentOffset(.zero, animated: false)
     }
     if let failure = state.writeFailure, let presenter = window?.rootViewController,
@@ -203,6 +206,10 @@ final class DeckPage: UIView {
       await controller.close()
       onCollection()
     }
+  }
+
+  func gestureRecognizerShouldBegin(_ gestureRecognizer: UIGestureRecognizer) -> Bool {
+    !copyIsOpen && controller.presentation.selectedDeckID != nil
   }
 
   @objc private func goBack(_ gesture: UIScreenEdgePanGestureRecognizer) {

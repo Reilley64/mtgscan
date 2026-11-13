@@ -38,6 +38,9 @@ private final class AccountPage: UIView {
   private var collection: CollectionController?
   private var decks: DeckController?
   private var selectedTab = 0
+  private var collectionPushed = false
+  private var deckPushed = false
+  private var deckReturnTab: Int?
   private let tabs = NavigationTabs(choices: [
     ("Collection", "rectangle.grid.3x2"), ("Decks", "rectangle.stack"),
   ])
@@ -80,14 +83,35 @@ private final class AccountPage: UIView {
       let collectionPage = CollectionPage(
         controller: collection,
         onDeck: { [weak self, weak decks] id in
+          self?.deckReturnTab = 0
           self?.selectTab(1)
           Task { await decks?.open(id) }
         }, onSignOut: { [weak controller] in Task { await controller?.signOut() } })
       self.collectionPage = collectionPage
       let deckPage = DeckPage(
-        controller: decks, copies: copies, onCollection: { [weak self] in self?.selectTab(0) },
+        controller: decks, copies: copies,
+        onCollection: { [weak self, weak collection] in
+          Task {
+            await collection?.closeCopy()
+            self?.selectTab(0)
+          }
+        },
         onSignOut: { [weak controller] in Task { await controller?.signOut() } })
       self.deckPage = deckPage
+      collectionPage.onNavigationChange = { [weak self] pushed in
+        self?.collectionPushed = pushed
+        self?.display()
+      }
+      deckPage.onNavigationChange = { [weak self] pushed in
+        guard let self else { return }
+        self.deckPushed = pushed
+        if !pushed, let origin = self.deckReturnTab {
+          self.deckReturnTab = nil
+          self.selectTab(origin)
+        } else {
+          self.display()
+        }
+      }
       addSubview(collectionPage)
       addSubview(deckPage)
       addSubview(tabs)
@@ -143,9 +167,10 @@ private final class AccountPage: UIView {
     let accountID = controller?.presentation.accountID
     collectionPage?.isHidden = accountID == nil || selectedTab != 0
     deckPage?.isHidden = accountID == nil || selectedTab != 1
-    tabs.isHidden = accountID == nil
+    tabs.isHidden = accountID == nil || (selectedTab == 0 ? collectionPushed : deckPushed)
     if accountID == nil {
       selectedTab = 0
+      deckReturnTab = nil
       tabs.select(0)
     }
     setNeedsLayout()
