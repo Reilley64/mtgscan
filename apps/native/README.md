@@ -1,7 +1,8 @@
 # Native account shell
 
 Part of [MTGSCAN-275](https://app.plane.so/reilley/browse/MTGSCAN-275/).
-This is the first converted mobile slice, not the collection or scanner replacement.
+This includes the account slice and [MTGSCAN-279 gallery installation](https://app.plane.so/reilley/browse/MTGSCAN-279/).
+It is not the collection or camera/recognition replacement.
 MTGSCAN-274 passed under separate owner acceptance. Its historical stop reports do not re-block this slice.
 
 ```text
@@ -28,12 +29,32 @@ mise install
 mise run rust-components
 mise run rust-check
 DEVELOPER_DIR=/Applications/Xcode.app/Contents/Developer mise run native-unit
+DEVELOPER_DIR=/Applications/Xcode.app/Contents/Developer mise run native-gallery-unit
 ```
 
 The Swift unit executable runs the real session controller with fake external provider, keychain, Auth, API and clock capabilities.
 The Rust tests run real API mapping, application and domain behavior. Identity tests substitute the trusted remote Auth capability.
 They make no network requests. They cannot establish real provider configuration, keychain behavior, session revocation or native bridge behavior.
-CI retains all legacy checks and adds scoped Rust and native session unit checks.
+CI retains all legacy checks and adds scoped Rust, native session and gallery unit checks.
+
+## Gallery installation
+
+The signed-in shell composes the shared `GalleryStatus` organism below the account controls.
+`GalleryController` owns local readiness, update, cancellation and lifecycle presentation.
+`GalleryStorage` reads only the existing published artifacts with the current session. It never publishes or changes hosted artifacts.
+`NativeGalleryDevice` adapts the existing background download and installation code. Mobile does not link the backend application.
+
+The existing format types live in `GalleryFormat.swift`, shared by the installer, recognizer and mobile units.
+Gallery format 2, int8 per-vector encoding, model package hashing, model compilation, float16 row decoding and atomic folder replacement stay native.
+The installer checks installed metadata and compiled model dimensions before reusing a base. It validates the staged model before replacing the active folder.
+No recognition algorithm, gallery publication or parity gate is replaced.
+
+Parts and the active version remain in Application Support and are excluded from backup.
+A cancelled update keeps verified parts and a cancellation marker. Foreground recovery leaves it cancelled until **Try again**.
+Sign-out cancels authenticated coordination without removing the active gallery. A later session can resume from verified parts.
+The gallery units exercise real planning, SHA-256, compatibility and controller presentation. External Storage, native download, filesystem and model effects are substituted.
+The in-memory HTTP checks cover Storage URL mapping and refusal. They do not contact a provider.
+Real background transfer/relaunch, device model behavior, spoken VoiceOver and recognition parity still need manual acceptance.
 
 ## Build the isolated app
 

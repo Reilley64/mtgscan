@@ -34,6 +34,7 @@ private final class AccountPage: UIView {
   private var controller: SessionController?
   private var provider: NativeSignIn?
   private var timer: Timer?
+  private var gallery: GalleryFeature?
   private let idleTimer = TestAppIdleTimer(bundleIdentifier: Bundle.main.bundleIdentifier) {
     UIApplication.shared.isIdleTimerDisabled = $0
   }
@@ -60,6 +61,12 @@ private final class AccountPage: UIView {
         auth: SupabaseSessionService(config: config), api: AccountAPI(origin: config.apiURL))
       self.controller = controller
       controller.onChange = { [weak self] in self?.display() }
+      let gallery = GalleryFeature(config: config) { [weak controller] in
+        guard let controller else { throw SessionFailure.unauthenticated }
+        return try await controller.accessTokenForRequest()
+      }
+      self.gallery = gallery
+      layout.content.addArrangedSubview(gallery.view)
     }
     display()
     NotificationCenter.default.addObserver(
@@ -94,12 +101,17 @@ private final class AccountPage: UIView {
   private func display() {
     authentication.display(
       controller?.presentation ?? SessionPresentation(), configured: controller != nil)
+    gallery?.sessionChanged(signedIn: controller?.presentation.accountID != nil)
   }
 
   @objc private func foreground() {
     idleTimer.setActive(UIApplication.shared.applicationState == .active)
     timer?.invalidate()
-    Task { await controller?.resume() }
+    Task {
+      let hadAccount = controller?.presentation.accountID != nil
+      await controller?.resume()
+      if hadAccount { gallery?.foreground() }
+    }
     timer = Timer.scheduledTimer(withTimeInterval: 30, repeats: true) { [weak self] _ in
       Task { @MainActor in await self?.controller?.refreshIfNeeded() }
     }

@@ -108,6 +108,11 @@ def ref(path, kind):
 
 sources = sorted(source.rglob("*.swift"))
 sources = [path for path in sources if "tests" not in path.parts] + [build / "Tokens.swift"]
+recognizer = repo / "apps/mobile/modules/card-recognizer/ios"
+sources += [recognizer / "GalleryDownloads.swift"]
+sources += [recognizer / "Recognizer" / name for name in [
+    "GalleryFormat.swift", "GalleryInstaller.swift", "GalleryEncoding.swift", "ModelPackage.swift", "SHA256Hex.swift",
+]]
 refs = [ref(path, "sourcecode.swift") for path in sources]
 source_phase = obj("PBXSourcesBuildPhase", buildActionMask=2147483647, files=[obj("PBXBuildFile", fileRef=key) for key in refs], runOnlyForDeploymentPostprocessing=0)
 package = obj("XCRemoteSwiftPackageReference", repositoryURL="https://github.com/google/GoogleSignIn-iOS", requirement={"kind": "exactVersion", "version": "9.0.0"})

@@ -7,6 +7,7 @@ on:
       - Cargo.lock
       - crates/**
       - apps/native/**
+      - apps/mobile/modules/card-recognizer/ios/**
       - apps/mobile/src/theme.ts
       - apps/mobile/assets/google-logo*.png
       - scripts/check-rust-boundaries.py
@@ -37,6 +38,7 @@ jobs:
       - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1
       - uses: jdx/mise-action@5228313ee0372e111a38da051671ca30fc5a96db
       - run: mise run native-unit
+      - run: mise run native-gallery-unit
       - name: Check the native external adapters
         run: |
           mise exec -- xcrun swiftc -warnings-as-errors -typecheck apps/native/auth/SessionController.swift apps/native/auth/ServiceClients.swift apps/native/auth/KeychainSessionStore.swift

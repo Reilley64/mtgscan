@@ -141,6 +141,14 @@ final class SessionController {
     await resume()
   }
 
+  func accessTokenForRequest() async throws -> String {
+    await refreshIfNeeded()
+    guard let session, session.expiresAt > now(), presentation.accountID != nil,
+      !presentation.requiresRemoval
+    else { throw SessionFailure.unauthenticated }
+    return session.accessToken
+  }
+
   func signOut() async {
     generation += 1
     let operation = generation
