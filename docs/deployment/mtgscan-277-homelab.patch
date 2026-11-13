@@ -1,0 +1,187 @@
+diff --git a/terraform/services/mtgscan.tf b/terraform/services/mtgscan.tf
+new file mode 100644
+--- /dev/null
++++ b/terraform/services/mtgscan.tf
+@@ -0,0 +1,46 @@
++variable "mtgscan_repository" {
++  type        = string
++  description = "Absolute path to the reviewed mtgscan checkout used as the host-local Docker build context."
++}
++
++locals {
++  mtgscan_sources = sort(concat(
++    ["Cargo.toml", "Cargo.lock", "mise.toml", "Dockerfile", ".dockerignore"],
++    tolist(fileset(var.mtgscan_repository, "crates/*/Cargo.toml")),
++    [for source_path in fileset(var.mtgscan_repository, "crates/*/src/**") : source_path
++      if !can(regex("(^|/)\\.env[^/]*$|(^|/)target/", source_path))
++    ],
++  ))
++  mtgscan_source_hash = sha256(join("", [
++    for source_path in local.mtgscan_sources :
++    format("%s:%s", source_path, filesha256(format("%s/%s", var.mtgscan_repository, source_path)))
++  ]))
++  mtgscan_image_tag = substr(local.mtgscan_source_hash, 0, 12)
++}
++
++module "mtgscan" {
++  source = "../modules/service"
++
++  name      = "mtgscan"
++  namespace = "mtgscan"
++  image     = format("mtgscan:%s", local.mtgscan_image_tag)
++
++  build = {
++    context = var.mtgscan_repository
++    triggers = {
++      source_hash = local.mtgscan_source_hash
++    }
++    labels = {
++      "org.opencontainers.image.source"  = "https://github.com/Reilley64/mtgscan"
++      "org.opencontainers.image.version" = local.mtgscan_image_tag
++    }
++  }
++
++  job_file = format("%s/jobs/mtgscan/mtgscan.nomad.hcl", path.module)
++  env      = local.shared_env
++
++  domain             = var.domain
++  host_address       = local.host_address
++  public             = true
++  cloudflare_zone_id = data.cloudflare_zone.reilley_dev.id
++}
+diff --git a/terraform/services/jobs/mtgscan/mtgscan.nomad.hcl b/terraform/services/jobs/mtgscan/mtgscan.nomad.hcl
+new file mode 100644
+--- /dev/null
++++ b/terraform/services/jobs/mtgscan/mtgscan.nomad.hcl
+@@ -0,0 +1,106 @@
++job "${name}" {
++  namespace   = "${namespace}"
++  datacenters = ["homelab"]
++  type        = "service"
++
++  group "${name}" {
++    update {
++      max_parallel      = 1
++      canary            = 1
++      auto_promote      = true
++      auto_revert       = true
++      min_healthy_time  = "10s"
++      healthy_deadline  = "2m"
++      progress_deadline = "3m"
++    }
++
++    network {
++      mode = "bridge"
++      port "http" {
++        to           = 8080
++        host_network = "internal"
++      }
++    }
++
++    shutdown_delay = "5s"
++
++    service {
++      name     = "${service}"
++      port     = "http"
++      provider = "consul"
++      tags     = ${jsonencode(traefik_tags)}
++
++      check {
++        name     = "readiness"
++        type     = "http"
++        path     = "/health"
++        interval = "5s"
++        timeout  = "2s"
++      }
++
++      check {
++        name     = "liveness"
++        type     = "http"
++        path     = "/health/live"
++        interval = "10s"
++        timeout  = "2s"
++        check_restart {
++          limit = 3
++          grace = "30s"
++        }
++      }
++    }
++
++    task "${name}" {
++      driver       = "docker"
++      kill_signal  = "SIGTERM"
++      kill_timeout = "30s"
++
++      config {
++        image      = "${image}"
++        force_pull = false
++        ports      = ["http"]
++      }
++
++      restart {
++        attempts = 3
++        interval = "30m"
++        delay    = "15s"
++        mode     = "delay"
++      }
++
++      consul {}
++      vault {}
++
++      env {
++%{ for key, value in env ~}
++        ${key} = ${jsonencode(value)}
++%{ endfor ~}
++        LISTEN_ADDRESS              = "0.0.0.0:8080"
++        OTEL_EXPORTER_OTLP_PROTOCOL = "grpc"
++        OTEL_METRIC_EXPORT_INTERVAL = "10000"
++      }
++
++      template {
++        destination          = "secrets/app.env"
++        env                  = true
++        perms                = "0400"
++        error_on_missing_key = true
++        data                 = <<-EOT
++          {{ with secret "kv/data/${namespace}/${name}" -}}
++          SUPABASE_URL={{ .Data.data.supabase_url | toJSON }}
++          SUPABASE_PUBLISHABLE_KEY={{ .Data.data.supabase_publishable_key | toJSON }}
++          COLLECTION_DATABASE_URL={{ .Data.data.collection_database_url | toJSON }}
++          {{ end -}}
++          {{ range service "alloy-otlp" }}OTEL_EXPORTER_OTLP_ENDPOINT=http://{{ .Address }}:{{ .Port }}{{ end }}
++        EOT
++      }
++
++      resources {
++        cpu        = 200
++        memory     = 128
++        memory_max = 512
++      }
++    }
++  }
++}
+diff --git a/terraform/platform/nomad.tf b/terraform/platform/nomad.tf
+--- a/terraform/platform/nomad.tf
++++ b/terraform/platform/nomad.tf
+@@ -13,6 +13,7 @@
+     torrents      = "Gluetun and qBittorrent"
+     data          = "Shared Postgres"
+     tabletop      = "Tabletop"
++    mtgscan       = "mtgscan"
+     bitwarden     = "Vaultwarden"
+     arcto         = "Arcto Vaultwarden"
+     home          = "Home Assistant and Piper"
+diff --git a/terraform/services/observability.tf b/terraform/services/observability.tf
+--- a/terraform/services/observability.tf
++++ b/terraform/services/observability.tf
+@@ -11,6 +11,10 @@
+     seerr = {
+       display_name = "Seerr"
+       url          = format("https://seerr.%s", var.domain)
++    }
++    mtgscan = {
++      display_name = "mtgscan"
++      url          = format("https://mtgscan.%s/health", var.domain)
+     }
+     tabletop = {
+       display_name = "Tabletop"
