@@ -397,6 +397,10 @@ This file records the design settled in Wayfinder tickets #11 (scan batch flow) 
 
 The tokens at the top of this file are the app theme. `apps/mobile/src/theme.ts` holds them, and the NativeWind theme is built from it. Each token is a class with the same name: `bg-surface-control` and `text-text-muted` for colors, `text-body-strong` for a type style, `rounded-sm` for a corner, and `gap-xs` or `py-lg` for spacing. New UI uses these classes, not inline style objects.
 
+### Bounded GPUI proof
+
+`prototypes/gpui-iphone` is a feasibility screen, not a product screen. It retains the upstream GPUI example's dark backdrop and blue control so the device evidence is easy to distinguish from the app. It uses native system text styles to check Dynamic Type without NativeWind. The 180 pt preview and 280 pt GPUI button are proof-only geometry. The button is at least 52 pt high, and native controls are at least 44 pt high. None of these values adds or changes a product token. Do not copy this styling into conversion screens.
+
 ## Colors
 
 The palette is near-black neutrals with one lime accent. Card art supplies every other color.

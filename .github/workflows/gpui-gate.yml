@@ -1,0 +1,38 @@
+name: GPUI gate unit checks
+
+on:
+  pull_request:
+    paths:
+      - prototypes/gpui-iphone/**
+      - mise.toml
+      - .github/workflows/gpui-gate.yml
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  unit:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1
+      - uses: jdx/mise-action@5228313ee0372e111a38da051671ca30fc5a96db
+      - name: Format and compile the presentation unit seam
+        run: |
+          mise exec -- actionlint .github/workflows/gpui-gate.yml
+          mise exec -- rustfmt --edition 2024 --check prototypes/gpui-iphone/gate.rs prototypes/gpui-iphone/camera_proof.rs
+          mise exec -- rustc --edition 2024 --deny warnings --test prototypes/gpui-iphone/camera_proof.rs -o "$RUNNER_TEMP/camera-proof-unit"
+          "$RUNNER_TEMP/camera-proof-unit"
+          PYTHONPYCACHEPREFIX="$RUNNER_TEMP/python-cache" python3 -m py_compile prototypes/gpui-iphone/prepare.py
+
+  camera-status:
+    runs-on: macos-15
+    env:
+      DEVELOPER_DIR: /Applications/Xcode_26.3.app/Contents/Developer
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1
+      - name: Check the native camera status presentation
+        run: |
+          xcrun swift-format lint --strict prototypes/gpui-iphone/*.swift
+          xcrun swiftc prototypes/gpui-iphone/camera_status.swift prototypes/gpui-iphone/camera_status_test.swift -o "$RUNNER_TEMP/camera-status-unit"
+          "$RUNNER_TEMP/camera-status-unit"
