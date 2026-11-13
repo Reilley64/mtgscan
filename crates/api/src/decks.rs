@@ -225,6 +225,7 @@ mod tests {
         async fn verify(&self, token: &str) -> Result<Caller, Refusal> {
             match token {
                 "invalid" => Err(Refusal::Unauthenticated),
+                "projection" => Ok(Caller::user("projection-owner".into())),
                 "ai" => Ok(Caller::ai_client("owner-a".into(), "client-a".into())),
                 _ => Ok(Caller::user("owner-a".into())),
             }
@@ -243,6 +244,10 @@ mod tests {
         assert_eq!(status, 200);
         let expected: Value = serde_json::from_str(include_str!("../fixtures/deck.json")).unwrap();
         assert_eq!(body, expected);
+        let (status, gallery) = request("GET", "/api/v1/decks", Some("projection"), "").await;
+        assert_eq!(status, 200);
+        let expected: Value = serde_json::from_str(include_str!("../fixtures/decks.json")).unwrap();
+        assert_eq!(gallery, expected);
     }
 
     fn sample_deck() -> DeckContents {
@@ -392,8 +397,15 @@ mod tests {
 
     struct Database;
     impl ReadDecks for Database {
-        async fn list(&self, _: &str) -> Result<Vec<OwnedDeckSummary>, DeckRefusal> {
-            Ok(vec![])
+        async fn list(&self, owner: &str) -> Result<Vec<OwnedDeckSummary>, DeckRefusal> {
+            Ok(if owner == "projection-owner" {
+                vec![OwnedDeckSummary {
+                    owner_id: owner.into(),
+                    deck: sample_deck().summary,
+                }]
+            } else {
+                vec![]
+            })
         }
     }
     impl ReadDeckContents for Database {

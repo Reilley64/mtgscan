@@ -6,9 +6,10 @@ grant usage on schema public, private, auth to mtgscan_decks;
 grant execute on function auth.uid(), auth.jwt() to mtgscan_decks;
 grant select on table
   public.decks, public.deck_cards, public.deck_basic_lands, public.deck_evaluations,
-  public.copies, public.card_printings, public.cards, public.card_prices,
-  public.planned_swaps, public.buylist_cards, private.needs_you_items
+  public.copies, public.card_printings, public.cards, public.card_prices, private.needs_you_items
 to mtgscan_decks;
+grant select (user_id, deck_id, status, outgoing_copy_id) on public.planned_swaps to mtgscan_decks;
+grant select (user_id, deck_id, status) on public.buylist_cards to mtgscan_decks;
 grant insert (user_id, name, priority) on public.decks to mtgscan_decks;
 grant update (name, priority, last_used_at) on public.decks to mtgscan_decks;
 

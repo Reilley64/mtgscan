@@ -435,6 +435,66 @@ mod tests {
         );
     }
 
+    struct OfflineDatabase;
+    impl ReadDecks for OfflineDatabase {
+        async fn list(&self, _: &str) -> Result<Vec<OwnedDeckSummary>, DeckRefusal> {
+            Err(DeckRefusal::Unavailable)
+        }
+    }
+    impl ReadDeckContents for OfflineDatabase {
+        async fn get(&self, _: &str, _: &str) -> Result<Option<OwnedDeckContents>, DeckRefusal> {
+            Err(DeckRefusal::Unavailable)
+        }
+    }
+    impl WriteDeckMetadata for OfflineDatabase {
+        async fn create(
+            &self,
+            _: &str,
+            _: &DeckName,
+            _: DeckPriority,
+        ) -> Result<String, DeckRefusal> {
+            Err(DeckRefusal::Unavailable)
+        }
+        async fn metadata(
+            &self,
+            _: &str,
+            _: &str,
+        ) -> Result<Option<OwnedDeckSummary>, DeckRefusal> {
+            Err(DeckRefusal::Unavailable)
+        }
+        async fn edit(&self, _: &str, _: &str, _: &MetadataChange) -> Result<(), DeckRefusal> {
+            Err(DeckRefusal::Unavailable)
+        }
+    }
+
+    #[tokio::test]
+    async fn failed_deck_persistence_is_neither_an_empty_gallery_nor_a_missing_deck_or_a_successful_write()
+     {
+        assert_eq!(
+            browse_decks(&Identity, &OfflineDatabase, Some("owner")).await,
+            Err(DeckRefusal::Unavailable)
+        );
+        assert_eq!(
+            get_deck(&Identity, &OfflineDatabase, Some("owner"), "stable").await,
+            Err(DeckRefusal::Unavailable)
+        );
+        assert_eq!(
+            create_deck(&Identity, &OfflineDatabase, Some("owner"), "Name").await,
+            Err(DeckRefusal::Unavailable)
+        );
+        assert_eq!(
+            edit_deck_metadata(
+                &Identity,
+                &OfflineDatabase,
+                Some("owner"),
+                "stable",
+                MetadataChange::Used
+            )
+            .await,
+            Err(DeckRefusal::Unavailable)
+        );
+    }
+
     struct EmptyDatabase;
     impl ReadDecks for EmptyDatabase {
         async fn list(&self, _: &str) -> Result<Vec<OwnedDeckSummary>, DeckRefusal> {

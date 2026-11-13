@@ -18,7 +18,7 @@ impl PostgresDecks {
             .map_err(|_| "Could not connect deck persistence")?;
         let allowed: bool = sqlx::query_scalar(
             "select current_user = 'mtgscan_decks' and session_user = current_user
-             and not (rolsuper or rolbypassrls or rolcreaterole or rolcreatedb or rolinherit)
+             and not (rolsuper or rolbypassrls or rolcreaterole or rolcreatedb or rolinherit or rolreplication)
              and not exists (select 1 from pg_catalog.pg_auth_members where member = role.oid)
              from pg_catalog.pg_roles role where rolname = current_user",
         )

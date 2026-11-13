@@ -1,7 +1,8 @@
-# Native account and collection presentation
+# Native account, collection and deck presentation
 
 Part of [MTGSCAN-275](https://app.plane.so/reilley/browse/MTGSCAN-275/) and [MTGSCAN-276](https://app.plane.so/reilley/browse/MTGSCAN-276/).
-The signed-in shell now opens the collection browse and read-only copy page. It is not the scanner replacement.
+The signed-in shell opens collection browse and the read-only copy page. MTGSCAN-288 adds Decks navigation, deck contents, creation, renaming and advisory priority. It is not the scanner replacement.
+[Deck API and limits](../../docs/deck-api.md) describe this bounded slice and its pending native and SQL gates.
 [Collection API and limits](../../docs/collection-api.md) describe the new read path and the later slices.
 MTGSCAN-274 passed under separate owner acceptance. Its historical stop reports do not re-block this slice.
 
@@ -18,7 +19,7 @@ GPUI window and Atomic Design page
 
 Mobile never links the backend application. Collection presentation calls the versioned API with the existing secure session.
 The backend uses Axum, a narrow Reqwest Auth adapter, and a direct SQLx Postgres read adapter under the dedicated collection reader role.
-Database credentials remain server-side. No deck or MCP framework is initialized here.
+Database credentials remain server-side. Deck presentation calls the same backend application through its versioned API. No MCP framework is initialized here.
 
 ## Checks
 
@@ -33,7 +34,7 @@ mise run rust-check
 DEVELOPER_DIR=/Applications/Xcode.app/Contents/Developer mise run native-unit
 ```
 
-The Swift unit executable runs real session and collection controllers with fake external provider, keychain, Auth, API and clock capabilities.
+The Swift unit executable includes real session, collection and deck controllers with fake external provider, keychain, Auth, API and clock capabilities.
 It also generates symbols, labels, sheen stops and aspect ratio from the existing mobile sources.
 The collection checks include copy metadata, account changes, sign-out, late replies, refusal, failure, empty state and retry.
 The Rust tests run real API mapping, application and domain behavior. Identity tests substitute the trusted remote Auth capability.
