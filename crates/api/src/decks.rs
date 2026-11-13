@@ -1,3 +1,4 @@
+use crate::credentials::{authorization, bearer};
 use crate::deck_contract::{deck_contents, deck_summary};
 use axum::{
     Json, Router,
@@ -31,21 +32,6 @@ where
         .route(DECK_PATH, get(contents::<I, D>))
         .route(METADATA_PATH, post(metadata::<I, D>))
         .with_state(Arc::new(Services { identity, database }))
-}
-
-fn credential(headers: &HeaderMap) -> Option<&str> {
-    if headers.get_all(header::AUTHORIZATION).iter().count() != 1 {
-        return None;
-    }
-    let (scheme, token) = headers
-        .get(header::AUTHORIZATION)?
-        .to_str()
-        .ok()?
-        .split_once(' ')?;
-    (scheme.eq_ignore_ascii_case("bearer")
-        && !token.is_empty()
-        && !token.chars().any(char::is_whitespace))
-    .then_some(token)
 }
 
 fn response(status: u16, body: Value) -> Response {
@@ -87,7 +73,7 @@ async fn list<I: VerifyIdentity, D: ReadDecks>(
     if query.is_some_and(|q| !q.is_empty()) {
         return invalid("query");
     }
-    match browse_decks(&s.identity, &s.database, credential(&headers)).await {
+    match browse_decks(&s.identity, &s.database, bearer(authorization(&headers))).await {
         Ok(decks) => response(
             200,
             json!({"items":decks.iter().map(deck_summary).collect::<Vec<_>>()}),
@@ -111,7 +97,7 @@ async fn contents<I: VerifyIdentity, D: ReadDeckContents>(
     match get_deck(
         &s.identity,
         &s.database,
-        credential(&headers),
+        bearer(authorization(&headers)),
         &id.to_string(),
     )
     .await
@@ -142,7 +128,7 @@ async fn create<I: VerifyIdentity, D: WriteDeckMetadata>(
     match create_deck(
         &s.identity,
         &s.database,
-        credential(&headers),
+        bearer(authorization(&headers)),
         &request.name,
     )
     .await
@@ -199,7 +185,7 @@ async fn metadata<I: VerifyIdentity, D: WriteDeckMetadata>(
     match edit_deck_metadata(
         &s.identity,
         &s.database,
-        credential(&headers),
+        bearer(authorization(&headers)),
         &id.to_string(),
         change,
     )
@@ -231,6 +217,28 @@ mod tests {
             }
         }
     }
+    #[tokio::test]
+    async fn deck_reads_require_one_well_formed_bearer_header() {
+        for (values, expected) in [
+            (vec![], 401),
+            (vec!["Basic owner"], 401),
+            (vec!["Bearer "], 401),
+            (vec!["Bearer two tokens"], 401),
+            (vec!["Bearer owner", "Bearer other"], 401),
+            (vec!["bEaReR owner"], 200),
+        ] {
+            let mut request = Request::builder().uri("/api/v1/decks");
+            for value in values {
+                request = request.header(header::AUTHORIZATION, value);
+            }
+            let reply = router(Identity, Database)
+                .oneshot(request.body(Body::empty()).unwrap())
+                .await
+                .unwrap();
+            assert_eq!(reply.status().as_u16(), expected);
+        }
+    }
+
     #[tokio::test]
     async fn deck_contents_and_gallery_use_the_canonical_projection_without_losing_stored_metadata()
     {
