@@ -1,4 +1,5 @@
 pub mod collection;
+pub mod collection_query;
 
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]
 pub enum Refusal {

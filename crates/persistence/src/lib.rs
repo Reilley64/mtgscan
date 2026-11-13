@@ -1,7 +1,11 @@
-use mtgscan_application::collection::ReadCollection;
+mod collection_cursor;
+mod collection_search;
+
+use mtgscan_application::collection::{PageCursor, ReadCollection, SearchSnapshot};
 use mtgscan_domain::collection::{
     CardPrinting, CollectionRefusal, Copy, Deck, Face, OwnedCopy, Price, UserTag,
 };
+use mtgscan_domain::collection_query::{CollectionQuery, QueryError};
 use serde::Deserialize;
 use sqlx::{
     PgPool, Row,
@@ -39,6 +43,36 @@ impl PostgresCollection {
 }
 
 impl ReadCollection for PostgresCollection {
+    async fn read_search_options(
+        &self,
+        owner: &str,
+    ) -> Result<mtgscan_application::collection::SearchOptions, CollectionRefusal> {
+        self.search_options(owner).await
+    }
+
+    fn read_cursor(
+        &self,
+        owner: &str,
+        query: &CollectionQuery,
+        token: &str,
+    ) -> Result<PageCursor, QueryError> {
+        collection_cursor::decode(owner, query, token)
+    }
+    fn write_cursor(
+        &self,
+        owner: &str,
+        query: &CollectionQuery,
+        cursor: &PageCursor,
+    ) -> Result<String, QueryError> {
+        collection_cursor::encode(owner, query, cursor)
+    }
+    async fn read_search(
+        &self,
+        owner: &str,
+        query: &CollectionQuery,
+    ) -> Result<SearchSnapshot, CollectionRefusal> {
+        self.search_snapshot(owner, query).await
+    }
     async fn read_copies(
         &self,
         owner: &str,

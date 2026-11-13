@@ -1,9 +1,107 @@
 use mtgscan_domain::collection::{Copy, Deck};
+use mtgscan_domain::collection_query::{CollectionQuery, QueryError, QueryValue};
 use serde::Serialize;
+use std::collections::BTreeMap;
+
+pub fn query_from_value(
+    fields: BTreeMap<String, serde_json::Value>,
+) -> Result<CollectionQuery, QueryError> {
+    use serde_json::Value;
+    let fields = fields
+        .into_iter()
+        .map(|(field, value)| {
+            let value = match value {
+                Value::String(value) => QueryValue::Text(value),
+                Value::Bool(value) => QueryValue::Flag(value),
+                Value::Number(value) => QueryValue::Number(value.as_f64().unwrap_or(f64::NAN)),
+                Value::Array(values) => QueryValue::List(
+                    values
+                        .into_iter()
+                        .enumerate()
+                        .map(|(index, value)| {
+                            value.as_str().map(str::to_owned).ok_or_else(|| {
+                                QueryError::invalid(
+                                    &format!("{field}[{index}]"),
+                                    "The value must be a string.",
+                                )
+                            })
+                        })
+                        .collect::<Result<Vec<_>, _>>()?,
+                ),
+                Value::Null => QueryValue::Null,
+                _ => QueryValue::Invalid,
+            };
+            Ok((field, value))
+        })
+        .collect::<Result<BTreeMap<_, _>, QueryError>>()?;
+    CollectionQuery::new(fields)
+}
 
 #[derive(Serialize)]
 pub struct BrowseResult {
     pub copies: Vec<CopyResult>,
+}
+
+#[derive(Serialize)]
+pub struct SearchResult {
+    pub search_options: Option<SearchOptionsResult>,
+    pub copies: Vec<CopyResult>,
+    pub basic_lands: Option<Vec<BasicLandResult>>,
+    pub total_count: Option<usize>,
+    pub next_cursor: Option<String>,
+    pub search_id: String,
+    pub rules_data_as_of: String,
+    pub rules_stale: bool,
+    pub prices_observed_at: Option<String>,
+    pub prices_stale: bool,
+}
+
+#[derive(Serialize)]
+pub struct SearchOptionsResult {
+    pub decks: Vec<DeckResult>,
+    pub user_tags: Vec<String>,
+}
+
+impl From<mtgscan_application::collection::SearchOptions> for SearchOptionsResult {
+    fn from(options: mtgscan_application::collection::SearchOptions) -> Self {
+        Self {
+            decks: options.decks.into_iter().map(Into::into).collect(),
+            user_tags: options.user_tags,
+        }
+    }
+}
+
+#[derive(Serialize)]
+pub struct BasicLandResult {
+    pub oracle_id: String,
+    pub name: String,
+    pub image_uris: Vec<String>,
+}
+
+impl From<mtgscan_application::collection::CollectionPage> for SearchResult {
+    fn from(page: mtgscan_application::collection::CollectionPage) -> Self {
+        Self {
+            search_options: page.options.map(Into::into),
+            copies: page.copies.into_iter().map(Into::into).collect(),
+            basic_lands: page.basic_lands.map(|lands| {
+                lands
+                    .into_iter()
+                    .map(|land| BasicLandResult {
+                        oracle_id: land.oracle_id,
+                        name: land.name,
+                        image_uris: land.image_uris,
+                    })
+                    .collect()
+            }),
+            total_count: page.total_count,
+            next_cursor: page.next_cursor,
+            search_id: page.search_id,
+            rules_data_as_of: page.metadata.rules_data_as_of,
+            rules_stale: page.metadata.rules_stale,
+            prices_observed_at: page.metadata.prices_observed_at,
+            prices_stale: page.metadata.prices_stale,
+        }
+    }
 }
 
 #[derive(Serialize)]

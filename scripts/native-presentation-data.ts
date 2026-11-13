@@ -44,6 +44,15 @@ for (const [token, symbol] of cardSymbols) {
   );
 }
 console.log("  ]");
+const searchBundle = await Bun.build({
+  entrypoints: [new URL("../apps/mobile/src/collection/native-collection-search-entry.ts", import.meta.url).pathname],
+  target: "browser",
+  format: "iife",
+  minify: true,
+});
+if (!searchBundle.success) throw new Error("Could not bundle collection search presentation");
+const searchJavaScript = Buffer.from(await searchBundle.outputs[0].text()).toString("base64");
+console.log(`  static let collectionSearchJavaScript = String(data: Data(base64Encoded: ${quoted(searchJavaScript)})!, encoding: .utf8)!`);
 console.log(
   `  static let cardImageAspectRatio: Double = ${aspectRatios.cardImage}`,
 );

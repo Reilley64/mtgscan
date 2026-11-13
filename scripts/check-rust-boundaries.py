@@ -10,7 +10,7 @@ allowed = {
     "mtgscan-application": {"mtgscan-domain"},
     "mtgscan-identity": {"mtgscan-application", "mtgscan-domain", "reqwest", "serde", "serde_json", "base64", "uuid"},
     "mtgscan-api": {"mtgscan-application", "mtgscan-domain", "axum", "serde", "serde_json", "uuid"},
-    "mtgscan-persistence": {"mtgscan-application", "mtgscan-domain", "sqlx", "serde", "serde_json"},
+    "mtgscan-persistence": {"mtgscan-application", "mtgscan-domain", "sqlx", "serde", "serde_json", "base64"},
     "mtgscan-server": {"mtgscan-identity", "mtgscan-api", "mtgscan-persistence", "axum", "tokio"},
 }
 for package in metadata["packages"]:

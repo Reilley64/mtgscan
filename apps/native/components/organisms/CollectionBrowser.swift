@@ -7,17 +7,19 @@ final class CollectionBrowser: UIStackView {
   private let onClose: () -> Void
   private let onRetry: () -> Void
   private let onSignOut: () -> Void
+  private let onMore: () -> Void
 
   init(
     images: any CardImages, onOpen: @escaping (String) -> Void,
     onClose: @escaping () -> Void, onRetry: @escaping () -> Void,
-    onSignOut: @escaping () -> Void
+    onSignOut: @escaping () -> Void, onMore: @escaping () -> Void = {}
   ) {
     self.images = images
     self.onOpen = onOpen
     self.onClose = onClose
     self.onRetry = onRetry
     self.onSignOut = onSignOut
+    self.onMore = onMore
     super.init(frame: .zero)
     axis = .vertical
     spacing = Tokens.lg
@@ -38,12 +40,6 @@ final class CollectionBrowser: UIStackView {
       removeArrangedSubview(view)
       view.removeFromSuperview()
     }
-    if state.selectedCopyID == nil {
-      let heading = AuthControls.label("Collection", style: .largeTitle)
-      heading.accessibilityTraits.insert(.header)
-      addArrangedSubview(heading)
-      addArrangedSubview(AuthControls.button("Sign out", action: onSignOut))
-    }
     if let message = state.message {
       if state.state == .loading && state.selectedCopyID == nil {
         addArrangedSubview(CollectionControls.skeleton())
@@ -51,7 +47,11 @@ final class CollectionBrowser: UIStackView {
         addArrangedSubview(AuthControls.label(message, style: .headline))
       }
       if state.state == .empty {
-        addArrangedSubview(AuthControls.label("Scan cards to add them to your collection."))
+        addArrangedSubview(
+          AuthControls.label(
+            state.searching
+              ? "Check the spelling or try fewer words."
+              : "Scan cards to add them to your collection."))
       }
       if state.state == .failed {
         addArrangedSubview(AuthControls.label("Check your connection."))
@@ -68,7 +68,60 @@ final class CollectionBrowser: UIStackView {
       }
       return
     }
-    if let copy = state.copy { show(copy) } else { grid(state.copies) }
+    if let copy = state.copy {
+      show(copy)
+    } else {
+      if state.searching, let total = state.totalCount {
+        addArrangedSubview(
+          AuthControls.label("\(state.copies.count) of \(total) copies", style: .caption2))
+      }
+      grid(state.copies)
+      if !state.visibleBasicLands.isEmpty {
+        addArrangedSubview(CollectionControls.heading("Basic lands"))
+        basicLands(state.visibleBasicLands)
+      }
+      if state.nextCursor != nil {
+        if state.loadingMore {
+          addArrangedSubview(AuthControls.label("Loading collection"))
+        } else {
+          if state.moreFailed { addArrangedSubview(AuthControls.label("Check your connection.")) }
+          addArrangedSubview(
+            AuthControls.button(state.moreFailed ? "Try again" : "Load more", action: onMore))
+        }
+      }
+    }
+  }
+
+  func displaySuggestions(
+    _ suggestions: [CollectionSearchOutput.Suggestion], onPick: @escaping (Int) -> Void
+  ) {
+    for view in arrangedSubviews {
+      removeArrangedSubview(view)
+      view.removeFromSuperview()
+    }
+    for (index, suggestion) in suggestions.enumerated() {
+      addArrangedSubview(AuthControls.button(suggestion.title) { onPick(index) })
+      if let detail = suggestion.detail {
+        addArrangedSubview(AuthControls.label(detail, style: .caption2))
+      }
+    }
+  }
+
+  private func basicLands(_ lands: [CollectionBasicLand]) {
+    for start in stride(from: 0, to: lands.count, by: 3) {
+      let row = UIStackView()
+      row.spacing = Tokens.sm
+      row.distribution = .fillEqually
+      row.alignment = .top
+      for index in start..<min(start + 3, lands.count) {
+        let land = lands[index]
+        row.addArrangedSubview(
+          CollectionSearchControls.basicLand(
+            uri: land.imageURIs.first, label: land.name, images: images))
+      }
+      for _ in row.arrangedSubviews.count..<3 { row.addArrangedSubview(UIStackView()) }
+      addArrangedSubview(row)
+    }
   }
 
   private func grid(_ copies: [CollectionCopy]) {

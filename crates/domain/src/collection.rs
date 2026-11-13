@@ -4,6 +4,7 @@ pub enum CollectionRefusal {
     Forbidden,
     NotFound,
     Unavailable,
+    DataUnavailable,
     InvalidRequest,
 }
 
