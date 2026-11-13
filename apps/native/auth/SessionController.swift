@@ -66,6 +66,7 @@ final class SessionController {
   private let api: any CurrentAccountService
   private let now: () -> TimeInterval
   private var session: StoredSession?
+  private var pendingRevocationToken: String?
   private var generation = 0
   private(set) var presentation = SessionPresentation()
   var onChange: (() -> Void)?
@@ -111,10 +112,12 @@ final class SessionController {
     generation += 1
     let operation = generation
     presentation.busy = true
+    presentation.hasSession = true
     presentation.message = nil
     changed()
     do {
       guard var candidate = try session ?? store.load() else {
+        presentation.hasSession = false
         finish(operation)
         return
       }
@@ -141,13 +144,15 @@ final class SessionController {
   func signOut() async {
     generation += 1
     let operation = generation
-    let token = session?.accessToken
+    let token = session?.accessToken ?? pendingRevocationToken
+    pendingRevocationToken = token
     session = nil
     presentation = SessionPresentation(busy: true)
     provider.signOut()
     changed()
     do {
       try store.remove()
+      pendingRevocationToken = nil
     } catch {
       presentation.requiresRemoval = true
       presentation.message = "Could not remove the saved session. Try signing out again."

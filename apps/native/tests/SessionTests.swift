@@ -3,9 +3,13 @@ import Foundation
 @MainActor
 final class MemoryKeychain: SessionStore {
   var value: StoredSession?
+  var failLoad = false
   var failSave = false
   var failRemove = false
-  func load() throws -> StoredSession? { value }
+  func load() throws -> StoredSession? {
+    if failLoad { throw SessionFailure.storage }
+    return value
+  }
   func save(_ session: StoredSession) throws {
     if failSave { throw SessionFailure.storage }
     value = session
@@ -30,6 +34,7 @@ final class NativeProvider: SignInProvider {
 final class AuthService: SessionService {
   var refreshFailure: SessionFailure?
   var revokeFailure = false
+  var revokedTokens: [String] = []
   func exchange(_ credential: ProviderCredential) async throws -> StoredSession {
     StoredSession(accessToken: "access", refreshToken: "refresh", expiresAt: 2000)
   }
@@ -38,6 +43,7 @@ final class AuthService: SessionService {
     return StoredSession(accessToken: "renewed", refreshToken: "rotated", expiresAt: 3000)
   }
   func revoke(_ token: String) async throws {
+    revokedTokens.append(token)
     if revokeFailure { throw SessionFailure.unavailable }
   }
 }
@@ -92,6 +98,30 @@ struct SessionTests {
     await cancellation.signIn(.apple)
     precondition(cancellation.presentation.message == nil && cancelledStore.value == nil)
 
+    let savedSessions: [StoredSession?] = [
+      StoredSession(accessToken: "saved", refreshToken: "saved-refresh", expiresAt: 2000), nil,
+    ]
+    for saved in savedSessions {
+      let unreadableStore = MemoryKeychain()
+      unreadableStore.value = saved
+      unreadableStore.failLoad = true
+      let restoration = SessionController(
+        provider: NativeProvider(), store: unreadableStore, auth: AuthService(),
+        api: AccountService(), now: { 1000 })
+      await restoration.resume()
+      precondition(
+        !restoration.presentation.canSignIn,
+        "A keychain-read failure must block switching unresolved accounts")
+      await restoration.signIn(.google)
+      precondition(unreadableStore.value?.accessToken == saved?.accessToken)
+      unreadableStore.failLoad = false
+      await restoration.resume()
+      precondition(restoration.presentation.canSignIn == (saved == nil))
+      precondition(restoration.presentation.accountID == (saved == nil ? nil : "account-1"))
+      await restoration.signOut()
+      precondition(restoration.presentation.canSignIn && unreadableStore.value == nil)
+    }
+
     let expiring = MemoryKeychain()
     expiring.value = StoredSession(accessToken: "old", refreshToken: "old-refresh", expiresAt: 1050)
     let refreshed = SessionController(
@@ -132,9 +162,10 @@ struct SessionTests {
     precondition(refusedStore.value == nil && refused.presentation.accountID == nil)
 
     let brokenStore = MemoryKeychain()
+    let brokenAuth = AuthService()
     brokenStore.failSave = true
     let broken = SessionController(
-      provider: NativeProvider(), store: brokenStore, auth: AuthService(),
+      provider: NativeProvider(), store: brokenStore, auth: brokenAuth,
       api: AccountService())
     await broken.signIn(.apple)
     precondition(broken.presentation.accountID == nil)
@@ -144,9 +175,13 @@ struct SessionTests {
     await broken.signOut()
     precondition(!broken.presentation.canSignIn && broken.presentation.requiresRemoval)
     precondition(broken.presentation.accountID == nil)
+    precondition(brokenAuth.revokedTokens.isEmpty)
     brokenStore.failRemove = false
     await broken.signOut()
     precondition(brokenStore.value == nil && broken.presentation.canSignIn)
+    precondition(
+      brokenAuth.revokedTokens == ["access"],
+      "Retrying keychain deletion must still revoke the original server session")
 
     let raceStore = MemoryKeychain()
     let pendingAPI = AccountService()
