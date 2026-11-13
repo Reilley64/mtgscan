@@ -13,3 +13,12 @@ mtgscan-api.workspace = true
 mtgscan-persistence.workspace = true
 tokio.workspace = true
 axum.workspace = true
+reqwest.workspace = true
+opentelemetry = "0.31"
+opentelemetry_sdk = "0.31"
+opentelemetry-otlp = { version = "0.31", default-features = false, features = ["grpc-tonic", "trace", "metrics", "logs"] }
+
+[dev-dependencies]
+opentelemetry_sdk = { version = "0.31", features = ["testing"] }
+tokio = { workspace = true, features = ["test-util"] }
+tower = { version = "0.5", features = ["util"] }

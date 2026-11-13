@@ -10,31 +10,40 @@ use sqlx::{
 };
 use std::time::Duration;
 
+#[derive(Clone)]
 pub struct PostgresCollection {
     pool: PgPool,
 }
 
 impl PostgresCollection {
-    pub async fn connect(url: &str) -> Result<Self, &'static str> {
+    pub fn connect_lazy(url: &str) -> Result<Self, &'static str> {
         let pool = PgPoolOptions::new()
             .max_connections(5)
             .acquire_timeout(Duration::from_secs(10))
-            .connect(url)
-            .await
-            .map_err(|_| "Could not connect collection persistence")?;
+            .connect_lazy(url)
+            .map_err(|_| "Could not configure collection persistence")?;
+        Ok(Self { pool })
+    }
+
+    pub async fn is_ready(&self) -> bool {
+        self.verify_role().await.is_ok()
+    }
+
+    async fn verify_role(&self) -> Result<(), sqlx::Error> {
         let allowed: bool = sqlx::query_scalar(
             "select current_user = 'mtgscan_collection_reader' and session_user = current_user
              and not (rolsuper or rolbypassrls or rolcreaterole or rolcreatedb or rolinherit)
              and not exists (select 1 from pg_catalog.pg_auth_members where member = role.oid)
              from pg_catalog.pg_roles role where rolname = current_user",
         )
-        .fetch_one(&pool)
-        .await
-        .map_err(|_| "Could not verify collection database role")?;
+        .fetch_one(&self.pool)
+        .await?;
         if !allowed {
-            return Err("Collection persistence requires its dedicated read-only role");
+            return Err(sqlx::Error::Protocol(
+                "Collection persistence requires its dedicated read-only role".into(),
+            ));
         }
-        Ok(Self { pool })
+        Ok(())
     }
 }
 
@@ -44,6 +53,9 @@ impl ReadCollection for PostgresCollection {
         owner: &str,
         copy_id: Option<&str>,
     ) -> Result<Vec<OwnedCopy>, CollectionRefusal> {
+        self.verify_role()
+            .await
+            .map_err(|_| CollectionRefusal::Unavailable)?;
         read(&self.pool, owner, copy_id)
             .await
             .map_err(|_| CollectionRefusal::Unavailable)

@@ -9,6 +9,7 @@ The collection read uses one Rust application layer and a scoped direct-Postgres
 It is isolated from the existing Expo app and does not replace collection, deck or scanner paths.
 [ADR 0016](docs/adr/0016-route-native-accounts-through-one-rust-application.md) records the dependency boundaries and unit-only verification scope.
 Use root Mise for the new Rust and native check commands. Existing setup and checks below still apply to legacy paths.
+The [backend deployment candidate](docs/deployment/mtgscan-277.md) adds process health, bounded draining and Rust OTLP telemetry. It includes a homelab candidate patch, not an applied deployment or an actual provider plan.
 
 ## Development
 

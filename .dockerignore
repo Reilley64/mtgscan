@@ -1,0 +1,13 @@
+**
+!Dockerfile
+!.dockerignore
+!mise.toml
+!Cargo.toml
+!Cargo.lock
+!crates/
+!crates/*/
+!crates/*/Cargo.toml
+!crates/*/src/
+!crates/*/src/**
+**/.env*
+**/target/
