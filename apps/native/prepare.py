@@ -67,7 +67,7 @@ def number(group, name):
 
 
 swift = "import UIKit\n\n@MainActor\nenum Tokens {\n"
-for name in ["background", "text", "surfaceControl"]:
+for name in ["background", "text", "surfaceControl", "textMuted", "line"]:
     value = color(name)
     channels = [int(value[i:i + 2], 16) / 255 for i in [0, 2, 4]]
     swift += f"  static let {name} = UIColor(red: {channels[0]}, green: {channels[1]}, blue: {channels[2]}, alpha: 1)\n"
@@ -121,7 +121,7 @@ def ref(path, kind):
 sources = sorted(source.rglob("*.swift"))
 sources = [path for path in sources if "tests" not in path.parts] + [build / "Tokens.swift"]
 recognizer = repo / "apps/mobile/modules/card-recognizer/ios"
-sources += [recognizer / "GalleryDownloads.swift", recognizer / "GalleryBackgroundEvents.swift"]
+sources += [recognizer / name for name in ["GalleryDownloads.swift", "GalleryBackgroundEvents.swift", "GalleryDownloadCommands.swift"]]
 sources += [recognizer / "Recognizer" / name for name in [
     "GalleryFormat.swift", "GalleryInstaller.swift", "GalleryEncoding.swift", "ModelPackage.swift", "SHA256Hex.swift",
 ]]

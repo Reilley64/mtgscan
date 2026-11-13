@@ -47,10 +47,12 @@ The signed-in shell composes the shared `GalleryStatus` organism below the accou
 The existing format types live in `GalleryFormat.swift`, shared by the installer, recognizer and mobile units.
 Gallery format 2, int8 per-vector encoding, model package hashing, model compilation, float16 row decoding and atomic folder replacement stay native.
 The installer checks installed metadata and compiled model dimensions before reusing a base. It validates the staged model before replacing the active folder.
+When an older base cannot be reused, a complete supported descendant downloads all its parts. Skipping an intermediate base does not make that descendant unsupported.
 No recognition algorithm, gallery publication or parity gate is replaced.
 
 Parts and the active version remain in Application Support and are excluded from backup.
 A cancelled update keeps verified parts and a cancellation marker. Foreground recovery leaves it cancelled until **Try again**.
+Native download and cancellation commands are ordered before task enumeration. Successful cancellation invalidates an earlier pending start, while a later explicit retry can proceed.
 Sign-out cancels authenticated coordination without removing the active gallery. A later session can resume from verified parts.
 The gallery units exercise real planning, SHA-256, compatibility and controller presentation. External Storage, native download, filesystem and model effects are substituted.
 The in-memory HTTP checks cover Storage URL mapping and refusal. They do not contact a provider.

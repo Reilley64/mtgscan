@@ -43,3 +43,4 @@ jobs:
         run: |
           mise exec -- xcrun swiftc -warnings-as-errors -typecheck apps/native/auth/SessionController.swift apps/native/auth/ServiceClients.swift apps/native/auth/KeychainSessionStore.swift
           find apps/native -name '*.swift' -exec xcrun swift-format lint --strict {} +
+          mise exec -- xcrun swift-format lint --strict apps/mobile/modules/card-recognizer/ios/GalleryDownloadCommands.swift

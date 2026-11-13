@@ -24,7 +24,7 @@ set -eu
 unit=$(mktemp "${TMPDIR:-/tmp}/mtgscan-gallery-unit.XXXXXX")
 trap 'rm -f "$unit"' EXIT
 core=apps/mobile/modules/card-recognizer/ios/Recognizer
-xcrun swiftc -warnings-as-errors "$core/../GalleryBackgroundEvents.swift" "$core/GalleryFormat.swift" "$core/GalleryInstaller.swift" "$core/GalleryEncoding.swift" "$core/ModelPackage.swift" "$core/SHA256Hex.swift" apps/native/gallery/GalleryPolicy.swift apps/native/gallery/GalleryController.swift apps/native/gallery/GalleryStorage.swift apps/native/auth/SessionController.swift apps/native/auth/ServiceClients.swift apps/native/tests/ServiceClientTests.swift apps/native/gallery/tests/*.swift -o "$unit"
+xcrun swiftc -warnings-as-errors "$core/../GalleryBackgroundEvents.swift" "$core/../GalleryDownloadCommands.swift" "$core/GalleryFormat.swift" "$core/GalleryInstaller.swift" "$core/GalleryEncoding.swift" "$core/ModelPackage.swift" "$core/SHA256Hex.swift" apps/native/gallery/GalleryPolicy.swift apps/native/gallery/GalleryController.swift apps/native/gallery/GalleryStorage.swift apps/native/auth/SessionController.swift apps/native/auth/ServiceClients.swift apps/native/tests/ServiceClientTests.swift apps/native/gallery/tests/*.swift -o "$unit"
 "$unit"
 """
 

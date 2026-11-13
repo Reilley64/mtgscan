@@ -40,16 +40,23 @@ struct GalleryUnitTests {
       try galleryManifest(version: "changed", model: "another-model", addOn: true),
       try galleryManifest(version: "changed", thresholds: "0.7", addOn: true),
     ] {
-      do {
-        _ = try GalleryPolicy.partsNeeded(changed, installed: base)
-        preconditionFailure("An add-on must not reuse a different model or recognizer thresholds")
-      } catch GalleryFailure.unsupported {}
+      let complete = try GalleryPolicy.partsNeeded(changed, installed: base)
+      precondition(
+        complete.map(\.name) == changed.parts.map(\.name),
+        "Skipping a new base must download its complete compatible descendant without reusing old parts"
+      )
     }
     let newBase = try galleryManifest(version: "new-base", thresholds: "0.7")
     let baseParts = try GalleryPolicy.partsNeeded(newBase, installed: base)
     precondition(
       baseParts.count == 3,
       "A new base installs all parts, including its model")
+    let descendant = try galleryManifest(
+      version: "new-base-addon", thresholds: "0.7", addOn: true)
+    let descendantParts = try GalleryPolicy.partsNeeded(descendant, installed: newBase)
+    precondition(
+      descendantParts.map(\.name) == ["1-gallery.zlib", "1-printings.zlib"],
+      "An installed matching new base reuses its verified parts")
     precondition(
       GalleryInstaller.partMatches(base.parts[0], data: Data("abc".utf8)),
       "The known SHA-256 of abc verifies")
@@ -86,6 +93,7 @@ struct GalleryUnitTests {
         input: [1, 3, 384, 384], output: [1, 3], model: base.model),
       "A gallery never activates with a different feature print size")
     runGalleryBackgroundEventsTests()
+    try await runGalleryDownloadCommandTests()
     try await runGalleryControllerTests()
     try await runGalleryStorageTests()
     print("Gallery unit checks passed")

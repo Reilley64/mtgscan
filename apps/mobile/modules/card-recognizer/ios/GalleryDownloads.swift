@@ -82,6 +82,7 @@ final class GalleryDownloads: NSObject, URLSessionDownloadDelegate, @unchecked S
   }
   private var listener: (@Sendable (GalleryDownloadStatus) -> Void)?
   private var session: URLSession!
+  private var commands: GalleryDownloadCommands!
 
   static var installedDirectory: URL { supportDirectory.appendingPathComponent("gallery", isDirectory: true) }
   private static var downloadsDirectory: URL {
@@ -104,6 +105,7 @@ final class GalleryDownloads: NSObject, URLSessionDownloadDelegate, @unchecked S
       delegateQueue.maxConcurrentOperationCount = 1
       delegateQueue.underlyingQueue = queue
       session = URLSession(configuration: configuration, delegate: self, delegateQueue: delegateQueue)
+      commands = GalleryDownloadCommands { [unowned self] in await self.session.allTasks }
     }
     pathMonitor.pathUpdateHandler = { [weak self] path in
       guard let self else { return }
@@ -131,13 +133,9 @@ final class GalleryDownloads: NSObject, URLSessionDownloadDelegate, @unchecked S
   }
 
   func cancel(persistCancellation: Bool = true) async -> Bool {
-    let tasks = await session.allTasks
-    return await withCheckedContinuation { continuation in
-      queue.async {
-        guard self.job?.installing != true else {
-          continuation.resume(returning: false)
-          return
-        }
+    await commands.cancel { tasks in
+      self.queue.sync {
+        guard self.job?.installing != true else { return false }
         let version = self.job?.version ?? ""
         var didCancel = true
         if persistCancellation {
@@ -164,7 +162,7 @@ final class GalleryDownloads: NSObject, URLSessionDownloadDelegate, @unchecked S
         }
         self.job = nil
         tasks.forEach(self.cancelOnPurpose)
-        continuation.resume(returning: didCancel)
+        return didCancel
       }
     }
   }
@@ -184,19 +182,13 @@ final class GalleryDownloads: NSObject, URLSessionDownloadDelegate, @unchecked S
   }
 
   func download(version: String, manifest manifestData: Data, urls: [String: URL], allowsCellularAccess: Bool) async throws {
-    let manifest = try GalleryInstaller.manifest(from: manifestData)
-    guard manifest.version == version else {
-      throw GalleryInstaller.Failure.unsupportedManifest("the manifest names gallery version \(manifest.version)")
-    }
-    let tasks = await session.allTasks
-    try await withCheckedThrowingContinuation { (continuation: CheckedContinuation<Void, Error>) in
-      queue.async {
-        do {
-          try self.start(manifest: manifest, data: manifestData, urls: urls, allowsCellularAccess: allowsCellularAccess, tasks: tasks)
-          continuation.resume()
-        } catch {
-          continuation.resume(throwing: error)
-        }
+    try await commands.download { tasks in
+      let manifest = try GalleryInstaller.manifest(from: manifestData)
+      guard manifest.version == version else {
+        throw GalleryInstaller.Failure.unsupportedManifest("the manifest names gallery version \(manifest.version)")
+      }
+      try self.queue.sync {
+        try self.start(manifest: manifest, data: manifestData, urls: urls, allowsCellularAccess: allowsCellularAccess, tasks: tasks)
       }
     }
   }
