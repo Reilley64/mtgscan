@@ -1,8 +1,8 @@
-# Native account shell
+# Native account and collection presentation
 
-Part of [MTGSCAN-275](https://app.plane.so/reilley/browse/MTGSCAN-275/).
-This includes the account slice and [MTGSCAN-279 gallery installation](https://app.plane.so/reilley/browse/MTGSCAN-279/).
-It is not the collection or camera/recognition replacement.
+Part of [MTGSCAN-275](https://app.plane.so/reilley/browse/MTGSCAN-275/), [MTGSCAN-276](https://app.plane.so/reilley/browse/MTGSCAN-276/) and [MTGSCAN-279](https://app.plane.so/reilley/browse/MTGSCAN-279/).
+The signed-in shell opens the collection browse and read-only copy page with gallery readiness and retry. It is not the scanner replacement.
+[Collection API and limits](../../docs/collection-api.md) describe the new read path and the later slices.
 MTGSCAN-274 passed under separate owner acceptance. Its historical stop reports do not re-block this slice.
 
 ```text
@@ -16,8 +16,9 @@ GPUI window and Atomic Design page
         identity infrastructure -> trusted Supabase Auth /auth/v1/user
 ```
 
-Mobile never links the backend application. No collection, deck or MCP framework is initialized here.
-The backend uses Axum and a narrow Reqwest Auth adapter. It has no database connection or privileged key.
+Mobile never links the backend application. Collection presentation calls the versioned API with the existing secure session.
+The backend uses Axum, a narrow Reqwest Auth adapter, and a direct SQLx Postgres read adapter under the dedicated collection reader role.
+Database credentials remain server-side. No deck or MCP framework is initialized here.
 
 ## Checks
 
@@ -27,19 +28,23 @@ Read `docs/agents/local-development.md` before native builds or device use.
 ```sh
 mise install
 mise run rust-components
+mise exec -- bun install --frozen-lockfile
 mise run rust-check
 DEVELOPER_DIR=/Applications/Xcode.app/Contents/Developer mise run native-unit
 DEVELOPER_DIR=/Applications/Xcode.app/Contents/Developer mise run native-gallery-unit
 ```
 
-The Swift unit executable runs the real session controller with fake external provider, keychain, Auth, API and clock capabilities.
+The Swift unit executable runs real session and collection controllers with fake external provider, keychain, Auth, API and clock capabilities.
+It also generates symbols, labels, sheen stops and aspect ratio from the existing mobile sources.
+The collection checks include copy metadata, account changes, sign-out, late replies, refusal, failure, empty state and retry.
 The Rust tests run real API mapping, application and domain behavior. Identity tests substitute the trusted remote Auth capability.
 They make no network requests. They cannot establish real provider configuration, keychain behavior, session revocation or native bridge behavior.
 CI retains all legacy checks and adds scoped Rust, native session and gallery unit checks.
 
 ## Gallery installation
 
-The signed-in shell composes the shared `GalleryStatus` organism below the account controls.
+The signed-in collection browse composes the shared `GalleryStatus` organism below the account controls and above the binder grid.
+Opening a copy keeps its existing hero and native Close header. Closing the copy returns to the browse and gallery controls.
 `GalleryController` owns local readiness, update, cancellation and lifecycle presentation.
 `GalleryStorage` reads only the existing published artifacts with the current session. It never publishes or changes hosted artifacts.
 `NativeGalleryDevice` adapts the existing background download and installation code. Mobile does not link the backend application.
@@ -76,6 +81,7 @@ Each build copies that source into its own `gpui` directory before adding the sh
 The patch adds one direct application-delegate forwarder to the native gallery adapter. It does not swizzle methods or change shared cached code.
 The upstream dependency lockfile is retained. Upstream Rust toolchain files are omitted from the build copy so root Mise remains the tool source. Rust still comes from root Mise.
 Generated native tokens come from the existing app theme, not a second palette.
+The Mana font is embedded. `scripts/native-presentation-data.ts` generates symbol meanings, glyphs and copy labels from the existing mobile definitions.
 GoogleSignIn uses an exact SPM version and the checked-in transitive resolution.
 
 ```sh

@@ -1,3 +1,5 @@
+pub mod collection;
+
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]
 pub enum Refusal {
     Unauthenticated,
@@ -24,6 +26,10 @@ impl Caller {
             user_id,
             client_id: Some(client_id),
         }
+    }
+
+    pub fn collection_owner(&self) -> &str {
+        &self.user_id
     }
 
     pub fn native_account(self) -> Result<String, Refusal> {

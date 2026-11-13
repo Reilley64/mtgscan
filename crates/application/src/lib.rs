@@ -1,8 +1,16 @@
+pub mod collection;
+
 use mtgscan_domain::{Caller, Refusal};
 use std::future::Future;
 
 pub trait VerifyIdentity: Send + Sync {
     fn verify(&self, credential: &str) -> impl Future<Output = Result<Caller, Refusal>> + Send;
+}
+
+impl<T: VerifyIdentity> VerifyIdentity for std::sync::Arc<T> {
+    async fn verify(&self, credential: &str) -> Result<Caller, Refusal> {
+        self.as_ref().verify(credential).await
+    }
 }
 
 pub async fn current_account(

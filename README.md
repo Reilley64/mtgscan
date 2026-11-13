@@ -4,7 +4,8 @@ An iPhone app for scanning Magic: The Gathering cards, keeping a collection, and
 
 ## Rust conversion
 
-The first converted slice is the [GPUI native account shell](apps/native/README.md) and its [versioned current-account API](docs/account-api.md).
+The converted path starts with the [GPUI native account shell](apps/native/README.md), its [versioned current-account API](docs/account-api.md), and the [collection browse and copy page read](docs/collection-api.md).
+The collection read uses one Rust application layer and a scoped direct-Postgres adapter. Hosted activation remains a separate approved step.
 It is isolated from the existing Expo app and does not replace collection, deck or scanner paths.
 [ADR 0016](docs/adr/0016-route-native-accounts-through-one-rust-application.md) records the dependency boundaries and unit-only verification scope.
 Use root Mise for the new Rust and native check commands. Existing setup and checks below still apply to legacy paths.

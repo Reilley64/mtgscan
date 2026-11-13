@@ -29,10 +29,11 @@ import UIKit
 }
 
 @MainActor
-private final class AccountPage: UIView {
+final class AccountPage: UIView {
   private let layout = AccountLayout()
   private var controller: SessionController?
   private var provider: NativeSignIn?
+  private var collectionPage: CollectionPage?
   private var timer: Timer?
   private var gallery: GalleryFeature?
   private let idleTimer = TestAppIdleTimer(bundleIdentifier: Bundle.main.bundleIdentifier) {
@@ -48,25 +49,45 @@ private final class AccountPage: UIView {
       Task { await self?.controller?.resume() }
     })
 
-  init() {
-    super.init(frame: .zero)
-    backgroundColor = Tokens.background
-    addSubview(layout)
-    layout.content.addArrangedSubview(authentication)
+  convenience init() {
     if let config = try? PublicConfiguration.load() {
       let provider = NativeSignIn(config: config, presenter: nil)
-      self.provider = provider
       let controller = SessionController(
         provider: provider, store: KeychainSessionStore(),
         auth: SupabaseSessionService(config: config), api: AccountAPI(origin: config.apiURL))
-      self.controller = controller
-      controller.onChange = { [weak self] in self?.display() }
+      let collection = CollectionController(
+        api: SessionCollectionService(
+          session: controller, api: CollectionAPI(origin: config.apiURL)))
       let gallery = GalleryFeature(config: config) { [weak controller] in
         guard let controller else { throw SessionFailure.unauthenticated }
         return try await controller.accessTokenForRequest()
       }
-      self.gallery = gallery
-      layout.content.addArrangedSubview(gallery.view)
+      self.init(controller: controller, collection: collection, gallery: gallery)
+      self.provider = provider
+    } else {
+      self.init(controller: nil, collection: nil, gallery: nil)
+    }
+  }
+
+  init(
+    controller: SessionController?, collection: CollectionController?, gallery: GalleryFeature?,
+    images: (any CardImages)? = nil
+  ) {
+    self.controller = controller
+    self.gallery = gallery
+    super.init(frame: .zero)
+    backgroundColor = Tokens.background
+    addSubview(layout)
+    layout.content.addArrangedSubview(authentication)
+    if let controller, let collection {
+      collection.bind(to: controller)
+      let page = CollectionPage(controller: collection, images: images, gallery: gallery?.view) {
+        [weak controller] in
+        Task { await controller?.signOut() }
+      }
+      collectionPage = page
+      addSubview(page)
+      controller.onChange = { [weak self] in self?.display() }
     }
     display()
     NotificationCenter.default.addObserver(
@@ -86,6 +107,7 @@ private final class AccountPage: UIView {
   override func layoutSubviews() {
     super.layoutSubviews()
     layout.frame = bounds
+    collectionPage?.frame = bounds
   }
 
   override func didMoveToWindow() {
@@ -99,6 +121,9 @@ private final class AccountPage: UIView {
   }
 
   private func display() {
+    let accountID = controller?.presentation.accountID
+    collectionPage?.isHidden = accountID == nil
+    layout.isHidden = accountID != nil
     authentication.display(
       controller?.presentation ?? SessionPresentation(), configured: controller != nil)
     gallery?.sessionChanged(signedIn: controller?.presentation.accountID != nil)

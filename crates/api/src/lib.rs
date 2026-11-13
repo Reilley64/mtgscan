@@ -1,3 +1,6 @@
+pub mod collection;
+pub mod collection_contract;
+
 use axum::{
     Json, Router,
     extract::State,

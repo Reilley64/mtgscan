@@ -13,9 +13,17 @@ final class GalleryFeature {
       Task { await self?.controller.cancel() }
     })
 
-  init(config: PublicConfiguration, accessToken: @escaping () async throws -> String) {
-    controller = GalleryController(
-      source: GalleryStorage(config: config), device: NativeGalleryDevice())
+  convenience init(config: PublicConfiguration, accessToken: @escaping () async throws -> String) {
+    self.init(
+      source: GalleryStorage(config: config), device: NativeGalleryDevice(),
+      accessToken: accessToken)
+  }
+
+  init(
+    source: any GallerySource, device: any GalleryDevice,
+    accessToken: @escaping () async throws -> String
+  ) {
+    controller = GalleryController(source: source, device: device)
     self.accessToken = accessToken
     controller.onChange = { [weak self] in self?.display() }
     view.isHidden = true
