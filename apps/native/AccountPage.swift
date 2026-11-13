@@ -141,7 +141,10 @@ private final class AccountPage: UIView {
   @objc private func foreground() {
     idleTimer.setActive(UIApplication.shared.applicationState == .active)
     timer?.invalidate()
-    Task { await controller?.resume() }
+    Task {
+      await controller?.resume()
+      if showingCatalog { await catalogPage?.refresh() }
+    }
     timer = Timer.scheduledTimer(withTimeInterval: 30, repeats: true) { [weak self] _ in
       Task { @MainActor in await self?.controller?.refreshIfNeeded() }
     }
