@@ -1,9 +1,34 @@
 import UIKit
 
 @MainActor
+private final class CardSymbolText: UILabel {
+  private let source: String
+
+  init(_ text: String) {
+    source = text
+    super.init(frame: .zero)
+    AuthControls.configureLabel(self, text: text)
+    registerForTraitChanges([UITraitPreferredContentSizeCategory.self]) {
+      (label: CardSymbolText, _: UITraitCollection) in
+      CardSymbolLabel.update(label, text: label.source)
+    }
+    CardSymbolLabel.update(self, text: source)
+  }
+
+  required init?(coder: NSCoder) { fatalError() }
+
+  override func didMoveToWindow() {
+    super.didMoveToWindow()
+    CardSymbolLabel.update(self, text: source)
+  }
+}
+
+@MainActor
 enum CardSymbolLabel {
-  static func make(_ text: String) -> UILabel {
-    let label = AuthControls.label(text)
+  static func make(_ text: String) -> UILabel { CardSymbolText(text) }
+
+  fileprivate static func update(_ label: UILabel, text: String) {
+    label.font = UIFont.preferredFont(forTextStyle: .body, compatibleWith: label.traitCollection)
     label.accessibilityLabel = CardSymbols.spokenText(text)
     let result = NSMutableAttributedString(string: "")
     let source = text as NSString
@@ -18,7 +43,7 @@ enum CardSymbolLabel {
       if let symbol = PresentationData.symbols[token] {
         let attachment = NSTextAttachment()
         let size = UIFontMetrics(forTextStyle: .body).scaledValue(
-          for: PresentationData.manaSymbolSize)
+          for: PresentationData.manaSymbolSize, compatibleWith: label.traitCollection)
         attachment.image = draw(symbol, size: size)
         let width = symbol.half ? size / 2 : size
         attachment.bounds = CGRect(
@@ -31,7 +56,6 @@ enum CardSymbolLabel {
     }
     result.append(NSAttributedString(string: source.substring(from: previous)))
     label.attributedText = result
-    return label
   }
 
   private static func color(_ name: String) -> UIColor {

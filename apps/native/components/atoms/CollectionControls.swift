@@ -47,6 +47,13 @@ final class CardArtwork: UIView {
 
 @MainActor
 enum CollectionControls {
+  static func close(_ action: @escaping () -> Void) -> UIButton {
+    let button = AuthControls.button("Close", action: action)
+    button.configuration?.title = nil
+    button.configuration?.image = UIImage(systemName: "xmark")
+    return button
+  }
+
   static func heading(_ text: String) -> UILabel {
     let label = AuthControls.label(text, style: .headline)
     label.textColor = Tokens.primary

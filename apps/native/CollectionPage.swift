@@ -5,7 +5,7 @@ final class CollectionPage: UIView {
   private let layout = AccountLayout()
   private let controller: CollectionController
   private let images: any CardImages
-  private lazy var close = AuthControls.button("Close") { [weak self] in
+  private lazy var close = CollectionControls.close { [weak self] in
     Task { await self?.controller.closeCopy() }
   }
   private var selectedCopyID: String?
