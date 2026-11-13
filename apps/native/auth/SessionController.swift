@@ -70,6 +70,7 @@ final class SessionController {
   private var generation = 0
   private(set) var presentation = SessionPresentation()
   var onChange: (() -> Void)?
+  var onAccountChange: ((String?) -> Void)?
 
   init(
     provider: any SignInProvider, store: any SessionStore, auth: any SessionService,
@@ -141,6 +142,21 @@ final class SessionController {
     await resume()
   }
 
+  func withAccessToken<T>(
+    for accountID: String, operation: (String) async throws -> T
+  ) async throws -> T {
+    await refreshIfNeeded()
+    guard presentation.accountID == accountID, let session, !presentation.requiresRemoval else {
+      throw SessionFailure.unauthenticated
+    }
+    let expected = generation
+    let result = try await operation(session.accessToken)
+    guard expected == generation, presentation.accountID == accountID else {
+      throw SessionFailure.unauthenticated
+    }
+    return result
+  }
+
   func signOut() async {
     generation += 1
     let operation = generation
@@ -201,5 +217,8 @@ final class SessionController {
     changed()
   }
 
-  private func changed() { onChange?() }
+  private func changed() {
+    onAccountChange?(presentation.accountID)
+    onChange?()
+  }
 }

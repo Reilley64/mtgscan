@@ -6,6 +6,7 @@ import pathlib
 import plistlib
 import re
 import shutil
+import subprocess
 import tarfile
 import urllib.request
 
@@ -55,7 +56,7 @@ def number(group, name):
 
 
 swift = "import UIKit\n\n@MainActor\nenum Tokens {\n"
-for name in ["background", "text", "surfaceControl"]:
+for name in ["background", "text", "surfaceControl", "surface", "textMuted", "line", "primary", "warning", "info", "manaGeneric", "manaWhite", "manaBlue", "manaBlack", "manaRed", "manaGreen", "manaGlyph"]:
     value = color(name)
     channels = [int(value[i:i + 2], 16) / 255 for i in [0, 2, 4]]
     swift += f"  static let {name} = UIColor(red: {channels[0]}, green: {channels[1]}, blue: {channels[2]}, alpha: 1)\n"
@@ -67,6 +68,11 @@ for name, value in {
     "googleFontSize": float(re.search(r"googleButton: \{ fontSize: ([0-9]+)", theme)[1]),
     "sm": number("spacing", "sm"),
     "lg": number("spacing", "lg"),
+    "md": number("spacing", "md"),
+    "xs": number("spacing", "xs"),
+    "heroBlur": number("blurRadii", "heroArt"),
+    "heroOpacity": number("opacity", "heroArt"),
+    "sheenOpacity": number("opacity", "sheen"),
     "corner": number("rounded", "sm"),
     "signInHeight": number("sizes", "signInButton"),
     "touchTarget": float(re.search(r"const touchTarget = ([0-9]+)", theme)[1]),
@@ -74,6 +80,7 @@ for name, value in {
 }.items():
     swift += f"  static let {name}: CGFloat = {value}\n"
 (build / "Tokens.swift").write_text(swift + "}\n")
+subprocess.run(["mise", "exec", "--", "bun", str(repo / "scripts/native-presentation-data.ts")], check=True, stdout=(build / "PresentationData.swift").open("w"))
 (example / "tokens.rs").write_text(
     f'pub const BACKGROUND: u32 = 0x{color("background")};\n'
     f'pub const TEXT: u32 = 0x{color("text")};\n'
@@ -107,7 +114,7 @@ def ref(path, kind):
 
 
 sources = sorted(source.rglob("*.swift"))
-sources = [path for path in sources if "tests" not in path.parts] + [build / "Tokens.swift"]
+sources = [path for path in sources if "tests" not in path.parts] + [build / "Tokens.swift", build / "PresentationData.swift"]
 refs = [ref(path, "sourcecode.swift") for path in sources]
 source_phase = obj("PBXSourcesBuildPhase", buildActionMask=2147483647, files=[obj("PBXBuildFile", fileRef=key) for key in refs], runOnlyForDeploymentPostprocessing=0)
 package = obj("XCRemoteSwiftPackageReference", repositoryURL="https://github.com/google/GoogleSignIn-iOS", requirement={"kind": "exactVersion", "version": "9.0.0"})
@@ -120,7 +127,7 @@ for name in ["UIKit", "Metal", "QuartzCore", "CoreText", "CoreGraphics", "Securi
     framework = obj("PBXFileReference", path=f"System/Library/Frameworks/{name}.framework", sourceTree="SDKROOT", lastKnownFileType="wrapper.framework")
     frameworks.append(obj("PBXBuildFile", fileRef=framework))
 framework_phase = obj("PBXFrameworksBuildPhase", buildActionMask=2147483647, files=frameworks, runOnlyForDeploymentPostprocessing=0)
-resources = []
+resources = [obj("PBXBuildFile", fileRef=ref(repo / "apps/mobile/assets/fonts/mana.ttf", "file"))]
 for image in (repo / "apps/mobile/assets").glob("google-logo*.png"):
     resources.append(obj("PBXBuildFile", fileRef=ref(image, "image.png")))
 if config:
@@ -131,8 +138,9 @@ group = obj("PBXGroup", children=refs + [rust, product], sourceTree="<group>")
 info = {
     "CFBundleExecutable": "$(EXECUTABLE_NAME)", "CFBundleIdentifier": "$(PRODUCT_BUNDLE_IDENTIFIER)",
     "CFBundleName": "$(PRODUCT_NAME)", "CFBundleDisplayName": "mtgscan Test",
-    "CFBundlePackageType": "APPL", "CFBundleShortVersionString": "0.1.0", "CFBundleVersion": "275",
+    "CFBundlePackageType": "APPL", "CFBundleShortVersionString": "0.1.0", "CFBundleVersion": "276",
     "UILaunchScreen": {}, "UISupportedInterfaceOrientations": ["UIInterfaceOrientationPortrait"],
+    "UIAppFonts": ["mana.ttf"],
 }
 if config:
     scheme = ".".join(reversed(config["googleIOSClientID"].split(".")))

@@ -33,6 +33,7 @@ private final class AccountPage: UIView {
   private let layout = AccountLayout()
   private var controller: SessionController?
   private var provider: NativeSignIn?
+  private var collectionPage: CollectionPage?
   private var timer: Timer?
   private let idleTimer = TestAppIdleTimer(bundleIdentifier: Bundle.main.bundleIdentifier) {
     UIApplication.shared.isIdleTimerDisabled = $0
@@ -59,6 +60,15 @@ private final class AccountPage: UIView {
         provider: provider, store: KeychainSessionStore(),
         auth: SupabaseSessionService(config: config), api: AccountAPI(origin: config.apiURL))
       self.controller = controller
+      let collection = CollectionController(
+        api: SessionCollectionService(
+          session: controller, api: CollectionAPI(origin: config.apiURL)))
+      collection.bind(to: controller)
+      let collectionPage = CollectionPage(controller: collection) { [weak controller] in
+        Task { await controller?.signOut() }
+      }
+      self.collectionPage = collectionPage
+      addSubview(collectionPage)
       controller.onChange = { [weak self] in self?.display() }
     }
     display()
@@ -79,6 +89,7 @@ private final class AccountPage: UIView {
   override func layoutSubviews() {
     super.layoutSubviews()
     layout.frame = bounds
+    collectionPage?.frame = bounds
   }
 
   override func didMoveToWindow() {
@@ -92,6 +103,9 @@ private final class AccountPage: UIView {
   }
 
   private func display() {
+    let accountID = controller?.presentation.accountID
+    collectionPage?.isHidden = accountID == nil
+    layout.isHidden = accountID != nil
     authentication.display(
       controller?.presentation ?? SessionPresentation(), configured: controller != nil)
   }

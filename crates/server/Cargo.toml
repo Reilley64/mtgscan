@@ -10,5 +10,6 @@ workspace = true
 [dependencies]
 mtgscan-identity.workspace = true
 mtgscan-api.workspace = true
+mtgscan-persistence.workspace = true
 tokio.workspace = true
 axum.workspace = true

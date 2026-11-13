@@ -67,6 +67,8 @@ struct SessionTests {
   @MainActor
   static func main() async throws {
     IdleTimerTests.run()
+    try await CollectionTests.run()
+    try await runCollectionServiceTests()
     let keychain = MemoryKeychain()
     let controller = SessionController(
       provider: NativeProvider(), store: keychain, auth: AuthService(),

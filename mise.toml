@@ -1,5 +1,6 @@
 [tools]
 rust = "1.98.1"
+bun = "1.4.4"
 actionlint = "1.7.12"
 cloudflared = "2026.10.7"
 
@@ -12,10 +13,11 @@ run = "python3 apps/native/prepare.py"
 [tasks.native-unit]
 run = """
 set -eu
-unit=$(mktemp "${TMPDIR:-/tmp}/mtgscan-session-unit.XXXXXX")
-trap 'rm -f "$unit"' EXIT
-xcrun swiftc -warnings-as-errors apps/native/TestAppIdleTimer.swift apps/native/auth/SessionController.swift apps/native/auth/ServiceClients.swift apps/native/tests/*.swift -o "$unit"
-"$unit"
+unit=$(mktemp -d "${TMPDIR:-/tmp}/mtgscan-session-unit.XXXXXX")
+trap 'rm -rf "$unit"' EXIT
+bun scripts/native-presentation-data.ts > "$unit/PresentationData.swift"
+xcrun swiftc -warnings-as-errors apps/native/TestAppIdleTimer.swift apps/native/auth/SessionController.swift apps/native/auth/ServiceClients.swift apps/native/collection/*.swift apps/native/components/atoms/CardSymbols.swift "$unit/PresentationData.swift" apps/native/tests/*.swift -o "$unit/tests"
+"$unit/tests"
 """
 
 [tasks.rust-check]
