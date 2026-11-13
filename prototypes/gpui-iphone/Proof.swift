@@ -4,6 +4,13 @@ import UIKit
 @_silgen_name("mtgscan_gate_event")
 func gateEvent(_ kind: Int32)
 
+private enum GateEvent: Int32 {
+  case toggleCamera = 1
+  case background = 2
+  case foreground = 3
+  case textSizeChanged = 4
+}
+
 @MainActor private var proof: ProofView?
 
 @_cdecl("mtgscan_proof_attach")
@@ -32,7 +39,7 @@ func gateEvent(_ kind: Int32)
 
 @MainActor private final class CameraAction: UIAccessibilityElement {
   override func accessibilityActivate() -> Bool {
-    gateEvent(1)
+    gateEvent(GateEvent.toggleCamera.rawValue)
     return true
   }
 }
@@ -213,8 +220,7 @@ func gateEvent(_ kind: Int32)
           switch recognition {
           case .notACard: message = "Not a card"
           case .card(let card):
-            let name = card.candidates.first?.name ?? "No card printing"
-            message = card.decision.accepted ? "Accepted: \(name)" : "Abstained: \(name)"
+            message = card.candidates.first?.name ?? "No card printing"
           }
         } catch { message = "Recognition unavailable. Check the test app gallery." }
       }
@@ -261,11 +267,11 @@ func gateEvent(_ kind: Int32)
 
   @objc private func background() {
     camera.setRunning(false)
-    gateEvent(2)
+    gateEvent(GateEvent.background.rawValue)
   }
 
-  @objc private func foreground() { gateEvent(3) }
-  @objc private func textSizeChanged() { gateEvent(4) }
+  @objc private func foreground() { gateEvent(GateEvent.foreground.rawValue) }
+  @objc private func textSizeChanged() { gateEvent(GateEvent.textSizeChanged.rawValue) }
 
   private func label(_ text: String, style: UIFont.TextStyle) -> UILabel {
     let label = UILabel()

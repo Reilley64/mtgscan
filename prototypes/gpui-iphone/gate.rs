@@ -10,7 +10,26 @@ use std::{
     time::Duration,
 };
 
-static EVENTS: Mutex<VecDeque<i32>> = Mutex::new(VecDeque::new());
+enum GateEvent {
+    ToggleCamera,
+    Background,
+    Foreground,
+    TextSizeChanged,
+}
+
+impl GateEvent {
+    fn from_raw(kind: i32) -> Option<Self> {
+        match kind {
+            1 => Some(Self::ToggleCamera),
+            2 => Some(Self::Background),
+            3 => Some(Self::Foreground),
+            4 => Some(Self::TextSizeChanged),
+            _ => None,
+        }
+    }
+}
+
+static EVENTS: Mutex<VecDeque<GateEvent>> = Mutex::new(VecDeque::new());
 
 unsafe extern "C" {
     fn mtgscan_proof_attach(view: *mut c_void);
@@ -21,7 +40,9 @@ unsafe extern "C" {
 
 #[unsafe(no_mangle)]
 pub extern "C" fn mtgscan_gate_event(kind: i32) {
-    EVENTS.lock().unwrap().push_back(kind);
+    if let Some(event) = GateEvent::from_raw(kind) {
+        EVENTS.lock().unwrap().push_back(event);
+    }
 }
 
 struct Gate {
@@ -110,10 +131,10 @@ pub extern "C" fn mtgscan_gpui_main() {
                             .update(cx, |this, cx| {
                                 for event in events {
                                     match event {
-                                        1 => this.camera.toggle(),
-                                        2 => this.camera.foreground(false),
-                                        3 => this.camera.foreground(true),
-                                        _ => {}
+                                        GateEvent::ToggleCamera => this.camera.toggle(),
+                                        GateEvent::Background => this.camera.foreground(false),
+                                        GateEvent::Foreground => this.camera.foreground(true),
+                                        GateEvent::TextSizeChanged => {}
                                     }
                                     this.sync();
                                     cx.notify();
