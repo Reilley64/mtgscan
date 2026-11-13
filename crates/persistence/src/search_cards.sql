@@ -24,6 +24,6 @@ select c.oracle_id::text, c.name_key, c.type_line, c.colors, c.color_identity,
   coalesce((select jsonb_agg(case when face.toughness ~ '^-?[0-9]+(\.[0-9]+)?$' then face.toughness::double precision end order by face.face_index)
     from public.card_faces face where face.oracle_id = c.oracle_id), '[]') as toughnesses,
   (__TEXT_MATCH__) as text_match,
-  (__TEXT_TIER__)::double precision as text_tier,
+  coalesce((__TEXT_TIER__)::double precision, 0) as text_tier,
   (__TEXT_RANK__)::double precision as text_rank
 from public.cards c join relevant on relevant.oracle_id = c.oracle_id
