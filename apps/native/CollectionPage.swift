@@ -1,8 +1,11 @@
 import UIKit
 
 @MainActor
-final class CollectionPage: UIView {
+final class CollectionPage: UIView, UIScrollViewDelegate {
   private let layout = AccountLayout()
+  private let header = UIView()
+  private let headerBackdrop = UIVisualEffectView(
+    effect: UIBlurEffect(style: .systemChromeMaterial))
   private let controller: CollectionController
   private let images: any CardImages
   private lazy var close = CollectionControls.close { [weak self] in
@@ -28,7 +31,18 @@ final class CollectionPage: UIView {
     backgroundColor = Tokens.background
     addSubview(layout)
     layout.content.addArrangedSubview(browser)
-    addSubview(close)
+    addSubview(header)
+    header.addSubview(close)
+    layout.delegate = self
+    if #available(iOS 26.0, *) {
+      let interaction = UIScrollEdgeElementContainerInteraction()
+      interaction.scrollView = layout
+      interaction.edge = .top
+      header.addInteraction(interaction)
+      layout.topEdgeEffect.style = .soft
+    } else {
+      header.insertSubview(headerBackdrop, at: 0)
+    }
     controller.onChange = { [weak self] in self?.display() }
     registerForTraitChanges([UITraitPreferredContentSizeCategory.self]) {
       (view: CollectionPage, _: UITraitCollection) in
@@ -44,19 +58,39 @@ final class CollectionPage: UIView {
 
   override func layoutSubviews() {
     super.layoutSubviews()
-    layout.frame = bounds
-    close.frame = CGRect(
-      x: 0, y: 0, width: max(Tokens.touchTarget, close.intrinsicContentSize.width),
-      height: max(Tokens.touchTarget, close.intrinsicContentSize.height))
+    header.frame = CGRect(x: 0, y: 0, width: bounds.width, height: Tokens.touchTarget)
+    let top = !header.isHidden && browser.hero == nil ? header.frame.maxY : 0
+    layout.frame = CGRect(x: 0, y: top, width: bounds.width, height: max(0, bounds.height - top))
+    headerBackdrop.frame = header.bounds
+    close.frame = CGRect(x: 0, y: 0, width: Tokens.touchTarget, height: Tokens.touchTarget)
+    layout.layoutIfNeeded()
+    updateHeaderEffect()
   }
 
   private func display() {
     let state = controller.presentation
     browser.display(state)
-    close.isHidden = state.selectedCopyID == nil
+    header.isHidden = state.selectedCopyID == nil
     if selectedCopyID != state.selectedCopyID {
       selectedCopyID = state.selectedCopyID
       layout.setContentOffset(.zero, animated: false)
+    }
+    setNeedsLayout()
+    updateHeaderEffect()
+  }
+
+  func scrollViewDidScroll(_ scrollView: UIScrollView) { updateHeaderEffect() }
+
+  private func updateHeaderEffect() {
+    let heroBelowHeader =
+      browser.hero.map {
+        $0.convert($0.bounds, to: self).maxY > header.frame.maxY
+      } ?? true
+    let hidden = controller.presentation.selectedCopyID == nil || heroBelowHeader
+    if #available(iOS 26.0, *) {
+      layout.topEdgeEffect.isHidden = hidden
+    } else {
+      headerBackdrop.isHidden = hidden
     }
   }
 

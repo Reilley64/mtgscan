@@ -25,6 +25,8 @@ final class CollectionBrowser: UIStackView {
 
   required init(coder: NSCoder) { fatalError() }
 
+  var hero: CardHero? { arrangedSubviews.first as? CardHero }
+
   func display(_ state: CollectionPresentation) {
     for view in arrangedSubviews {
       removeArrangedSubview(view)

@@ -84,6 +84,9 @@ Card images and blurred art use a separate HTTPS image capability, with no beare
 The Mana font, symbol meanings, symbol metrics, copy labels, gradient stops, aspect ratio, printed-card corners, and palette come from existing mobile sources.
 The build generates native presentation data rather than maintaining a second editable symbol or label list.
 Text uses Dynamic Type. Interactive controls have at least 44-point touch targets.
+The copy header keeps a fixed-size native Close control over the hero.
+On iOS 26 and later, the soft system scroll-edge effect protects content after the hero leaves the header.
+Older systems use a native material backdrop. Loading and error content reserve space below the header.
 
 This slice shows read-only metadata and USD prices.
 Search, filters, order controls, and pagination follow in MTGSCAN-283.
