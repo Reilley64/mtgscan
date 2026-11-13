@@ -29,7 +29,7 @@ import UIKit
 }
 
 @MainActor
-private final class AccountPage: UIView {
+final class AccountPage: UIView {
   private let layout = AccountLayout()
   private var controller: SessionController?
   private var provider: NativeSignIn?
@@ -37,6 +37,7 @@ private final class AccountPage: UIView {
   private var catalogPage: CatalogPage?
   private var showingCatalog = false
   private var timer: Timer?
+  private var gallery: GalleryFeature?
   private let idleTimer = TestAppIdleTimer(bundleIdentifier: Bundle.main.bundleIdentifier) {
     UIApplication.shared.isIdleTimerDisabled = $0
   }
@@ -50,43 +51,63 @@ private final class AccountPage: UIView {
       Task { await self?.controller?.resume() }
     })
 
-  init() {
+  convenience init() {
+    if let config = try? PublicConfiguration.load() {
+      let provider = NativeSignIn(config: config, presenter: nil)
+      let controller = SessionController(
+        provider: provider, store: KeychainSessionStore(),
+        auth: SupabaseSessionService(config: config), api: AccountAPI(origin: config.apiURL))
+      let collection = CollectionController(
+        api: SessionCollectionService(
+          session: controller, api: CollectionAPI(origin: config.apiURL)))
+      let gallery = GalleryFeature(config: config) { [weak controller] in
+        guard let controller else { throw SessionFailure.unauthenticated }
+        return try await controller.accessTokenForRequest()
+      }
+      let catalog = CatalogController(
+        api: SessionCatalogService(session: controller, api: CatalogAPI(origin: config.apiURL)))
+      self.init(controller: controller, collection: collection, gallery: gallery, catalog: catalog)
+      self.provider = provider
+    } else {
+      self.init(controller: nil, collection: nil, gallery: nil)
+    }
+  }
+
+  init(
+    controller: SessionController?, collection: CollectionController?, gallery: GalleryFeature?,
+    catalog: CatalogController? = nil, images: (any CardImages)? = nil
+  ) {
+    self.controller = controller
+    self.gallery = gallery
     super.init(frame: .zero)
     backgroundColor = Tokens.background
     addSubview(layout)
     layout.content.addArrangedSubview(authentication)
-    if let config = try? PublicConfiguration.load() {
-      let provider = NativeSignIn(config: config, presenter: nil)
-      self.provider = provider
-      let controller = SessionController(
-        provider: provider, store: KeychainSessionStore(),
-        auth: SupabaseSessionService(config: config), api: AccountAPI(origin: config.apiURL))
-      self.controller = controller
-      let collection = CollectionController(
-        api: SessionCollectionService(
-          session: controller, api: CollectionAPI(origin: config.apiURL)))
+    if let controller, let collection {
       let collectionPage = CollectionPage(
-        controller: collection,
-        onCatalog: { [weak self] in
-          self?.endEditing(true)
-          self?.showingCatalog = true
-          self?.display()
-          Task { await self?.catalogPage?.refresh() }
-        },
+        controller: collection, images: images, gallery: gallery?.view,
+        onCatalog: catalog == nil
+          ? nil
+          : { [weak self] in
+            self?.endEditing(true)
+            self?.showingCatalog = true
+            self?.display()
+            Task { await self?.catalogPage?.refresh() }
+          },
         onSignOut: { [weak controller] in
           Task { await controller?.signOut() }
         })
       self.collectionPage = collectionPage
       addSubview(collectionPage)
-      let catalog = CatalogController(
-        api: SessionCatalogService(session: controller, api: CatalogAPI(origin: config.apiURL)))
-      let catalogPage = CatalogPage(controller: catalog) { [weak self] in
-        self?.endEditing(true)
-        self?.showingCatalog = false
-        self?.display()
+      if let catalog {
+        let catalogPage = CatalogPage(controller: catalog, images: images) { [weak self] in
+          self?.endEditing(true)
+          self?.showingCatalog = false
+          self?.display()
+        }
+        self.catalogPage = catalogPage
+        addSubview(catalogPage)
       }
-      self.catalogPage = catalogPage
-      addSubview(catalogPage)
       controller.onAccountChange = { [weak self, weak collection] accountID in
         if let collection, collection.setAccount(accountID), accountID != nil {
           Task { await collection.reload() }
@@ -136,13 +157,16 @@ private final class AccountPage: UIView {
     layout.isHidden = accountID != nil
     authentication.display(
       controller?.presentation ?? SessionPresentation(), configured: controller != nil)
+    gallery?.sessionChanged(signedIn: controller?.presentation.accountID != nil)
   }
 
   @objc private func foreground() {
     idleTimer.setActive(UIApplication.shared.applicationState == .active)
     timer?.invalidate()
     Task {
+      let hadAccount = controller?.presentation.accountID != nil
       await controller?.resume()
+      if hadAccount { gallery?.foreground() }
       if showingCatalog {
         await catalogPage?.refresh()
       } else {

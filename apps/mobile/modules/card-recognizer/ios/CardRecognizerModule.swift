@@ -168,11 +168,7 @@ public final class GalleryDownloadsAppDelegate: ExpoAppDelegateSubscriber {
     handleEventsForBackgroundURLSession identifier: String,
     completionHandler: @escaping () -> Void
   ) {
-    guard identifier == GalleryDownloads.sessionIdentifier else {
-      completionHandler()
-      return
-    }
     nonisolated(unsafe) let done = completionHandler
-    GalleryDownloads.shared.handleBackgroundEvents { done() }
+    GalleryDownloads.handleBackgroundEvents(identifier: identifier) { done() }
   }
 }

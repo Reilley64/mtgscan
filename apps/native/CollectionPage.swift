@@ -17,16 +17,19 @@ final class CollectionPage: UIView, UIScrollViewDelegate {
     onOpen: { [weak self] id in Task { await self?.controller.open(id) } },
     onClose: { [weak self] in Task { await self?.controller.closeCopy() } },
     onRetry: { [weak self] in Task { await self?.controller.reload() } },
-    onCatalog: onCatalog, onSignOut: onSignOut)
+    onCatalog: onCatalog, onSignOut: onSignOut, gallery: gallery)
+  private let gallery: GalleryStatus?
   private let onSignOut: () -> Void
   private let onCatalog: (() -> Void)?
 
   init(
     controller: CollectionController, images: (any CardImages)? = nil,
+    gallery: GalleryStatus? = nil,
     onCatalog: (() -> Void)? = nil, onSignOut: @escaping () -> Void
   ) {
     self.controller = controller
     self.images = images ?? HTTPSCardImages()
+    self.gallery = gallery
     self.onSignOut = onSignOut
     self.onCatalog = onCatalog
     super.init(frame: .zero)
