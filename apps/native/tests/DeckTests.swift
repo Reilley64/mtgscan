@@ -77,6 +77,16 @@ enum DeckTests {
     precondition(controller.presentation.deck?.basicLands.first?.count == 8)
     precondition(controller.presentation.deck?.summary.evaluation?.validityStale == true)
     precondition(remote.writes == [.used])
+    controller.openCopy("10000000-0000-4000-8000-000000000001")
+    precondition(
+      controller.presentation.selectedCopyID == "10000000-0000-4000-8000-000000000001")
+    remote.suspend = true
+    controller.closeCopy()
+    precondition(controller.presentation.selectedCopyID == nil)
+    precondition(controller.presentation.selectedDeckID == deck.summary.deckID)
+    precondition(controller.presentation.deck?.summary.revision == 7)
+    precondition(controller.presentation.state == .loaded)
+    remote.suspend = false
     await controller.rename("Same name")
     await controller.setPriority(.low)
     precondition(remote.writes == [.used, .rename("Same name"), .priority(.low)])
@@ -116,5 +126,38 @@ enum DeckTests {
     precondition(DeckNameInput.checked(" \n ") == nil)
     precondition(DeckNameInput.checked(String(repeating: "x", count: 65)) == nil)
     precondition(DeckNameInput.checked("  Same name  ") == "Same name")
+    await copyDeckTagKeepsTheImmediateReturnOrigin(deck)
+  }
+
+  @MainActor
+  private static func copyDeckTagKeepsTheImmediateReturnOrigin(_ deck: DeckContents) async {
+    let remote = DeckRemote()
+    remote.deck = deck
+    remote.decks = [deck.summary]
+    let controller = DeckController(api: remote)
+    controller.setAccount("owner-a")
+    await controller.open(deck.summary.deckID)
+    controller.openCopy("10000000-0000-4000-8000-000000000001")
+    await controller.open(deck.summary.deckID)
+    precondition(controller.presentation.selectedCopyID == nil)
+    await controller.close()
+    precondition(
+      controller.presentation.selectedCopyID == "10000000-0000-4000-8000-000000000001")
+    precondition(controller.presentation.selectedDeckID == deck.summary.deckID)
+    precondition(controller.presentation.deck?.summary.revision == 7)
+    controller.closeCopy()
+    precondition(controller.presentation.selectedCopyID == nil)
+    precondition(controller.presentation.selectedDeckID == deck.summary.deckID)
+    await controller.close()
+    precondition(controller.presentation.selectedDeckID == nil)
+    await controller.open(deck.summary.deckID)
+    controller.openCopy("10000000-0000-4000-8000-000000000001")
+    await controller.open(deck.summary.deckID)
+    controller.setAccount("owner-b")
+    remote.decks = []
+    await controller.close()
+    precondition(controller.presentation.selectedCopyID == nil)
+    precondition(controller.presentation.selectedDeckID == nil)
+    precondition(controller.presentation.decks.isEmpty)
   }
 }

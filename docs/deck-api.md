@@ -86,6 +86,9 @@ This source change performs none of those actions.
 
 Collection remains available beside Decks. Copy deck tags open the selected deck by ID, not by name.
 The gallery opens Cards. Deck copy tiles open that exact copy and Close returns to the deck.
+That return does not wait for a collection browse request.
+Following a copy's deck tag keeps that copy as the immediate return origin.
+Account changes clear those return origins.
 Basic-land counts expand to individual read-only images, not selectable copies.
 The empty deck offers Open Collection.
 Create and Rename use native name alerts. More offers Rename and the checked advisory Priority submenu.

@@ -11,8 +11,9 @@ final class DeckPage: UIView, UIGestureRecognizerDelegate {
   private let header = UIStackView()
   private let ordering = UIStackView()
   private var selectedDeckID: String?
+  private var selectedCopyID: String?
   var onNavigationChange: ((Bool) -> Void)?
-  private var copyIsOpen = false
+  private var copyIsOpen: Bool { controller.presentation.selectedCopyID != nil }
   private weak var namePrompt: UIAlertController?
   private lazy var browser = DeckBrowser(
     images: images,
@@ -24,17 +25,12 @@ final class DeckPage: UIView, UIGestureRecognizerDelegate {
   private lazy var copyPage = CollectionPage(
     controller: copies, images: images,
     onClose: { [weak self] in
-      self?.copyIsOpen = false
-      self?.display()
+      self?.controller.closeCopy()
       Task { await self?.controller.reload() }
     },
     onDeck: { [weak self] id in
       guard let self else { return }
-      self.copyIsOpen = false
-      Task {
-        await self.copies.closeCopy()
-        await self.controller.open(id)
-      }
+      Task { await self.controller.open(id) }
     }, onSignOut: onSignOut)
 
   init(
@@ -60,6 +56,7 @@ final class DeckPage: UIView, UIGestureRecognizerDelegate {
     addSubview(ordering)
     addSubview(copyPage)
     controller.onChange = { [weak self] in self?.display() }
+    copyPage.onNavigationChange = { [weak self] _ in self?.updateCopyVisibility() }
     let back = UIScreenEdgePanGestureRecognizer(target: self, action: #selector(goBack(_:)))
     back.edges = .left
     back.delegate = self
@@ -97,9 +94,20 @@ final class DeckPage: UIView, UIGestureRecognizerDelegate {
       || (state.state == .loading && state.selectedDeckID == nil)
     {
       namePrompt?.dismiss(animated: false)
-      copyIsOpen = false
     }
-    copyPage.isHidden = !copyIsOpen
+    if selectedCopyID != state.selectedCopyID {
+      selectedCopyID = state.selectedCopyID
+      if let id = selectedCopyID {
+        let interaction = controller.interactionID
+        Task {
+          guard controller.interactionID == interaction,
+            controller.presentation.selectedCopyID == id
+          else { return }
+          await copies.open(id)
+        }
+      }
+    }
+    updateCopyVisibility()
     browser.display(
       state, grouping: controller.grouping, sort: controller.sort, ascending: controller.ascending)
     for stack in [header, ordering] {
@@ -196,9 +204,12 @@ final class DeckPage: UIView, UIGestureRecognizerDelegate {
   }
 
   private func openCopy(_ id: String) {
-    copyIsOpen = true
-    copyPage.isHidden = false
-    Task { await copies.open(id) }
+    controller.openCopy(id)
+  }
+
+  private func updateCopyVisibility() {
+    copyPage.isHidden =
+      !copyIsOpen || copies.presentation.selectedCopyID != controller.presentation.selectedCopyID
   }
 
   private func openCollection() {
@@ -208,7 +219,7 @@ final class DeckPage: UIView, UIGestureRecognizerDelegate {
     }
   }
 
-  func gestureRecognizerShouldBegin(_ gestureRecognizer: UIGestureRecognizer) -> Bool {
+  override func gestureRecognizerShouldBegin(_ gestureRecognizer: UIGestureRecognizer) -> Bool {
     !copyIsOpen && controller.presentation.selectedDeckID != nil
   }
 

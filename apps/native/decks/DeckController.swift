@@ -21,6 +21,7 @@ struct DeckPresentation {
   var decks: [DeckSummary] = []
   var deck: DeckContents?
   var selectedDeckID: String?
+  var selectedCopyID: String?
   var writing = false
   var writeFailure: String?
   var message: String? {
@@ -41,6 +42,7 @@ final class DeckController {
   private var accountID: String?
   private var generation = 0
   private var readGeneration = 0
+  private var origins: [DeckPresentation] = []
   private(set) var presentation = DeckPresentation()
   var interactionID: Int { generation }
   var onChange: (() -> Void)?
@@ -66,6 +68,7 @@ final class DeckController {
     generation += 1
     readGeneration += 1
     self.accountID = accountID
+    origins.removeAll()
     presentation = DeckPresentation(state: accountID == nil ? .signedOut : .loading)
     onChange?()
   }
@@ -107,11 +110,31 @@ final class DeckController {
     onChange?()
   }
 
+  func openCopy(_ id: String) {
+    guard accountID != nil, presentation.deck != nil else { return }
+    generation += 1
+    readGeneration += 1
+    presentation.selectedCopyID = id
+    presentation.writing = false
+    presentation.writeFailure = nil
+    onChange?()
+  }
+
+  func closeCopy() {
+    guard accountID != nil, presentation.selectedCopyID != nil else { return }
+    generation += 1
+    readGeneration += 1
+    presentation.selectedCopyID = nil
+    onChange?()
+  }
+
   func open(_ id: String) async {
     guard let accountID else { return }
+    if presentation.selectedCopyID != nil { origins.append(presentation) }
     generation += 1
     let operation = generation
     presentation.selectedDeckID = id
+    presentation.selectedCopyID = nil
     presentation.deck = nil
     presentation.writing = false
     presentation.writeFailure = nil
@@ -139,7 +162,14 @@ final class DeckController {
   func close() async {
     guard accountID != nil else { return }
     generation += 1
+    readGeneration += 1
+    if let origin = origins.popLast() {
+      presentation = origin
+      onChange?()
+      return
+    }
     presentation.selectedDeckID = nil
+    presentation.selectedCopyID = nil
     presentation.deck = nil
     presentation.writing = false
     presentation.writeFailure = nil
@@ -211,16 +241,19 @@ final class DeckController {
   private func refuse() {
     generation += 1
     readGeneration += 1
+    origins.removeAll()
     presentation = DeckPresentation(state: .refused)
   }
 
   private func removeMissingDeck() {
     generation += 1
     readGeneration += 1
+    origins.removeAll()
     presentation.writing = false
     let missingID = presentation.selectedDeckID
     presentation.decks.removeAll { $0.deckID == missingID }
     presentation.selectedDeckID = nil
+    presentation.selectedCopyID = nil
     presentation.deck = nil
     presentation.state = presentation.decks.isEmpty ? .empty : .loaded
   }

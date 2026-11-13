@@ -110,9 +110,10 @@ final class CollectionPage: UIView, UIScrollViewDelegate {
   }
 
   private func closeCopy() {
-    Task {
-      await controller.closeCopy()
-      onClose?()
+    if let onClose {
+      onClose()
+    } else {
+      Task { await controller.closeCopy() }
     }
   }
 }
