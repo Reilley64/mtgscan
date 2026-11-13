@@ -4,6 +4,8 @@ An iPhone app for scanning Magic: The Gathering cards, keeping a collection, and
 
 ## Development
 
+The bounded [physical iPhone GPUI proof](prototypes/gpui-iphone/README.md) is separate from the app. Its Rust version comes from `mise.toml` for local and CI commands. It does not authorize conversion work until MTGSCAN-274 passes every manual gate.
+
 The repo is a Bun workspace. The Expo app lives in `apps/mobile`. The public website, with the homepage, the privacy policy, the consent page, and the problem pages, lives in `apps/site`. It is static HTML, and only the consent page has a script.
 
 1. Install dependencies with `bun install`.
