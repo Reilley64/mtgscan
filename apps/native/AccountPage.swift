@@ -34,6 +34,13 @@ private final class AccountPage: UIView {
   private var controller: SessionController?
   private var provider: NativeSignIn?
   private var collectionPage: CollectionPage?
+  private var deckPage: DeckPage?
+  private var collection: CollectionController?
+  private var decks: DeckController?
+  private var selectedTab = 0
+  private let tabs = NavigationTabs(choices: [
+    ("Collection", "rectangle.grid.3x2"), ("Decks", "rectangle.stack"),
+  ])
   private var timer: Timer?
   private let idleTimer = TestAppIdleTimer(bundleIdentifier: Bundle.main.bundleIdentifier) {
     UIApplication.shared.isIdleTimerDisabled = $0
@@ -63,12 +70,37 @@ private final class AccountPage: UIView {
       let collection = CollectionController(
         api: SessionCollectionService(
           session: controller, api: CollectionAPI(origin: config.apiURL)))
-      collection.bind(to: controller)
-      let collectionPage = CollectionPage(controller: collection) { [weak controller] in
-        Task { await controller?.signOut() }
-      }
+      self.collection = collection
+      let decks = DeckController(
+        api: SessionDeckService(session: controller, api: DeckAPI(origin: config.apiURL)))
+      self.decks = decks
+      let copies = CollectionController(
+        api: SessionCollectionService(
+          session: controller, api: CollectionAPI(origin: config.apiURL)))
+      let collectionPage = CollectionPage(
+        controller: collection,
+        onDeck: { [weak self, weak decks] id in
+          self?.selectTab(1)
+          Task { await decks?.open(id) }
+        }, onSignOut: { [weak controller] in Task { await controller?.signOut() } })
       self.collectionPage = collectionPage
+      let deckPage = DeckPage(
+        controller: decks, copies: copies, onCollection: { [weak self] in self?.selectTab(0) },
+        onSignOut: { [weak controller] in Task { await controller?.signOut() } })
+      self.deckPage = deckPage
       addSubview(collectionPage)
+      addSubview(deckPage)
+      addSubview(tabs)
+      tabs.onSelect = { [weak self] index in self?.selectTab(index) }
+      controller.onAccountChange = { [weak collection, weak decks, weak copies] accountID in
+        let changed = collection?.setAccount(accountID) == true
+        decks?.setAccount(accountID)
+        copies?.setAccount(accountID)
+        if changed, accountID != nil {
+          Task { await collection?.reload() }
+          Task { await decks?.reload() }
+        }
+      }
       controller.onChange = { [weak self] in self?.display() }
     }
     display()
@@ -89,7 +121,12 @@ private final class AccountPage: UIView {
   override func layoutSubviews() {
     super.layoutSubviews()
     layout.frame = bounds
-    collectionPage?.frame = bounds
+    let tabHeight = tabs.isHidden ? 0 : tabs.sizeThatFits(bounds.size).height
+    tabs.frame = CGRect(
+      x: 0, y: max(0, bounds.height - tabHeight), width: bounds.width, height: tabHeight)
+    let content = CGRect(x: 0, y: 0, width: bounds.width, height: max(0, bounds.height - tabHeight))
+    collectionPage?.frame = content
+    deckPage?.frame = content
   }
 
   override func didMoveToWindow() {
@@ -104,10 +141,26 @@ private final class AccountPage: UIView {
 
   private func display() {
     let accountID = controller?.presentation.accountID
-    collectionPage?.isHidden = accountID == nil
+    collectionPage?.isHidden = accountID == nil || selectedTab != 0
+    deckPage?.isHidden = accountID == nil || selectedTab != 1
+    tabs.isHidden = accountID == nil
+    if accountID == nil {
+      selectedTab = 0
+      tabs.select(0)
+    }
+    setNeedsLayout()
     layout.isHidden = accountID != nil
     authentication.display(
       controller?.presentation ?? SessionPresentation(), configured: controller != nil)
+  }
+
+  private func selectTab(_ index: Int) {
+    selectedTab = index
+    tabs.select(index)
+    display()
+    Task {
+      if index == 0 { await collection?.reload() } else { await decks?.reload() }
+    }
   }
 
   @objc private func foreground() {

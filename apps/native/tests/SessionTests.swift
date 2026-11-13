@@ -71,6 +71,8 @@ struct SessionTests {
     try await invalidatedReadsStayRefusedAfterSigningInAgain()
     try await CollectionTests.run()
     try await runCollectionServiceTests()
+    try await DeckTests.run()
+    try await runDeckServiceTests()
     let keychain = MemoryKeychain()
     let controller = SessionController(
       provider: NativeProvider(), store: keychain, auth: AuthService(),

@@ -157,7 +157,7 @@ async fn create<I: VerifyIdentity, D: WriteDeckMetadata>(
 enum MetadataRequest {
     Rename { name: String },
     Priority { priority: Priority },
-    Used,
+    Used {},
 }
 
 #[derive(Deserialize)]
@@ -194,7 +194,7 @@ async fn metadata<I: VerifyIdentity, D: WriteDeckMetadata>(
             Priority::Medium => DeckPriority::Medium,
             Priority::Low => DeckPriority::Low,
         }),
-        MetadataRequest::Used => MetadataChange::Used,
+        MetadataRequest::Used {} => MetadataChange::Used,
     };
     match edit_deck_metadata(
         &s.identity,
@@ -343,6 +343,51 @@ mod tests {
                 no_combo_data: true,
             }),
         }
+    }
+
+    #[tokio::test]
+    async fn all_metadata_actions_refuse_ai_and_cannot_accept_revision_or_owner_assertions() {
+        let path = "/api/v1/decks/40000000-0000-4000-8000-000000000001/metadata";
+        for body in [
+            r#"{"action":"rename","name":"Same name"}"#,
+            r#"{"action":"priority","priority":"low"}"#,
+            r#"{"action":"used"}"#,
+        ] {
+            assert_eq!(request("POST", path, Some("ai"), body).await.0, 403);
+            assert_eq!(request("POST", path, None, body).await.0, 401);
+            assert_eq!(request("POST", path, Some("owner"), body).await.0, 404);
+        }
+        for body in [
+            r#"{"action":"rename","name":"Same name","revision":8}"#,
+            r#"{"action":"priority","priority":"urgent"}"#,
+            r#"{"action":"used","updated_by":"forged"}"#,
+            r#"{"action":"delete"}"#,
+        ] {
+            assert_eq!(request("POST", path, Some("owner"), body).await.0, 400);
+        }
+        assert_eq!(
+            request("GET", "/api/v1/decks/not-a-uuid", Some("owner"), "")
+                .await
+                .0,
+            400
+        );
+        assert_eq!(
+            request(
+                "GET",
+                "/api/v1/decks/40000000-0000-4000-8000-000000000099",
+                Some("owner"),
+                ""
+            )
+            .await
+            .0,
+            404
+        );
+        assert_eq!(
+            request("POST", "/api/v1/decks", Some("owner"), r#"{"name":"  "}"#)
+                .await
+                .0,
+            400
+        );
     }
 
     struct Database;

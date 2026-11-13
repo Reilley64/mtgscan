@@ -56,7 +56,7 @@ def number(group, name):
 
 
 swift = "import UIKit\n\n@MainActor\nenum Tokens {\n"
-for name in ["background", "text", "surfaceControl", "surface", "textMuted", "line", "primary", "warning", "info", "manaGeneric", "manaWhite", "manaBlue", "manaBlack", "manaRed", "manaGreen", "manaGlyph"]:
+for name in ["background", "text", "surfaceControl", "surface", "textMuted", "line", "primary", "warning", "info", "danger", "manaGeneric", "manaWhite", "manaBlue", "manaBlack", "manaRed", "manaGreen", "manaGlyph"]:
     value = color(name)
     channels = [int(value[i:i + 2], 16) / 255 for i in [0, 2, 4]]
     swift += f"  static let {name} = UIColor(red: {channels[0]}, green: {channels[1]}, blue: {channels[2]}, alpha: 1)\n"

@@ -7,17 +7,19 @@ final class CollectionBrowser: UIStackView {
   private let onClose: () -> Void
   private let onRetry: () -> Void
   private let onSignOut: () -> Void
+  private let onDeck: ((String) -> Void)?
 
   init(
     images: any CardImages, onOpen: @escaping (String) -> Void,
     onClose: @escaping () -> Void, onRetry: @escaping () -> Void,
-    onSignOut: @escaping () -> Void
+    onSignOut: @escaping () -> Void, onDeck: ((String) -> Void)? = nil
   ) {
     self.images = images
     self.onOpen = onOpen
     self.onClose = onClose
     self.onRetry = onRetry
     self.onSignOut = onSignOut
+    self.onDeck = onDeck
     super.init(frame: .zero)
     axis = .vertical
     spacing = Tokens.lg
@@ -116,7 +118,13 @@ final class CollectionBrowser: UIStackView {
       addArrangedSubview(label)
     }
     addArrangedSubview(AuthControls.label(CollectionLabels.chips(copy)))
-    if let deck = copy.deck ?? copy.heldFor { addArrangedSubview(AuthControls.label(deck.name)) }
+    if let deck = copy.deck ?? copy.heldFor {
+      if let onDeck {
+        addArrangedSubview(AuthControls.button(deck.name) { onDeck(deck.deckID) })
+      } else {
+        addArrangedSubview(AuthControls.label(deck.name))
+      }
+    }
     addArrangedSubview(CollectionControls.heading("User tags"))
     addArrangedSubview(
       AuthControls.label(

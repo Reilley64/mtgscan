@@ -5,12 +5,17 @@ final class CardArtwork: UIView {
   private let imageView = UIImageView()
   private let sheen = CAGradientLayer()
   private var load: Task<Void, Never>?
+  private let circular: Bool
 
-  init(uri: String?, images: any CardImages, finish: String = "nonfoil", blur: CGFloat = 0) {
+  init(
+    uri: String?, images: any CardImages, finish: String = "nonfoil", blur: CGFloat = 0,
+    cropped: Bool = false, circular: Bool = false
+  ) {
+    self.circular = circular
     super.init(frame: .zero)
     backgroundColor = blur > 0 ? .clear : Tokens.line
     clipsToBounds = true
-    imageView.contentMode = blur > 0 ? .scaleAspectFill : .scaleAspectFit
+    imageView.contentMode = blur > 0 || cropped ? .scaleAspectFill : .scaleAspectFit
     addSubview(imageView)
     let stops = finish == "foil" ? PresentationData.foilSheen : PresentationData.etchedSheen
     sheen.colors = stops.map { stop in
@@ -41,7 +46,11 @@ final class CardArtwork: UIView {
     super.layoutSubviews()
     imageView.frame = bounds
     sheen.frame = bounds
-    layer.cornerRadius = bounds.width * PresentationData.printedCardCornerPerWidth
+    layer.cornerRadius =
+      circular
+      ? bounds.width / 2
+      : imageView.contentMode == .scaleAspectFill
+        ? 0 : bounds.width * PresentationData.printedCardCornerPerWidth
   }
 }
 

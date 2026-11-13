@@ -35,7 +35,7 @@ function basicLandTiles(lands: DeckBasicLand[]): BasicLandTile[] {
   );
 }
 
-const typeGroups = [
+export const typeGroups = [
   { title: 'Creatures', type: 'Creature' },
   { title: 'Planeswalkers', type: 'Planeswalker' },
   { title: 'Battles', type: 'Battle' },
@@ -50,7 +50,7 @@ const landsGroup = typeGroups[typeGroups.length - 1].title;
 
 const mainDeckGroup = 'Main deck';
 
-const rarityGroups: Record<DeckCard['rarity'], string> = {
+export const rarityGroups: Record<DeckCard['rarity'], string> = {
   mythic: 'Mythic',
   rare: 'Rare',
   uncommon: 'Uncommon',
@@ -59,7 +59,7 @@ const rarityGroups: Record<DeckCard['rarity'], string> = {
   bonus: 'Special',
 };
 
-const highestManaValueGroup = 7;
+export const highestManaValueGroup = 7;
 
 function typeGroupOf(card: MainDeckCard) {
   if (isBasicLandTile(card)) {

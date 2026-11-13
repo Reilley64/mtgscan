@@ -9,24 +9,28 @@ final class CollectionPage: UIView, UIScrollViewDelegate {
   private let controller: CollectionController
   private let images: any CardImages
   private lazy var close = CollectionControls.close { [weak self] in
-    Task { await self?.controller.closeCopy() }
+    self?.closeCopy()
   }
   private var selectedCopyID: String?
+  private let onClose: (() -> Void)?
+  private let onDeck: ((String) -> Void)?
   private lazy var browser = CollectionBrowser(
     images: images,
     onOpen: { [weak self] id in Task { await self?.controller.open(id) } },
-    onClose: { [weak self] in Task { await self?.controller.closeCopy() } },
+    onClose: { [weak self] in self?.closeCopy() },
     onRetry: { [weak self] in Task { await self?.controller.reload() } },
-    onSignOut: onSignOut)
+    onSignOut: onSignOut, onDeck: onDeck)
   private let onSignOut: () -> Void
 
   init(
     controller: CollectionController, images: (any CardImages)? = nil,
-    onSignOut: @escaping () -> Void
+    onClose: (() -> Void)? = nil, onDeck: ((String) -> Void)? = nil, onSignOut: @escaping () -> Void
   ) {
     self.controller = controller
     self.images = images ?? HTTPSCardImages()
     self.onSignOut = onSignOut
+    self.onClose = onClose
+    self.onDeck = onDeck
     super.init(frame: .zero)
     backgroundColor = Tokens.background
     addSubview(layout)
@@ -99,7 +103,14 @@ final class CollectionPage: UIView, UIScrollViewDelegate {
     if gesture.state == .ended, gesture.translation(in: self).x > Tokens.touchTarget,
       controller.presentation.selectedCopyID != nil
     {
-      Task { await controller.closeCopy() }
+      closeCopy()
+    }
+  }
+
+  private func closeCopy() {
+    Task {
+      await controller.closeCopy()
+      onClose?()
     }
   }
 }

@@ -147,6 +147,7 @@ mod tests {
                 "invalid" => Err(Refusal::Unauthenticated),
                 "offline" => Err(Refusal::Unavailable),
                 "ai" => Ok(Caller::ai_client("owner-a".into(), "client-a".into())),
+                "other" => Ok(Caller::user("owner-b".into())),
                 _ => Ok(Caller::user("owner-a".into())),
             }
         }
@@ -425,6 +426,13 @@ mod tests {
             summary("mine", "Old name", "2026-11-01T00:00:00Z").evaluation
         );
         assert_eq!(decks[0].last_used_at, "2026-11-03T00:00:00Z");
+        let other = browse_decks(&Identity, &database, Some("other"))
+            .await
+            .unwrap();
+        assert_eq!(
+            other,
+            vec![summary("private", "Other name", "2026-11-01T00:00:00Z")]
+        );
     }
 
     struct EmptyDatabase;
