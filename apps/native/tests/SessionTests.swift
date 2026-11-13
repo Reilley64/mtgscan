@@ -77,7 +77,13 @@ struct SessionTests {
     let controller = SessionController(
       provider: NativeProvider(), store: keychain, auth: AuthService(),
       api: AccountService(), now: { 1000 })
+    do {
+      _ = try await controller.accessTokenForRequest()
+      preconditionFailure("Signed-out gallery requests cannot obtain a bearer token")
+    } catch SessionFailure.unauthenticated {}
     await controller.signIn(.apple)
+    let requestToken = try await controller.accessTokenForRequest()
+    precondition(requestToken == "access")
     precondition(controller.presentation.accountID == "account-1")
     precondition(keychain.value?.refreshToken == "refresh")
     await controller.signOut()

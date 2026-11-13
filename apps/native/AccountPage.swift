@@ -29,12 +29,13 @@ import UIKit
 }
 
 @MainActor
-private final class AccountPage: UIView {
+final class AccountPage: UIView {
   private let layout = AccountLayout()
   private var controller: SessionController?
   private var provider: NativeSignIn?
   private var collectionPage: CollectionPage?
   private var timer: Timer?
+  private var gallery: GalleryFeature?
   private let idleTimer = TestAppIdleTimer(bundleIdentifier: Bundle.main.bundleIdentifier) {
     UIApplication.shared.isIdleTimerDisabled = $0
   }
@@ -48,32 +49,49 @@ private final class AccountPage: UIView {
       Task { await self?.controller?.resume() }
     })
 
-  init() {
+  convenience init() {
+    if let config = try? PublicConfiguration.load() {
+      let provider = NativeSignIn(config: config, presenter: nil)
+      let controller = SessionController(
+        provider: provider, store: KeychainSessionStore(),
+        auth: SupabaseSessionService(config: config), api: AccountAPI(origin: config.apiURL))
+      let collection = CollectionController(
+        api: SessionCollectionService(
+          session: controller, api: CollectionAPI(origin: config.apiURL)))
+      let gallery = GalleryFeature(config: config) { [weak controller] in
+        guard let controller else { throw SessionFailure.unauthenticated }
+        return try await controller.accessTokenForRequest()
+      }
+      let sets = SetsController(
+        api: SessionSetsService(session: controller, api: SetsAPI(origin: config.apiURL)),
+        store: KeychainFinishViewStore())
+      self.init(controller: controller, collection: collection, gallery: gallery, sets: sets)
+      self.provider = provider
+    } else {
+      self.init(controller: nil, collection: nil, gallery: nil)
+    }
+  }
+
+  init(
+    controller: SessionController?, collection: CollectionController?, gallery: GalleryFeature?,
+    sets: SetsController? = nil, images: (any CardImages)? = nil
+  ) {
+    self.controller = controller
+    self.gallery = gallery
     super.init(frame: .zero)
     backgroundColor = Tokens.background
     addSubview(layout)
     layout.content.addArrangedSubview(authentication)
-    if let config = try? PublicConfiguration.load() {
-      let provider = NativeSignIn(config: config, presenter: nil)
-      self.provider = provider
-      let controller = SessionController(
-        provider: provider, store: KeychainSessionStore(),
-        auth: SupabaseSessionService(config: config), api: AccountAPI(origin: config.apiURL))
-      self.controller = controller
-      let collection = CollectionController(
-        api: SessionCollectionService(
-          session: controller, api: CollectionAPI(origin: config.apiURL)))
+    if let controller, let collection {
       collection.bind(to: controller)
-      let sets = SetsController(
-        api: SessionSetsService(session: controller, api: SetsAPI(origin: config.apiURL)),
-        store: KeychainFinishViewStore())
-      sets.bind(to: controller)
-      let collectionPage = CollectionPage(controller: collection, setsController: sets) {
-        [weak controller] in
+      sets?.bind(to: controller)
+      let page = CollectionPage(
+        controller: collection, setsController: sets, images: images, gallery: gallery?.view
+      ) { [weak controller] in
         Task { await controller?.signOut() }
       }
-      self.collectionPage = collectionPage
-      addSubview(collectionPage)
+      collectionPage = page
+      addSubview(page)
       controller.onChange = { [weak self] in self?.display() }
     }
     display()
@@ -113,12 +131,17 @@ private final class AccountPage: UIView {
     layout.isHidden = accountID != nil
     authentication.display(
       controller?.presentation ?? SessionPresentation(), configured: controller != nil)
+    gallery?.sessionChanged(signedIn: controller?.presentation.accountID != nil)
   }
 
   @objc private func foreground() {
     idleTimer.setActive(UIApplication.shared.applicationState == .active)
     timer?.invalidate()
-    Task { await controller?.resume() }
+    Task {
+      let hadAccount = controller?.presentation.accountID != nil
+      await controller?.resume()
+      if hadAccount { gallery?.foreground() }
+    }
     timer = Timer.scheduledTimer(withTimeInterval: 30, repeats: true) { [weak self] _ in
       Task { @MainActor in await self?.controller?.refreshIfNeeded() }
     }

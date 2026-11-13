@@ -33,6 +33,17 @@ if not upstream.exists():
         tar.extractall(cache)
     (cache / f"zed-{pin['revision']}").rename(upstream)
 
+cached_upstream = upstream
+upstream = build / "gpui"
+if not upstream.exists():
+    shutil.copytree(cached_upstream, upstream, ignore=shutil.ignore_patterns("target", "rust-toolchain.toml"))
+delegate = pathlib.Path("crates/gpui_ios/src/ios/application.rs")
+shutil.copy(cached_upstream / delegate, upstream / delegate)
+subprocess.run(
+    ["patch", "--batch", "-p1", "-i", str(source / "gpui-background-session.patch")],
+    cwd=upstream, check=True,
+)
+
 example = upstream / "crates/gpui_ios/examples"
 shutil.copy(source / "shell.rs", example / "mtgscan_mobile.rs")
 manifest = upstream / "crates/gpui_ios/Cargo.toml"
@@ -127,6 +138,11 @@ def ref(path, kind):
 
 sources = sorted(source.rglob("*.swift"))
 sources = [path for path in sources if "tests" not in path.parts] + [build / "Tokens.swift", build / "PresentationData.swift"]
+recognizer = repo / "apps/mobile/modules/card-recognizer/ios"
+sources += [recognizer / name for name in ["GalleryDownloads.swift", "GalleryBackgroundEvents.swift", "GalleryDownloadCommands.swift"]]
+sources += [recognizer / "Recognizer" / name for name in [
+    "GalleryFormat.swift", "GalleryInstaller.swift", "GalleryEncoding.swift", "ModelPackage.swift", "SHA256Hex.swift",
+]]
 refs = [ref(path, "sourcecode.swift") for path in sources]
 source_phase = obj("PBXSourcesBuildPhase", buildActionMask=2147483647, files=[obj("PBXBuildFile", fileRef=key) for key in refs], runOnlyForDeploymentPostprocessing=0)
 package = obj("XCRemoteSwiftPackageReference", repositoryURL="https://github.com/google/GoogleSignIn-iOS", requirement={"kind": "exactVersion", "version": "9.0.0"})

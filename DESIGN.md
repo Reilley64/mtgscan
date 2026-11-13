@@ -499,6 +499,7 @@ A list that loads in pages reads the next page as the user nears its end. While 
     - "Gallery download paused. It continues when you are online." with a **Try again** button, when the phone is offline.
     - "Gallery download did not work." with a **Try again** button, when a part fails its SHA-256 check three times or the download is refused.
     - "Not enough space for the gallery. It needs 269.4 MB." with a **Try again** button. The number is the space that this download and install need.
+    - The converted native gallery component also shows "Gallery download cancelled." and "This gallery version needs a newer app." with **Try again**. **Cancel** stops a pending update and keeps the installed gallery. Cancellation survives restart. **Try again** starts the update again. Installation itself cannot be cancelled.
   - A gallery update downloads in the background. Scanning goes on with the installed gallery, and the app switches to the new one when it is installed.
   - The first time the user opens Scan with the gallery on the phone, iOS asks for camera access.
   - When camera access is off, the tab shows its empty state with an **Open Settings** button, which opens the app's page in iOS Settings. See Empty states.

@@ -1,7 +1,7 @@
 # Native account and collection presentation
 
-Part of [MTGSCAN-275](https://app.plane.so/reilley/browse/MTGSCAN-275/) and [MTGSCAN-276](https://app.plane.so/reilley/browse/MTGSCAN-276/).
-The signed-in shell now opens the collection browse and read-only copy page. It is not the scanner replacement.
+Part of [MTGSCAN-275](https://app.plane.so/reilley/browse/MTGSCAN-275/), [MTGSCAN-276](https://app.plane.so/reilley/browse/MTGSCAN-276/), [MTGSCAN-279](https://app.plane.so/reilley/browse/MTGSCAN-279/) and [MTGSCAN-287](https://app.plane.so/reilley/browse/MTGSCAN-287/).
+The signed-in shell opens the collection browse and read-only copy page with gallery readiness and retry. Sets opens from the collection browse. It is not the scanner replacement.
 [Collection API and limits](../../docs/collection-api.md) describe the new read path and the later slices.
 MTGSCAN-274 passed under separate owner acceptance. Its historical stop reports do not re-block this slice.
 
@@ -31,6 +31,7 @@ mise run rust-components
 mise exec -- bun install --frozen-lockfile
 mise run rust-check
 DEVELOPER_DIR=/Applications/Xcode.app/Contents/Developer mise run native-unit
+DEVELOPER_DIR=/Applications/Xcode.app/Contents/Developer mise run native-gallery-unit
 ```
 
 The Swift unit executable runs real session and collection controllers with fake external provider, keychain, Auth, API and clock capabilities.
@@ -38,7 +39,38 @@ It also generates symbols, labels, sheen stops and aspect ratio from the existin
 The collection checks include copy metadata, account changes, sign-out, late replies, refusal, failure, empty state and retry.
 The Rust tests run real API mapping, application and domain behavior. Identity tests substitute the trusted remote Auth capability.
 They make no network requests. They cannot establish real provider configuration, keychain behavior, session revocation or native bridge behavior.
-CI retains all legacy checks and adds scoped Rust and native session unit checks.
+CI retains all legacy checks and adds scoped Rust, native session and gallery unit checks.
+
+## Gallery installation
+
+The signed-in collection browse composes the shared `GalleryStatus` organism below the account controls and above the binder grid.
+Opening a copy keeps its existing hero and native Close header. Closing the copy returns to the browse and gallery controls.
+Sets and set pages share the session and finish view. Returning from Sets reloads the collection without replacing the gallery coordinator.
+Sets refreshes on foreground and page appearance. Collection foreground reload is not wired in this composition; the session and gallery still refresh on foreground.
+The [Sets API and limits](../../docs/sets-api.md) describe the read path and separate SQL and native checks.
+`GalleryController` owns local readiness, update, cancellation and lifecycle presentation.
+`GalleryStorage` reads only the existing published artifacts with the current session. It never publishes or changes hosted artifacts.
+`NativeGalleryDevice` adapts the existing background download and installation code. Mobile does not link the backend application.
+
+The existing format types live in `GalleryFormat.swift`, shared by the installer, recognizer and mobile units.
+Gallery format 2, int8 per-vector encoding, model package hashing, model compilation, float16 row decoding and atomic folder replacement stay native.
+The installer checks installed metadata and compiled model dimensions before reusing a base. It validates the staged model before replacing the active folder.
+When an older base cannot be reused, a complete supported descendant downloads all its parts. Skipping an intermediate base does not make that descendant unsupported.
+No recognition algorithm, gallery publication or parity gate is replaced.
+
+Parts and the active version remain in Application Support and are excluded from backup.
+A cancelled update keeps verified parts and a cancellation marker. Foreground recovery leaves it cancelled until **Try again**.
+Native download and cancellation commands are ordered before task enumeration. Successful cancellation invalidates an earlier pending start, while a later explicit retry can proceed.
+Sign-out cancels authenticated coordination without removing the active gallery. A later session can resume from verified parts.
+The gallery units exercise real planning, SHA-256, compatibility and controller presentation. External Storage, native download, filesystem and model effects are substituted.
+The in-memory HTTP checks cover Storage URL mapping and refusal. They do not contact a provider.
+The GPUI application delegate forwards background URLSession events directly to `GalleryAppLifecycle`, even when no scene exists.
+Only the gallery session reconnects `GalleryDownloads.shared`. Its completion is retained before reconnection, even without a scene.
+Unknown sessions release their own completion without starting the engine.
+The engine restores the persisted job before reconnecting the session. A fully verified download resumes installation without needing a scene or a fresh sign-in.
+`GalleryBackgroundEvents` owns each completion until the matching session drains and any installation commits or fails, then releases it once on the main queue.
+Its unit checks substitute only the external main-thread delivery scheduler. They cover session matching, startup ordering, stale foreground drains, retained callback ownership and installation deferral.
+Real OS background transfer/relaunch, device model behavior, spoken VoiceOver and recognition parity still need manual acceptance.
 
 ## Build the isolated app
 
@@ -47,8 +79,10 @@ Discover the owner's existing selected iPhone 17 with the T3 device tools. Do no
 The actual local Xcode 27.1 is `/Applications/Xcode.app`. Use its explicit `DEVELOPER_DIR`; do not change `xcode-select`.
 
 `prepare.py` fetches GPUI at the revision and checksum in `gpui.json`.
-It keeps source in `~/Library/Caches/mtgscan/gpui`, not a previous agent's `/tmp` checkout.
-The upstream lockfile is retained. Rust still comes from root Mise.
+It caches source in `~/Library/Caches/mtgscan/gpui`, not a previous agent's `/tmp` checkout.
+Each build copies that source into its own `gpui` directory before adding the shell and applying the tracked `gpui-background-session.patch`.
+The patch adds one direct application-delegate forwarder to the native gallery adapter. It does not swizzle methods or change shared cached code.
+The upstream dependency lockfile is retained. Upstream Rust toolchain files are omitted from the build copy so root Mise remains the tool source. Rust still comes from root Mise.
 Generated native tokens come from the existing app theme, not a second palette.
 The Mana font is embedded. `scripts/native-presentation-data.ts` generates symbol meanings, glyphs and copy labels from the existing mobile definitions.
 GoogleSignIn uses an exact SPM version and the checked-in transitive resolution.
