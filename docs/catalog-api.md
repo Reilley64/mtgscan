@@ -57,6 +57,27 @@ Existing owner RLS policies still apply to copies, allocations and open holds.
 The adapter binds the owner and optional AI-client ID from the verified caller in a transaction-local claims context.
 Request fields cannot supply that context.
 
+### Reader provisioning
+
+A migration record does not prove that an Auth grant took effect.
+The pinned local Supabase image gives the migration role Auth usage without grant option.
+Its Auth grants can warn and leave the reader without schema usage.
+The adapter checks effective schema usage and Auth function execution when it connects.
+It refuses incomplete provisioning before serving requests.
+
+After the migrations, an authorized Auth schema and function grantor must run
+[`supabase/provision/collection-reader-auth.sql`](../supabase/provision/collection-reader-auth.sql).
+The file grants only Auth schema usage and execution of `auth.uid()` and `auth.jwt()` to the existing reader.
+It changes no role flags, memberships, table permissions, helper security mode or RLS.
+It checks grant authority first and verifies the effective grants in one transaction.
+Do not repeat the grant as an ordinary migration role that lacks grant option.
+
+For an approved isolated local stack, use its existing Auth owner connection and this file.
+For hosted setup, establish that owner's authorized provisioning path in MTGSCAN-277/278 first.
+Do not use the reader or an owner connection interchangeably in the application.
+Do not grant broader Auth grant option to the ordinary migration role.
+Hosted provisioning and activation still require their own approval.
+
 The existing SQL engine remains infrastructure. It retains full-name and face-name ranking, text and filter execution, cursor hashes and expiry, printing order, disabled Oracle tags, tag closure and counts, absent-but-owned printings, free quantities, prices and freshness.
 The transport adapters do not copy that engine.
 Canonical Rust validation checks request shape and static field constraints before execution.
