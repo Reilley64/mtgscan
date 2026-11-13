@@ -23,9 +23,14 @@ struct GalleryDownloadStatus: Sendable, Equatable {
   var bytesNeeded: Int64 = 0
 
   var javaScriptObject: [String: Any] {
+    let legacyState: State
+    switch state {
+    case .cancelled, .corrupt, .unsupported: legacyState = .failed
+    default: legacyState = state
+    }
     var object: [String: Any] = [
       "version": version,
-      "state": state.rawValue,
+      "state": legacyState.rawValue,
       "bytesDone": bytesDone,
       "bytesTotal": bytesTotal,
     ]

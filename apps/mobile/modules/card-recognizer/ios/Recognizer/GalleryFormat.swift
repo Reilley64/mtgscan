@@ -1,6 +1,8 @@
 import Foundation
 
 public struct FeaturePrintModel: Codable, Sendable, Equatable {
+  public static let inputName = "pixels"
+  public static let outputName = "featurePrint"
   public struct InputSize: Codable, Sendable, Equatable {
     public let width: Int
     public let height: Int

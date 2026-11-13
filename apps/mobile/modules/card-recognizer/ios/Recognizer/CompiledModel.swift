@@ -3,8 +3,8 @@ import CoreML
 import Foundation
 
 public final class CompiledModel: @unchecked Sendable {
-  static let input = "pixels"
-  static let output = "featurePrint"
+  static let input = FeaturePrintModel.inputName
+  static let output = FeaturePrintModel.outputName
   static let meanColor: Float16 = 0.5
 
   public enum Failure: Error {

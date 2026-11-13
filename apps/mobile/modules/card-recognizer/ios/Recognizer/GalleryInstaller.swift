@@ -212,8 +212,8 @@ public enum GalleryInstaller {
     let configuration = MLModelConfiguration()
     configuration.computeUnits = .all
     let loaded = try MLModel(contentsOf: directory.appendingPathComponent(GalleryFile.compiledModel), configuration: configuration)
-    guard let input = loaded.modelDescription.inputDescriptionsByName["pixels"]?.multiArrayConstraint,
-          let output = loaded.modelDescription.outputDescriptionsByName["featurePrint"]?.multiArrayConstraint,
+    guard let input = loaded.modelDescription.inputDescriptionsByName[FeaturePrintModel.inputName]?.multiArrayConstraint,
+          let output = loaded.modelDescription.outputDescriptionsByName[FeaturePrintModel.outputName]?.multiArrayConstraint,
           output.dataType == .float16,
           modelShapeMatches(input: input.shape.map(\.intValue), output: output.shape.map(\.intValue), model: model)
     else { throw Failure.unsupportedManifest("the compiled model does not match the gallery") }
