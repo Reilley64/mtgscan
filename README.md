@@ -1,13 +1,13 @@
 # mtgscan
 
+An iPhone app for scanning Magic: The Gathering cards, keeping a collection, and building Commander decks. The first release is iOS only. Android comes later. An authenticated remote MCP service lets compatible AI chats search the card catalog and collection, inspect decks, plan swaps, add to the buylist, and change user tags. It cannot change decks or copies.
+
 ## Rust conversion
 
 The first converted slice is the [GPUI native account shell](apps/native/README.md) and its [versioned current-account API](docs/account-api.md).
 It is isolated from the existing Expo app and does not replace collection, deck or scanner paths.
 [ADR 0016](docs/adr/0016-route-native-accounts-through-one-rust-application.md) records the dependency boundaries and unit-only verification scope.
 Use root Mise for the new Rust and native check commands. Existing setup and checks below still apply to legacy paths.
-
-An iPhone app for scanning Magic: The Gathering cards, keeping a collection, and building Commander decks. The first release is iOS only. Android comes later. An authenticated remote MCP service lets compatible AI chats search the card catalog and collection, inspect decks, plan swaps, add to the buylist, and change user tags. It cannot change decks or copies.
 
 ## Development
 

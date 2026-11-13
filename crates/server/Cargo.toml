@@ -12,4 +12,3 @@ mtgscan-identity.workspace = true
 mtgscan-api.workspace = true
 tokio.workspace = true
 axum.workspace = true
-
