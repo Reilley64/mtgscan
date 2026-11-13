@@ -1,4 +1,5 @@
 pub mod collection;
+pub mod decks;
 
 use mtgscan_domain::{Caller, Refusal};
 use std::future::Future;

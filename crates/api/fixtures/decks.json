@@ -1,0 +1,26 @@
+{
+  "items": [
+    {
+      "deck_id": "40000000-0000-4000-8000-000000000001",
+      "name": "Same name",
+      "priority": "high",
+      "card_count": 9,
+      "commanders": [
+        {
+          "copy_id": "10000000-0000-4000-8000-000000000001",
+          "name": "Sol Ring",
+          "art_crop_uri": "https://example.test/art.jpg"
+        }
+      ],
+      "last_used_at": "2026-11-02T00:00:00.000000Z",
+      "revision": 7,
+      "evaluation": {
+        "validity": "invalid",
+        "validity_stale": true,
+        "estimated_bracket": 3,
+        "bracket_stale": true
+      },
+      "needs_you_count": 2
+    }
+  ]
+}

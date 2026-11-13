@@ -1,5 +1,5 @@
 use mtgscan_identity::{HttpSupabaseAuth, SupabaseIdentity, SystemClock};
-use mtgscan_persistence::PostgresCollection;
+use mtgscan_persistence::{PostgresCollection, PostgresDecks};
 use std::{env, net::SocketAddr, sync::Arc};
 
 #[tokio::main]
@@ -13,8 +13,11 @@ async fn main() -> Result<(), &'static str> {
     let database_url =
         env::var("COLLECTION_DATABASE_URL").map_err(|_| "COLLECTION_DATABASE_URL is required")?;
     let database = PostgresCollection::connect(&database_url).await?;
+    let decks_url = env::var("DECKS_DATABASE_URL").map_err(|_| "DECKS_DATABASE_URL is required")?;
+    let decks = PostgresDecks::connect(&decks_url).await?;
     let routes = mtgscan_api::router(identity.clone())
-        .merge(mtgscan_api::collection::router(identity, database));
+        .merge(mtgscan_api::collection::router(identity.clone(), database))
+        .merge(mtgscan_api::decks::router(identity, decks));
     let address: SocketAddr = env::var("LISTEN_ADDRESS")
         .unwrap_or_else(|_| "127.0.0.1:8080".into())
         .parse()

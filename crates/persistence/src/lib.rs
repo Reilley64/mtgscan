@@ -1,3 +1,7 @@
+mod deck_rows;
+mod decks;
+pub use decks::PostgresDecks;
+
 use mtgscan_application::collection::ReadCollection;
 use mtgscan_domain::collection::{
     CardPrinting, CollectionRefusal, Copy, Deck, Face, OwnedCopy, Price, UserTag,

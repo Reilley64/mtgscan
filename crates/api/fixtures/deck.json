@@ -1,0 +1,99 @@
+{
+  "deck_id": "40000000-0000-4000-8000-000000000001",
+  "name": "Same name",
+  "priority": "high",
+  "card_count": 9,
+  "commanders": [
+    {
+      "copy_id": "10000000-0000-4000-8000-000000000001",
+      "name": "Sol Ring",
+      "art_crop_uri": "https://example.test/art.jpg"
+    }
+  ],
+  "last_used_at": "2026-11-02T00:00:00.000000Z",
+  "revision": 7,
+  "evaluation": {
+    "validity": "invalid",
+    "validity_stale": true,
+    "estimated_bracket": 3,
+    "bracket_stale": true,
+    "violations": [
+      {
+        "rule": "commander_eligibility",
+        "citation": null,
+        "message": "Sol Ring cannot be a commander.",
+        "hint": null,
+        "cards": [
+          {
+            "kind": "copy",
+            "copy_id": "10000000-0000-4000-8000-000000000001",
+            "name": "Sol Ring",
+            "image_uris": [
+              "https://example.test/card.jpg"
+            ]
+          }
+        ]
+      }
+    ],
+    "undetermined": [],
+    "chosen_color": null,
+    "bracket_signals": [],
+    "missing_signal_count": 1,
+    "revision": 7,
+    "catalog_at": "2026-11-01T00:00:00Z",
+    "oracle_tags_at": null,
+    "commander_spellbook_at": null,
+    "judged_at": "2026-11-01T12:00:00Z",
+    "validity_rules_data_at": "2026-11-01T00:00:00Z",
+    "bracket_rules_data_at": "2026-11-01T00:00:00Z",
+    "no_oracle_tag_data": true,
+    "no_combo_data": true
+  },
+  "created_at": "2026-10-01T00:00:00Z",
+  "cards": [
+    {
+      "copy_id": "10000000-0000-4000-8000-000000000001",
+      "printing_id": "20000000-0000-4000-8000-000000000001",
+      "name": "Sol Ring",
+      "set": "c21",
+      "collector_number": "263",
+      "rarity": "uncommon",
+      "image_uris": [
+        "https://example.test/card.jpg"
+      ],
+      "finish": "foil",
+      "condition": "lightly_played",
+      "language": "en",
+      "protected": false,
+      "price": {
+        "currency": "USD",
+        "amount": "1.50",
+        "finish": "foil",
+        "stale": false
+      },
+      "role": "commander",
+      "commander_at": "2026-11-01T01:00:00Z",
+      "added_at": "2026-11-01T00:00:00Z",
+      "type_line": "Artifact",
+      "mana_value": 1.0,
+      "colors": [],
+      "planned_out": true
+    }
+  ],
+  "basic_lands": [
+    {
+      "oracle_id": "30000000-0000-4000-8000-000000000001",
+      "name": "Island",
+      "image_uris": [
+        "https://example.test/island.jpg"
+      ],
+      "count": 8
+    },
+    {
+      "oracle_id": null,
+      "name": "Wastes",
+      "image_uris": [],
+      "count": 0
+    }
+  ]
+}

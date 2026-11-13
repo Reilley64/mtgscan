@@ -1,5 +1,7 @@
 pub mod collection;
 pub mod collection_contract;
+mod deck_contract;
+pub mod decks;
 
 use axum::{
     Json, Router,
