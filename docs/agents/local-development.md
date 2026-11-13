@@ -2,6 +2,11 @@
 
 `README.md` has the full setup. This file holds the rules that agents tripped on.
 
+## Tooling
+
+- `mise.toml` is the single source of project tool versions. Run project tools through `mise exec -- <command>`.
+- Trust the reviewed `mise.toml` in a new worktree before launching tools or agents: `mise trust mise.toml`. Node and Bun use Mise shims, so an untrusted config can stop an agent before it starts. The T3 worktree setup runs this file-specific trust step before agent launch. Other config and env files keep their own trust requirements.
+
 ## Env files
 
 - The source of truth is outside the repo, in `~/.config/mtgscan/mobile.env` and `~/.config/mtgscan/supabase.env`.
