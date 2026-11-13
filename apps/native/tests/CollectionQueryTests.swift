@@ -10,6 +10,7 @@ private final class QueryRemote: CollectionService {
 
   func browse(accountID: String) async throws -> [CollectionCopy] { result.copies }
   func copy(accountID: String, copyID: String) async throws -> CollectionCopy {
+    if let failure { throw failure }
     guard let copy = result.copies.first(where: { $0.copyID == copyID }) else {
       throw CollectionFailure.notFound
     }
