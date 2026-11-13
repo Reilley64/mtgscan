@@ -1,0 +1,24 @@
+--- a/crates/gpui_ios/src/ios/application.rs
++++ b/crates/gpui_ios/src/ios/application.rs
+@@ -262,6 +262,21 @@
+             configuration
+         }
+ 
++        #[unsafe(method(application:handleEventsForBackgroundURLSession:completionHandler:))]
++        fn handle_background_events(
++            &self,
++            _application: &UIApplication,
++            identifier: &NSString,
++            completion: &block2::DynBlock<dyn Fn()>,
++        ) {
++            unsafe {
++                let _: () = msg_send![
++                    objc2::class!(MTGScanGalleryLifecycle),
++                    handleEventsForSession: identifier, completion: completion
++                ];
++            }
++        }
++
+         #[unsafe(method(applicationDidReceiveMemoryWarning:))]
+         fn did_receive_memory_warning(&self, _application: &UIApplication) {
+             if let Some(platform) = self.ivars().upgrade() {
