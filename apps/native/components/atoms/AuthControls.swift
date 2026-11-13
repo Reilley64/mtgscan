@@ -5,12 +5,16 @@ import UIKit
 enum AuthControls {
   static func label(_ text: String, style: UIFont.TextStyle = .body) -> UILabel {
     let label = UILabel()
+    configureLabel(label, text: text, style: style)
+    return label
+  }
+
+  static func configureLabel(_ label: UILabel, text: String, style: UIFont.TextStyle = .body) {
     label.text = text
     label.font = UIFont.preferredFont(forTextStyle: style)
     label.adjustsFontForContentSizeCategory = true
     label.textColor = Tokens.text
     label.numberOfLines = 0
-    return label
   }
 
   static func apple(_ action: @escaping () -> Void) -> ASAuthorizationAppleIDButton {

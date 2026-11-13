@@ -9,6 +9,10 @@ on:
       - apps/native/**
       - apps/mobile/src/theme.ts
       - apps/mobile/assets/google-logo*.png
+      - apps/mobile/assets/fonts/mana.ttf
+      - apps/mobile/src/lib/card-symbols.ts
+      - apps/mobile/src/collection/copy-labels.ts
+      - scripts/native-presentation-data.ts
       - scripts/check-rust-boundaries.py
       - mise.toml
       - .github/workflows/rust-auth.yml
@@ -36,8 +40,9 @@ jobs:
     steps:
       - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1
       - uses: jdx/mise-action@5228313ee0372e111a38da051671ca30fc5a96db
+      - run: mise exec -- bun install --frozen-lockfile
       - run: mise run native-unit
       - name: Check the native external adapters
         run: |
-          mise exec -- xcrun swiftc -warnings-as-errors -typecheck apps/native/auth/SessionController.swift apps/native/auth/ServiceClients.swift apps/native/auth/KeychainSessionStore.swift
+          mise exec -- xcrun swiftc -warnings-as-errors -typecheck apps/native/auth/SessionController.swift apps/native/auth/ServiceClients.swift apps/native/auth/KeychainSessionStore.swift apps/native/collection/CollectionAPI.swift apps/native/collection/CollectionModels.swift apps/native/collection/CollectionController.swift
           find apps/native -name '*.swift' -exec xcrun swift-format lint --strict {} +

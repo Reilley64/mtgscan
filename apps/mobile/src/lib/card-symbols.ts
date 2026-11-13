@@ -99,7 +99,7 @@ function entriesOfPair([first, second]: readonly [Color, Color]): [string, CardS
   ];
 }
 
-const cardSymbols: ReadonlyMap<string, CardSymbol> = new Map([
+export const cardSymbols: ReadonlyMap<string, CardSymbol> = new Map([
   ...genericSymbols.map(([token, glyph, spoken]): [string, CardSymbol] => [token, { spoken, glyphs: [glyph], circle: ['generic'] }]),
   ...otherGenericSymbols.map(([token, glyph, spoken]): [string, CardSymbol] => [token, { spoken, glyphs: [glyph], circle: ['generic'] }]),
   ...bareSymbols.map(([token, glyph, spoken]): [string, CardSymbol] => [token, { spoken, glyphs: [glyph], circle: 'none' }]),
