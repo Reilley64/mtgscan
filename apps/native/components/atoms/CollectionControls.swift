@@ -79,14 +79,6 @@ enum CollectionControls {
     return label
   }
 
-  static func activity(_ label: String) -> UIActivityIndicatorView {
-    let activity = UIActivityIndicatorView(style: .medium)
-    activity.accessibilityLabel = label
-    activity.isAccessibilityElement = true
-    activity.startAnimating()
-    return activity
-  }
-
   static func tile(
     uri: String?, meta: String, price: String, label: String, finish: String,
     protected: Bool, held: Bool, stale: Bool, images: any CardImages, action: @escaping () -> Void
