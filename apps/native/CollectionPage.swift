@@ -43,6 +43,7 @@ final class CollectionPage: UIView, UIScrollViewDelegate {
     } else {
       header.insertSubview(headerBackdrop, at: 0)
     }
+    browser.onLayout = { [weak self] in self?.updateHeaderEffect() }
     controller.onChange = { [weak self] in self?.display() }
     registerForTraitChanges([UITraitPreferredContentSizeCategory.self]) {
       (view: CollectionPage, _: UITraitCollection) in

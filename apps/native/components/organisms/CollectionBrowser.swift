@@ -26,6 +26,12 @@ final class CollectionBrowser: UIStackView {
   required init(coder: NSCoder) { fatalError() }
 
   var hero: CardHero? { arrangedSubviews.first as? CardHero }
+  var onLayout: (() -> Void)?
+
+  override func layoutSubviews() {
+    super.layoutSubviews()
+    onLayout?()
+  }
 
   func display(_ state: CollectionPresentation) {
     for view in arrangedSubviews {
