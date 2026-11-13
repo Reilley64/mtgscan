@@ -27,10 +27,10 @@ impl OrganizationTransaction for Transaction {
     async fn protect(&mut self, _: &str, _: bool) -> Result<(), Problem> {
         Err(Problem::unavailable())
     }
-    async fn find_name(&mut self, _: &str) -> Result<Option<UserTag>, Problem> {
+    async fn find_user_tag_by_name(&mut self, _: &str) -> Result<Option<UserTag>, Problem> {
         Ok(None)
     }
-    async fn create_tag(&mut self, name: &str) -> Result<(UserTag, bool), Problem> {
+    async fn create_user_tag(&mut self, name: &str) -> Result<(UserTag, bool), Problem> {
         Ok((
             UserTag {
                 user_tag_id: "10000000-0000-4000-8000-000000000001".into(),
@@ -41,19 +41,19 @@ impl OrganizationTransaction for Transaction {
             true,
         ))
     }
-    async fn tags(&mut self, _: bool) -> Result<Vec<UserTag>, Problem> {
+    async fn user_tags(&mut self, _: bool) -> Result<Vec<UserTag>, Problem> {
         Ok(vec![])
     }
-    async fn tag(&mut self, _: &str) -> Result<Option<UserTag>, Problem> {
+    async fn user_tag(&mut self, _: &str) -> Result<Option<UserTag>, Problem> {
         Ok(None)
     }
-    async fn rename_tag(&mut self, _: &str, _: &str) -> Result<(), Problem> {
+    async fn rename_user_tag(&mut self, _: &str, _: &str) -> Result<(), Problem> {
         Err(Problem::unavailable())
     }
-    async fn delete_tag(&mut self, _: &str, _: bool) -> Result<(), Problem> {
+    async fn delete_user_tag(&mut self, _: &str, _: bool) -> Result<(), Problem> {
         Err(Problem::unavailable())
     }
-    async fn set_tag(&mut self, _: &str, _: &[String], _: bool) -> Result<(), Problem> {
+    async fn set_user_tag(&mut self, _: &str, _: &[String], _: bool) -> Result<(), Problem> {
         Err(Problem::unavailable())
     }
     async fn commit(self) -> Result<(), Problem> {

@@ -1,5 +1,5 @@
 use crate::VerifyIdentity;
-use mtgscan_domain::organization::tag_name;
+use mtgscan_domain::organization::user_tag_name;
 pub use mtgscan_domain::organization::{Problem, ProtectableCopy, UserTag};
 use mtgscan_domain::{Caller, Refusal};
 use std::future::Future;
@@ -22,28 +22,33 @@ pub trait OrganizationTransaction: Send {
         id: &str,
         protected: bool,
     ) -> impl Future<Output = Result<(), Problem>> + Send;
-    fn find_name(
+    fn find_user_tag_by_name(
         &mut self,
         name: &str,
     ) -> impl Future<Output = Result<Option<UserTag>, Problem>> + Send;
-    fn create_tag(
+    fn create_user_tag(
         &mut self,
         name: &str,
     ) -> impl Future<Output = Result<(UserTag, bool), Problem>> + Send;
-    fn tags(&mut self, deleted: bool)
-    -> impl Future<Output = Result<Vec<UserTag>, Problem>> + Send;
-    fn tag(&mut self, id: &str) -> impl Future<Output = Result<Option<UserTag>, Problem>> + Send;
-    fn rename_tag(
+    fn user_tags(
+        &mut self,
+        deleted: bool,
+    ) -> impl Future<Output = Result<Vec<UserTag>, Problem>> + Send;
+    fn user_tag(
+        &mut self,
+        id: &str,
+    ) -> impl Future<Output = Result<Option<UserTag>, Problem>> + Send;
+    fn rename_user_tag(
         &mut self,
         id: &str,
         name: &str,
     ) -> impl Future<Output = Result<(), Problem>> + Send;
-    fn delete_tag(
+    fn delete_user_tag(
         &mut self,
         id: &str,
         deleted: bool,
     ) -> impl Future<Output = Result<(), Problem>> + Send;
-    fn set_tag(
+    fn set_user_tag(
         &mut self,
         id: &str,
         copies: &[String],
@@ -58,23 +63,23 @@ pub enum Command {
         copy_id: String,
         protected: bool,
     },
-    CreateTag {
+    CreateUserTag {
         name: String,
     },
-    ListTags {
+    ListUserTags {
         deleted: bool,
     },
-    RenameTag {
+    RenameUserTag {
         user_tag_id: String,
         name: String,
     },
-    DeleteTag {
+    DeleteUserTag {
         user_tag_id: String,
     },
-    RestoreTag {
+    RestoreUserTag {
         user_tag_id: String,
     },
-    SetTag {
+    SetUserTag {
         user_tag_id: String,
         copy_ids: Vec<String>,
         tagged: bool,
@@ -89,10 +94,10 @@ pub enum Outcome {
         protected: bool,
     },
     Created {
-        tag: UserTag,
+        user_tag: UserTag,
         created: bool,
     },
-    Tags(Vec<UserTag>),
+    UserTags(Vec<UserTag>),
     Renamed(UserTag),
     Deleted {
         user_tag_id: String,
@@ -100,10 +105,10 @@ pub enum Outcome {
         copy_count: i64,
     },
     Restored {
-        tag: UserTag,
+        user_tag: UserTag,
         changed: bool,
     },
-    Tagged {
+    UserTagLinksChanged {
         changed: Vec<String>,
         skipped: Vec<String>,
     },
@@ -138,54 +143,58 @@ pub async fn organize(
     }
     let mut tx = store.begin(&caller).await?;
     let outcome = match command {
-        Command::ListTags { deleted } => Outcome::Tags(tx.tags(deleted).await?),
-        Command::RenameTag { user_tag_id, name } => {
-            let name = tag_name(&name)?;
-            let mut tag = active_tag(&mut tx, &user_tag_id).await?;
+        Command::ListUserTags { deleted } => Outcome::UserTags(tx.user_tags(deleted).await?),
+        Command::RenameUserTag { user_tag_id, name } => {
+            let name = user_tag_name(&name)?;
+            let mut user_tag = active_user_tag(&mut tx, &user_tag_id).await?;
             if tx
-                .find_name(&name)
+                .find_user_tag_by_name(&name)
                 .await?
                 .is_some_and(|other| other.user_tag_id != user_tag_id)
             {
                 return Err(Problem::new("user_tag_exists", Some("name")));
             }
-            tx.rename_tag(&user_tag_id, &name).await?;
-            tag.name = name;
-            Outcome::Renamed(tag)
+            tx.rename_user_tag(&user_tag_id, &name).await?;
+            user_tag.name = name;
+            Outcome::Renamed(user_tag)
         }
-        Command::DeleteTag { user_tag_id } => {
-            let tag = tx
-                .tag(&user_tag_id)
+        Command::DeleteUserTag { user_tag_id } => {
+            let user_tag = tx
+                .user_tag(&user_tag_id)
                 .await?
                 .ok_or(Problem::not_found("user_tag_id"))?;
-            if tag.deleted && !caller.is_ai_client() {
+            if user_tag.deleted && !caller.is_ai_client() {
                 return Err(Problem::not_found("user_tag_id"));
             }
-            if !tag.deleted {
-                tx.delete_tag(&user_tag_id, true).await?;
+            if !user_tag.deleted {
+                tx.delete_user_tag(&user_tag_id, true).await?;
             }
             Outcome::Deleted {
                 user_tag_id,
-                changed: !tag.deleted,
-                copy_count: if tag.deleted { 0 } else { tag.copy_count },
+                changed: !user_tag.deleted,
+                copy_count: if user_tag.deleted {
+                    0
+                } else {
+                    user_tag.copy_count
+                },
             }
         }
-        Command::RestoreTag { user_tag_id } => {
-            let mut tag = tx
-                .tag(&user_tag_id)
+        Command::RestoreUserTag { user_tag_id } => {
+            let mut user_tag = tx
+                .user_tag(&user_tag_id)
                 .await?
                 .ok_or(Problem::not_found("user_tag_id"))?;
-            let changed = tag.deleted;
+            let changed = user_tag.deleted;
             if changed {
-                if tx.find_name(&tag.name).await?.is_some() {
+                if tx.find_user_tag_by_name(&user_tag.name).await?.is_some() {
                     return Err(Problem::new("user_tag_exists", Some("user_tag_id")));
                 }
-                tx.delete_tag(&user_tag_id, false).await?;
-                tag.deleted = false;
+                tx.delete_user_tag(&user_tag_id, false).await?;
+                user_tag.deleted = false;
             }
-            Outcome::Restored { tag, changed }
+            Outcome::Restored { user_tag, changed }
         }
-        Command::SetTag {
+        Command::SetUserTag {
             user_tag_id,
             copy_ids,
             tagged,
@@ -205,7 +214,7 @@ pub async fn organize(
                     ));
                 }
             }
-            active_tag(&mut tx, &user_tag_id).await?;
+            active_user_tag(&mut tx, &user_tag_id).await?;
             let mut found = Vec::new();
             let mut ordered = copy_ids.clone();
             ordered.sort();
@@ -223,16 +232,16 @@ pub async fn organize(
             if single && !skipped.is_empty() {
                 return Err(Problem::not_found("copy_id"));
             }
-            tx.set_tag(&user_tag_id, &changed, tagged).await?;
-            Outcome::Tagged { changed, skipped }
+            tx.set_user_tag(&user_tag_id, &changed, tagged).await?;
+            Outcome::UserTagLinksChanged { changed, skipped }
         }
-        Command::CreateTag { name } => {
-            let name = tag_name(&name)?;
-            let (tag, created) = tx.create_tag(&name).await?;
+        Command::CreateUserTag { name } => {
+            let name = user_tag_name(&name)?;
+            let (user_tag, created) = tx.create_user_tag(&name).await?;
             if !created && !caller.is_ai_client() {
                 return Err(Problem::new("user_tag_exists", Some("name")));
             }
-            Outcome::Created { tag, created }
+            Outcome::Created { user_tag, created }
         }
         Command::Protect { copy_id, protected } => {
             let copy = tx
@@ -251,10 +260,13 @@ pub async fn organize(
     })
 }
 
-async fn active_tag(tx: &mut impl OrganizationTransaction, id: &str) -> Result<UserTag, Problem> {
-    tx.tag(id)
+async fn active_user_tag(
+    tx: &mut impl OrganizationTransaction,
+    id: &str,
+) -> Result<UserTag, Problem> {
+    tx.user_tag(id)
         .await?
-        .filter(|tag| !tag.deleted)
+        .filter(|user_tag| !user_tag.deleted)
         .ok_or(Problem::not_found("user_tag_id"))
 }
 

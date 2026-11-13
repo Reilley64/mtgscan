@@ -25,28 +25,32 @@ impl VerifyIdentity for Auth {
 }
 
 #[tokio::test]
-async fn a_user_gets_a_duplicate_error_but_ai_create_reuses_the_tag_without_renaming_it() {
+async fn a_user_gets_a_duplicate_error_but_ai_create_reuses_the_user_tag_without_renaming_it() {
     let db = database();
     let created = organize(
         &Auth,
         &db,
         Some("user"),
-        Command::CreateTag {
+        Command::CreateUserTag {
             name: "  Signed ".into(),
         },
     )
     .await
     .unwrap();
-    let Outcome::Created { tag, created: true } = created else {
-        panic!("new tag expected")
+    let Outcome::Created {
+        user_tag,
+        created: true,
+    } = created
+    else {
+        panic!("new user tag expected")
     };
-    assert_eq!(tag.name, "Signed");
+    assert_eq!(user_tag.name, "Signed");
     assert_eq!(
         organize(
             &Auth,
             &db,
             Some("user"),
-            Command::CreateTag {
+            Command::CreateUserTag {
                 name: "SIGNED".into()
             }
         )
@@ -58,13 +62,13 @@ async fn a_user_gets_a_duplicate_error_but_ai_create_reuses_the_tag_without_rena
             &Auth,
             &db,
             Some("ai"),
-            Command::CreateTag {
+            Command::CreateUserTag {
                 name: "SIGNED".into()
             }
         )
         .await,
         Ok(Outcome::Created {
-            tag,
+            user_tag,
             created: false
         })
     );
@@ -73,24 +77,25 @@ async fn a_user_gets_a_duplicate_error_but_ai_create_reuses_the_tag_without_rena
 async fn command(db: &Database, action: Command) -> Result<Outcome, Problem> {
     organize(&Auth, db, Some("user"), action).await
 }
-async fn new_tag(db: &Database, name: &str) -> UserTag {
-    let Outcome::Created { tag, .. } = command(db, Command::CreateTag { name: name.into() })
-        .await
-        .unwrap()
+async fn new_user_tag(db: &Database, name: &str) -> UserTag {
+    let Outcome::Created { user_tag, .. } =
+        command(db, Command::CreateUserTag { name: name.into() })
+            .await
+            .unwrap()
     else {
         panic!()
     };
-    tag
+    user_tag
 }
 
 #[tokio::test]
 async fn deletion_retains_links_detach_stays_detached_and_restoration_refuses_a_reused_name() {
     let db = database();
-    let tag = new_tag(&db, "Signed").await;
-    let id = tag.user_tag_id;
+    let user_tag = new_user_tag(&db, "Signed").await;
+    let id = user_tag.user_tag_id;
     command(
         &db,
-        Command::SetTag {
+        Command::SetUserTag {
             user_tag_id: id.clone(),
             copy_ids: vec!["first".into(), "second".into()],
             tagged: true,
@@ -101,7 +106,7 @@ async fn deletion_retains_links_detach_stays_detached_and_restoration_refuses_a_
     .unwrap();
     command(
         &db,
-        Command::SetTag {
+        Command::SetUserTag {
             user_tag_id: id.clone(),
             copy_ids: vec!["second".into()],
             tagged: false,
@@ -112,18 +117,18 @@ async fn deletion_retains_links_detach_stays_detached_and_restoration_refuses_a_
     .unwrap();
     command(
         &db,
-        Command::DeleteTag {
+        Command::DeleteUserTag {
             user_tag_id: id.clone(),
         },
     )
     .await
     .unwrap();
-    let replacement = new_tag(&db, "SIGNED").await;
+    let replacement = new_user_tag(&db, "SIGNED").await;
     assert_ne!(replacement.user_tag_id, id);
     assert_eq!(
         command(
             &db,
-            Command::RestoreTag {
+            Command::RestoreUserTag {
                 user_tag_id: id.clone()
             }
         )
@@ -132,16 +137,16 @@ async fn deletion_retains_links_detach_stays_detached_and_restoration_refuses_a_
     );
     command(
         &db,
-        Command::RenameTag {
+        Command::RenameUserTag {
             user_tag_id: replacement.user_tag_id,
             name: "Sell".into(),
         },
     )
     .await
     .unwrap();
-    let Outcome::Restored { tag, changed } = command(
+    let Outcome::Restored { user_tag, changed } = command(
         &db,
-        Command::RestoreTag {
+        Command::RestoreUserTag {
             user_tag_id: id.clone(),
         },
     )
@@ -150,9 +155,9 @@ async fn deletion_retains_links_detach_stays_detached_and_restoration_refuses_a_
         panic!()
     };
     assert!(changed);
-    assert_eq!(tag.copy_count, 1);
-    assert_eq!(tag.name, "Signed");
-    let Outcome::Tags(active) = command(&db, Command::ListTags { deleted: false })
+    assert_eq!(user_tag.copy_count, 1);
+    assert_eq!(user_tag.name, "Signed");
+    let Outcome::UserTags(active) = command(&db, Command::ListUserTags { deleted: false })
         .await
         .unwrap()
     else {
@@ -161,11 +166,11 @@ async fn deletion_retains_links_detach_stays_detached_and_restoration_refuses_a_
     assert!(
         active
             .iter()
-            .any(|tag| tag.user_tag_id == id && tag.copy_count == 1)
+            .any(|user_tag| user_tag.user_tag_id == id && user_tag.copy_count == 1)
     );
     assert_eq!(
-        command(&db, Command::ListTags { deleted: true }).await,
-        Ok(Outcome::Tags(vec![]))
+        command(&db, Command::ListUserTags { deleted: true }).await,
+        Ok(Outcome::UserTags(vec![]))
     );
     let state = db.state.lock().unwrap();
     assert_eq!(
@@ -178,12 +183,12 @@ async fn deletion_retains_links_detach_stays_detached_and_restoration_refuses_a_
 }
 
 #[tokio::test]
-async fn ai_bulk_tagging_skips_missing_copies_in_request_order_and_attributes_the_verified_client()
-{
+async fn ai_bulk_user_tag_changes_skip_missing_copies_in_request_order_and_attribute_the_verified_client()
+ {
     let db = database();
-    let tag = new_tag(&db, "Signed").await;
-    let action = Command::SetTag {
-        user_tag_id: tag.user_tag_id.clone(),
+    let user_tag = new_user_tag(&db, "Signed").await;
+    let action = Command::SetUserTag {
+        user_tag_id: user_tag.user_tag_id.clone(),
         copy_ids: vec![
             "absent".into(),
             "second".into(),
@@ -193,7 +198,7 @@ async fn ai_bulk_tagging_skips_missing_copies_in_request_order_and_attributes_th
         tagged: true,
         single: false,
     };
-    let expected = Outcome::Tagged {
+    let expected = Outcome::UserTagLinksChanged {
         changed: vec!["second".into(), "first".into()],
         skipped: vec!["absent".into(), "others".into()],
     };
@@ -206,8 +211,8 @@ async fn ai_bulk_tagging_skips_missing_copies_in_request_order_and_attributes_th
     assert_eq!(
         command(
             &db,
-            Command::SetTag {
-                user_tag_id: tag.user_tag_id,
+            Command::SetUserTag {
+                user_tag_id: user_tag.user_tag_id,
                 copy_ids: vec!["absent".into()],
                 tagged: false,
                 single: true
@@ -219,9 +224,9 @@ async fn ai_bulk_tagging_skips_missing_copies_in_request_order_and_attributes_th
 }
 
 #[tokio::test]
-async fn tag_limits_fail_before_any_link_changes_and_names_count_characters_after_trimming() {
+async fn user_tag_limits_fail_before_any_link_changes_and_names_count_characters_after_trimming() {
     let db = database();
-    let tag = new_tag(&db, &"é".repeat(64)).await;
+    let user_tag = new_user_tag(&db, &"é".repeat(64)).await;
     for (ids, field) in [
         (vec![], "copy_ids"),
         ((0..101).map(|n| n.to_string()).collect(), "copy_ids"),
@@ -230,8 +235,8 @@ async fn tag_limits_fail_before_any_link_changes_and_names_count_characters_afte
         assert_eq!(
             command(
                 &db,
-                Command::SetTag {
-                    user_tag_id: tag.user_tag_id.clone(),
+                Command::SetUserTag {
+                    user_tag_id: user_tag.user_tag_id.clone(),
                     copy_ids: ids,
                     tagged: true,
                     single: false
@@ -243,7 +248,7 @@ async fn tag_limits_fail_before_any_link_changes_and_names_count_characters_afte
     }
     for name in [" \n\t".to_string(), "é".repeat(65)] {
         assert_eq!(
-            command(&db, Command::CreateTag { name }).await,
+            command(&db, Command::CreateUserTag { name }).await,
             Err(Problem::new("invalid_argument", Some("name")))
         );
     }
@@ -251,14 +256,14 @@ async fn tag_limits_fail_before_any_link_changes_and_names_count_characters_afte
 }
 
 #[tokio::test]
-async fn tag_ownership_deleted_state_retry_behavior_and_rename_conflicts_are_preserved() {
+async fn user_tag_ownership_deleted_state_retry_behavior_and_rename_conflicts_are_preserved() {
     let db = database();
-    let tag = new_tag(&db, "Signed").await;
-    let sell = new_tag(&db, "Sell").await;
+    let user_tag = new_user_tag(&db, "Signed").await;
+    let sell = new_user_tag(&db, "Sell").await;
     assert_eq!(
         command(
             &db,
-            Command::RenameTag {
+            Command::RenameUserTag {
                 user_tag_id: sell.user_tag_id,
                 name: "SIGNED".into()
             }
@@ -267,14 +272,14 @@ async fn tag_ownership_deleted_state_retry_behavior_and_rename_conflicts_are_pre
         Err(Problem::new("user_tag_exists", Some("name")))
     );
     for action in [
-        Command::DeleteTag {
-            user_tag_id: tag.user_tag_id.clone(),
+        Command::DeleteUserTag {
+            user_tag_id: user_tag.user_tag_id.clone(),
         },
-        Command::RestoreTag {
-            user_tag_id: tag.user_tag_id.clone(),
+        Command::RestoreUserTag {
+            user_tag_id: user_tag.user_tag_id.clone(),
         },
-        Command::RenameTag {
-            user_tag_id: tag.user_tag_id.clone(),
+        Command::RenameUserTag {
+            user_tag_id: user_tag.user_tag_id.clone(),
             name: "Other".into(),
         },
     ] {
@@ -285,8 +290,8 @@ async fn tag_ownership_deleted_state_retry_behavior_and_rename_conflicts_are_pre
     }
     command(
         &db,
-        Command::DeleteTag {
-            user_tag_id: tag.user_tag_id.clone(),
+        Command::DeleteUserTag {
+            user_tag_id: user_tag.user_tag_id.clone(),
         },
     )
     .await
@@ -294,8 +299,8 @@ async fn tag_ownership_deleted_state_retry_behavior_and_rename_conflicts_are_pre
     assert_eq!(
         command(
             &db,
-            Command::DeleteTag {
-                user_tag_id: tag.user_tag_id.clone()
+            Command::DeleteUserTag {
+                user_tag_id: user_tag.user_tag_id.clone()
             }
         )
         .await,
@@ -306,13 +311,13 @@ async fn tag_ownership_deleted_state_retry_behavior_and_rename_conflicts_are_pre
             &Auth,
             &db,
             Some("ai"),
-            Command::DeleteTag {
-                user_tag_id: tag.user_tag_id.clone()
+            Command::DeleteUserTag {
+                user_tag_id: user_tag.user_tag_id.clone()
             }
         )
         .await,
         Ok(Outcome::Deleted {
-            user_tag_id: tag.user_tag_id.clone(),
+            user_tag_id: user_tag.user_tag_id.clone(),
             changed: false,
             copy_count: 0
         })
@@ -320,8 +325,8 @@ async fn tag_ownership_deleted_state_retry_behavior_and_rename_conflicts_are_pre
     assert_eq!(
         command(
             &db,
-            Command::SetTag {
-                user_tag_id: tag.user_tag_id,
+            Command::SetUserTag {
+                user_tag_id: user_tag.user_tag_id,
                 copy_ids: vec!["first".into()],
                 tagged: true,
                 single: true
@@ -330,14 +335,14 @@ async fn tag_ownership_deleted_state_retry_behavior_and_rename_conflicts_are_pre
         .await,
         Err(Problem::not_found("user_tag_id"))
     );
-    let Outcome::Tags(tags) = command(&db, Command::ListTags { deleted: true })
+    let Outcome::UserTags(user_tags) = command(&db, Command::ListUserTags { deleted: true })
         .await
         .unwrap()
     else {
         panic!()
     };
-    assert_eq!(tags.len(), 1);
-    assert_eq!(tags[0].name, "Signed");
+    assert_eq!(user_tags.len(), 1);
+    assert_eq!(user_tags[0].name, "Signed");
 }
 
 #[tokio::test]
@@ -358,9 +363,9 @@ async fn a_hundred_exact_copy_links_commit_together_and_failed_commits_leave_no_
             )
         })
         .collect();
-    let tag = new_tag(&db, "Signed").await;
-    let action = Command::SetTag {
-        user_tag_id: tag.user_tag_id,
+    let user_tag = new_user_tag(&db, "Signed").await;
+    let action = Command::SetUserTag {
+        user_tag_id: user_tag.user_tag_id,
         copy_ids: ids.clone(),
         tagged: true,
         single: false,
@@ -374,7 +379,7 @@ async fn a_hundred_exact_copy_links_commit_together_and_failed_commits_leave_no_
     db.fail_commit = false;
     assert_eq!(
         command(&db, action).await,
-        Ok(Outcome::Tagged {
+        Ok(Outcome::UserTagLinksChanged {
             changed: ids,
             skipped: vec![]
         })
@@ -383,17 +388,17 @@ async fn a_hundred_exact_copy_links_commit_together_and_failed_commits_leave_no_
 }
 
 #[tokio::test]
-async fn tag_names_are_unique_per_owner_and_restoring_an_active_tag_is_a_noop() {
+async fn user_tag_names_are_unique_per_owner_and_restoring_an_active_user_tag_is_a_noop() {
     let db = database();
-    let tag = new_tag(&db, "Signed").await;
+    let user_tag = new_user_tag(&db, "Signed").await;
     let Outcome::Created {
-        tag: other,
+        user_tag: other,
         created: true,
     } = organize(
         &Auth,
         &db,
         Some("other"),
-        Command::CreateTag {
+        Command::CreateUserTag {
             name: "SIGNED".into(),
         },
     )
@@ -402,24 +407,24 @@ async fn tag_names_are_unique_per_owner_and_restoring_an_active_tag_is_a_noop() 
     else {
         panic!()
     };
-    assert_ne!(tag.user_tag_id, other.user_tag_id);
+    assert_ne!(user_tag.user_tag_id, other.user_tag_id);
     assert_eq!(
         command(
             &db,
-            Command::RestoreTag {
-                user_tag_id: tag.user_tag_id.clone()
+            Command::RestoreUserTag {
+                user_tag_id: user_tag.user_tag_id.clone()
             }
         )
         .await,
         Ok(Outcome::Restored {
-            tag: tag.clone(),
+            user_tag: user_tag.clone(),
             changed: false
         })
     );
     let Outcome::Renamed(renamed) = command(
         &db,
-        Command::RenameTag {
-            user_tag_id: tag.user_tag_id.clone(),
+        Command::RenameUserTag {
+            user_tag_id: user_tag.user_tag_id.clone(),
             name: "SIGNED".into(),
         },
     )
@@ -427,22 +432,22 @@ async fn tag_names_are_unique_per_owner_and_restoring_an_active_tag_is_a_noop() 
     .unwrap() else {
         panic!()
     };
-    assert_eq!(renamed.user_tag_id, tag.user_tag_id);
+    assert_eq!(renamed.user_tag_id, user_tag.user_tag_id);
     assert_eq!(renamed.name, "SIGNED");
-    let Outcome::Tags(tags) = command(&db, Command::ListTags { deleted: false })
+    let Outcome::UserTags(user_tags) = command(&db, Command::ListUserTags { deleted: false })
         .await
         .unwrap()
     else {
         panic!()
     };
-    assert_eq!(tags, [renamed]);
+    assert_eq!(user_tags, [renamed]);
 }
 
 #[derive(Clone, Default)]
 struct State {
     copies: Vec<(ProtectableCopy, bool)>,
     actor: String,
-    tags: Vec<(String, UserTag)>,
+    user_tags: Vec<(String, UserTag)>,
     links: Vec<(String, String, bool)>,
 }
 #[derive(Default)]
@@ -485,10 +490,10 @@ impl OrganizationTransaction for Transaction {
             .1 = protected;
         Ok(())
     }
-    async fn find_name(&mut self, name: &str) -> Result<Option<UserTag>, Problem> {
+    async fn find_user_tag_by_name(&mut self, name: &str) -> Result<Option<UserTag>, Problem> {
         Ok(self
             .state
-            .tags
+            .user_tags
             .iter()
             .find(|(owner, t)| {
                 owner == self.caller.collection_owner()
@@ -497,57 +502,57 @@ impl OrganizationTransaction for Transaction {
             })
             .map(|(_, t)| t.clone()))
     }
-    async fn create_tag(&mut self, name: &str) -> Result<(UserTag, bool), Problem> {
-        if let Some(tag) = self.find_name(name).await? {
-            return Ok((tag, false));
+    async fn create_user_tag(&mut self, name: &str) -> Result<(UserTag, bool), Problem> {
+        if let Some(user_tag) = self.find_user_tag_by_name(name).await? {
+            return Ok((user_tag, false));
         }
-        let tag = UserTag {
-            user_tag_id: format!("tag-{}", self.state.tags.len()),
+        let user_tag = UserTag {
+            user_tag_id: format!("tag-{}", self.state.user_tags.len()),
             name: name.into(),
             deleted: false,
             copy_count: 0,
         };
         self.state
-            .tags
-            .push((self.caller.collection_owner().into(), tag.clone()));
-        Ok((tag, true))
+            .user_tags
+            .push((self.caller.collection_owner().into(), user_tag.clone()));
+        Ok((user_tag, true))
     }
-    async fn tags(&mut self, deleted: bool) -> Result<Vec<UserTag>, Problem> {
+    async fn user_tags(&mut self, deleted: bool) -> Result<Vec<UserTag>, Problem> {
         let ids = self
             .state
-            .tags
+            .user_tags
             .iter()
             .filter(|(owner, t)| owner == self.caller.collection_owner() && t.deleted == deleted)
             .map(|(_, t)| t.user_tag_id.clone())
             .collect::<Vec<_>>();
-        let mut tags = Vec::new();
+        let mut user_tags = Vec::new();
         for id in ids {
-            tags.push(self.tag(&id).await?.unwrap());
+            user_tags.push(self.user_tag(&id).await?.unwrap());
         }
-        tags.sort_by_key(|t| (t.name.to_lowercase(), t.name.clone(), t.user_tag_id.clone()));
-        Ok(tags)
+        user_tags.sort_by_key(|t| (t.name.to_lowercase(), t.name.clone(), t.user_tag_id.clone()));
+        Ok(user_tags)
     }
-    async fn tag(&mut self, id: &str) -> Result<Option<UserTag>, Problem> {
-        let Some((_, tag)) = self
+    async fn user_tag(&mut self, id: &str) -> Result<Option<UserTag>, Problem> {
+        let Some((_, user_tag)) = self
             .state
-            .tags
+            .user_tags
             .iter()
             .find(|(owner, t)| owner == self.caller.collection_owner() && t.user_tag_id == id)
         else {
             return Ok(None);
         };
-        let mut tag = tag.clone();
-        tag.copy_count = self
+        let mut user_tag = user_tag.clone();
+        user_tag.copy_count = self
             .state
             .links
             .iter()
             .filter(|(_, t, active)| t == id && *active)
             .count() as i64;
-        Ok(Some(tag))
+        Ok(Some(user_tag))
     }
-    async fn rename_tag(&mut self, id: &str, name: &str) -> Result<(), Problem> {
+    async fn rename_user_tag(&mut self, id: &str, name: &str) -> Result<(), Problem> {
         self.state
-            .tags
+            .user_tags
             .iter_mut()
             .find(|(_, t)| t.user_tag_id == id)
             .unwrap()
@@ -555,9 +560,9 @@ impl OrganizationTransaction for Transaction {
             .name = name.into();
         Ok(())
     }
-    async fn delete_tag(&mut self, id: &str, deleted: bool) -> Result<(), Problem> {
+    async fn delete_user_tag(&mut self, id: &str, deleted: bool) -> Result<(), Problem> {
         self.state
-            .tags
+            .user_tags
             .iter_mut()
             .find(|(_, t)| t.user_tag_id == id)
             .unwrap()
@@ -565,7 +570,12 @@ impl OrganizationTransaction for Transaction {
             .deleted = deleted;
         Ok(())
     }
-    async fn set_tag(&mut self, id: &str, copies: &[String], tagged: bool) -> Result<(), Problem> {
+    async fn set_user_tag(
+        &mut self,
+        id: &str,
+        copies: &[String],
+        tagged: bool,
+    ) -> Result<(), Problem> {
         for copy in copies {
             if let Some(link) = self
                 .state

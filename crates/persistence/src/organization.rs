@@ -74,11 +74,11 @@ impl OrganizationStore for PostgresOrganization {
     }
 }
 
-const TAGS: &str = "select t.id::text, t.name, t.deleted_at is not null as deleted,
+const USER_TAGS: &str = "select t.id::text, t.name, t.deleted_at is not null as deleted,
     (select count(*) from public.copy_user_tags l where l.user_id=t.user_id and l.user_tag_id=t.id and l.deleted_at is null) as copy_count
     from public.user_tags t where t.user_id=$1::uuid";
 
-fn tag_row(row: PgRow) -> Result<UserTag, Problem> {
+fn user_tag_row(row: PgRow) -> Result<UserTag, Problem> {
     Ok(UserTag {
         user_tag_id: row.try_get("id").map_err(unavailable)?,
         name: row.try_get("name").map_err(unavailable)?,
@@ -124,27 +124,30 @@ impl OrganizationTransaction for OrganizationPostgresTransaction {
         Ok(())
     }
 
-    async fn find_name(&mut self, name: &str) -> Result<Option<UserTag>, Problem> {
+    async fn find_user_tag_by_name(&mut self, name: &str) -> Result<Option<UserTag>, Problem> {
         sqlx::query(&format!(
-            "{TAGS} and t.deleted_at is null and lower(t.name)=lower($2)"
+            "{USER_TAGS} and t.deleted_at is null and lower(t.name)=lower($2)"
         ))
         .bind(&self.owner)
         .bind(name)
         .fetch_optional(&mut *self.tx)
         .await
         .map_err(unavailable)?
-        .map(tag_row)
+        .map(user_tag_row)
         .transpose()
     }
 
-    async fn create_tag(&mut self, name: &str) -> Result<(UserTag, bool), Problem> {
+    async fn create_user_tag(&mut self, name: &str) -> Result<(UserTag, bool), Problem> {
         let id: Option<String> = sqlx::query_scalar("insert into public.user_tags (user_id, name) values ($1::uuid,$2)
             on conflict (user_id, lower(name)) where deleted_at is null do nothing returning id::text")
             .bind(&self.owner).bind(name).fetch_optional(&mut *self.tx).await.map_err(unavailable)?;
         match id {
-            Some(id) => Ok((self.tag(&id).await?.ok_or_else(Problem::unavailable)?, true)),
+            Some(id) => Ok((
+                self.user_tag(&id).await?.ok_or_else(Problem::unavailable)?,
+                true,
+            )),
             None => Ok((
-                self.find_name(name)
+                self.find_user_tag_by_name(name)
                     .await?
                     .ok_or_else(Problem::unavailable)?,
                 false,
@@ -152,9 +155,9 @@ impl OrganizationTransaction for OrganizationPostgresTransaction {
         }
     }
 
-    async fn tags(&mut self, deleted: bool) -> Result<Vec<UserTag>, Problem> {
+    async fn user_tags(&mut self, deleted: bool) -> Result<Vec<UserTag>, Problem> {
         sqlx::query(&format!(
-            "{TAGS} and (t.deleted_at is not null)=$2 order by lower(t.name),t.name,t.id"
+            "{USER_TAGS} and (t.deleted_at is not null)=$2 order by lower(t.name),t.name,t.id"
         ))
         .bind(&self.owner)
         .bind(deleted)
@@ -162,11 +165,11 @@ impl OrganizationTransaction for OrganizationPostgresTransaction {
         .await
         .map_err(unavailable)?
         .into_iter()
-        .map(tag_row)
+        .map(user_tag_row)
         .collect()
     }
 
-    async fn tag(&mut self, id: &str) -> Result<Option<UserTag>, Problem> {
+    async fn user_tag(&mut self, id: &str) -> Result<Option<UserTag>, Problem> {
         sqlx::query(
             "select id from public.user_tags where user_id=$1::uuid and id=$2::uuid for update",
         )
@@ -175,17 +178,17 @@ impl OrganizationTransaction for OrganizationPostgresTransaction {
         .fetch_optional(&mut *self.tx)
         .await
         .map_err(unavailable)?;
-        sqlx::query(&format!("{TAGS} and t.id=$2::uuid"))
+        sqlx::query(&format!("{USER_TAGS} and t.id=$2::uuid"))
             .bind(&self.owner)
             .bind(id)
             .fetch_optional(&mut *self.tx)
             .await
             .map_err(unavailable)?
-            .map(tag_row)
+            .map(user_tag_row)
             .transpose()
     }
 
-    async fn rename_tag(&mut self, id: &str, name: &str) -> Result<(), Problem> {
+    async fn rename_user_tag(&mut self, id: &str, name: &str) -> Result<(), Problem> {
         sqlx::query("update public.user_tags set name=$3 where user_id=$1::uuid and id=$2::uuid")
             .bind(&self.owner)
             .bind(id)
@@ -196,13 +199,18 @@ impl OrganizationTransaction for OrganizationPostgresTransaction {
         Ok(())
     }
 
-    async fn delete_tag(&mut self, id: &str, deleted: bool) -> Result<(), Problem> {
+    async fn delete_user_tag(&mut self, id: &str, deleted: bool) -> Result<(), Problem> {
         sqlx::query("update public.user_tags set deleted_at=case when $3 then now() else null end where user_id=$1::uuid and id=$2::uuid")
             .bind(&self.owner).bind(id).bind(deleted).execute(&mut *self.tx).await.map_err(|e| unique(e, "user_tag_id"))?;
         Ok(())
     }
 
-    async fn set_tag(&mut self, id: &str, copies: &[String], tagged: bool) -> Result<(), Problem> {
+    async fn set_user_tag(
+        &mut self,
+        id: &str,
+        copies: &[String],
+        tagged: bool,
+    ) -> Result<(), Problem> {
         if tagged {
             sqlx::query("insert into public.copy_user_tags (user_id,copy_id,user_tag_id)
                 select $1::uuid, chosen.copy_id::uuid, $2::uuid from unnest($3::text[]) as chosen(copy_id)

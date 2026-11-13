@@ -62,31 +62,31 @@ pub fn parse(value: Value) -> Result<Command, Problem> {
         }
     }
     Ok(match action {
-        "list_user_tags" => Command::ListTags {
+        "list_user_tags" => Command::ListUserTags {
             deleted: if object.contains_key("deleted") {
                 boolean(&value, "deleted")?
             } else {
                 false
             },
         },
-        "create_user_tag" => Command::CreateTag {
+        "create_user_tag" => Command::CreateUserTag {
             name: text(&value, "name")?.into(),
         },
-        "rename_user_tag" => Command::RenameTag {
+        "rename_user_tag" => Command::RenameUserTag {
             user_tag_id: id(&value, "user_tag_id")?,
             name: text(&value, "name")?.into(),
         },
-        "delete_user_tag" => Command::DeleteTag {
+        "delete_user_tag" => Command::DeleteUserTag {
             user_tag_id: id(&value, "user_tag_id")?,
         },
-        "restore_user_tag" => Command::RestoreTag {
+        "restore_user_tag" => Command::RestoreUserTag {
             user_tag_id: id(&value, "user_tag_id")?,
         },
         "set_copy_protected" => Command::Protect {
             copy_id: id(&value, "copy_id")?,
             protected: boolean(&value, "protected")?,
         },
-        "set_copy_user_tag" => Command::SetTag {
+        "set_copy_user_tag" => Command::SetUserTag {
             user_tag_id: id(&value, "user_tag_id")?,
             copy_ids: vec![id(&value, "copy_id")?],
             tagged: boolean(&value, "tagged")?,
@@ -101,7 +101,7 @@ pub fn parse(value: Value) -> Result<Command, Problem> {
                 .enumerate()
                 .map(|(index, value)| id_value(value, &format!("copy_ids[{index}]")))
                 .collect::<Result<_, _>>()?;
-            Command::SetTag {
+            Command::SetUserTag {
                 user_tag_id: id(&value, "user_tag_id")?,
                 copy_ids,
                 tagged: boolean(&value, "tagged")?,
@@ -112,8 +112,8 @@ pub fn parse(value: Value) -> Result<Command, Problem> {
     })
 }
 
-fn tag_value(tag: UserTag) -> Value {
-    json!({"user_tag_id":tag.user_tag_id,"name":tag.name})
+fn user_tag_value(user_tag: UserTag) -> Value {
+    json!({"user_tag_id":user_tag.user_tag_id,"name":user_tag.name})
 }
 
 pub fn result(outcome: Outcome, ai: bool) -> Value {
@@ -121,18 +121,18 @@ pub fn result(outcome: Outcome, ai: bool) -> Value {
         Outcome::Protected { copy_id, protected } => {
             json!({"copy_id":copy_id,"protected":protected})
         }
-        Outcome::Created { tag, created } => {
-            let mut result = tag_value(tag);
+        Outcome::Created { user_tag, created } => {
+            let mut result = user_tag_value(user_tag);
             if ai {
                 result["created"] = json!(created);
             }
             result
         }
-        Outcome::Tags(tags) => json!({"items": tags.into_iter().map(|tag| {
-            let count = tag.copy_count;
-            let mut value = tag_value(tag); value["copy_count"] = json!(count); value
+        Outcome::UserTags(user_tags) => json!({"items": user_tags.into_iter().map(|user_tag| {
+            let count = user_tag.copy_count;
+            let mut value = user_tag_value(user_tag); value["copy_count"] = json!(count); value
         }).collect::<Vec<_>>()}),
-        Outcome::Renamed(tag) => tag_value(tag),
+        Outcome::Renamed(user_tag) => user_tag_value(user_tag),
         Outcome::Deleted {
             user_tag_id,
             changed,
@@ -144,14 +144,14 @@ pub fn result(outcome: Outcome, ai: bool) -> Value {
                 Value::Null
             }
         }
-        Outcome::Restored { tag, changed } => {
-            let count = tag.copy_count;
-            let mut value = tag_value(tag);
+        Outcome::Restored { user_tag, changed } => {
+            let count = user_tag.copy_count;
+            let mut value = user_tag_value(user_tag);
             value["changed"] = json!(changed);
             value["copy_count"] = json!(count);
             value
         }
-        Outcome::Tagged { changed, skipped } => {
+        Outcome::UserTagLinksChanged { changed, skipped } => {
             json!({"changed":changed,"skipped":skipped.into_iter().map(|id| json!({"copy_id":id,"reason":"missing"})).collect::<Vec<_>>()})
         }
     }

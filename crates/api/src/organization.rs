@@ -60,7 +60,7 @@ pub async fn organization_response(
     };
     let single = matches!(
         command,
-        mtgscan_application::organization::Command::SetTag { single: true, .. }
+        mtgscan_application::organization::Command::SetUserTag { single: true, .. }
     );
     match organize(identity, store, credential, command).await {
         Ok(reply) => CollectionResponse {

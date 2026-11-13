@@ -30,7 +30,7 @@ pub struct UserTag {
     pub copy_count: i64,
 }
 
-pub fn tag_name(name: &str) -> Result<String, Problem> {
+pub fn user_tag_name(name: &str) -> Result<String, Problem> {
     let name = name.trim();
     if !(1..=64).contains(&name.chars().count()) {
         return Err(Problem::new("invalid_argument", Some("name")));
