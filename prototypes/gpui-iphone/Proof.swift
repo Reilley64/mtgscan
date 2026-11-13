@@ -47,6 +47,8 @@ func gateEvent(_ kind: Int32)
   let cameraAction: CameraAction
   private let stack = UIStackView()
   private let preview = Preview()
+  private let cameraStatus = UILabel()
+  private let cameraAvailable = CameraSession.backCamera() != nil
   private let capture = UIButton(type: .system)
   private let recognition = UILabel()
   private let field = UITextField()
@@ -55,6 +57,7 @@ func gateEvent(_ kind: Int32)
   private var outline: [SIMD2<Double>]?
   private var running = false
   private var capturing = false
+  private var currentCameraStatus: CameraStatus = .stopped
   private lazy var camera = CameraSession { [weak self] sample in
     DispatchQueue.main.async { self?.sample(sample) }
   }
@@ -64,7 +67,6 @@ func gateEvent(_ kind: Int32)
     cameraAction = CameraAction(accessibilityContainer: host)
     super.init(frame: .zero)
     cameraAction.accessibilityTraits = .button
-    cameraAction.accessibilityValue = "Stopped"
     backgroundColor = UIColor(red: 16 / 255, green: 22 / 255, blue: 34 / 255, alpha: 1)
     alwaysBounceVertical = true
     keyboardDismissMode = .interactive
@@ -83,10 +85,12 @@ func gateEvent(_ kind: Int32)
     heading.accessibilityTraits = .header
     preview.isAccessibilityElement = true
     preview.accessibilityLabel = "Camera preview"
-    preview.accessibilityValue = "Stopped"
     preview.previewLayer.session = camera.session
     preview.previewLayer.videoGravity = .resizeAspectFill
     preview.heightAnchor.constraint(equalToConstant: 180).isActive = true
+    configure(cameraStatus, text: "")
+    showCameraStatus(
+      CameraStatus(available: cameraAvailable, running: false, detected: false, failed: false))
     configure(capture, title: "Recognize card", action: #selector(takePhoto))
     capture.isEnabled = false
     configure(recognition, text: "No recognition yet")
@@ -101,7 +105,7 @@ func gateEvent(_ kind: Int32)
     field.heightAnchor.constraint(greaterThanOrEqualToConstant: 44).isActive = true
     configure(network, title: "Check test session", action: #selector(checkSession))
     configure(networkStatus, text: "No authenticated request yet")
-    [heading, preview, capture, recognition, field, network, networkStatus].forEach(
+    [heading, preview, cameraStatus, capture, recognition, field, network, networkStatus].forEach(
       stack.addArrangedSubview)
     accessibilityElements = [heading, preview, capture, recognition, field, network, networkStatus]
     NotificationCenter.default.addObserver(
@@ -130,11 +134,10 @@ func gateEvent(_ kind: Int32)
     self.running = running
     cameraAction.accessibilityLabel = label
     if changed {
-      cameraAction.accessibilityValue = running ? "Starting" : "Stopped"
+      showCameraStatus(cameraAvailable ? (running ? .starting : .stopped) : .unavailable)
       if running { startCamera() } else { camera.setRunning(false) }
-      preview.accessibilityValue = running ? "No card detected" : "Stopped"
     }
-    capture.isEnabled = running && outline != nil && !capturing
+    capture.isEnabled = currentCameraStatus.canRecognize && !capturing
   }
 
   func textFieldShouldReturn(_ textField: UITextField) -> Bool {
@@ -142,7 +145,19 @@ func gateEvent(_ kind: Int32)
     return true
   }
 
+  private func showCameraStatus(_ status: CameraStatus) {
+    currentCameraStatus = status
+    cameraStatus.text = status.rawValue
+    preview.accessibilityValue = status.rawValue
+    cameraAction.accessibilityValue = status.actionValue
+    capture.isEnabled = status.canRecognize && !capturing
+  }
+
   private func startCamera() {
+    guard cameraAvailable else {
+      showCameraStatus(.unavailable)
+      return
+    }
     switch AVCaptureDevice.authorizationStatus(for: .video) {
     case .authorized: camera.setRunning(true)
     case .notDetermined:
@@ -151,25 +166,22 @@ func gateEvent(_ kind: Int32)
           guard let self else { return }
           if allowed && self.running { self.camera.setRunning(true) }
           if !allowed {
-            self.preview.accessibilityValue = "Camera permission denied"
-            self.cameraAction.accessibilityValue = "Permission denied"
+            self.showCameraStatus(.denied)
           }
         }
       }
     default:
-      preview.accessibilityValue = "Camera permission denied"
-      cameraAction.accessibilityValue = "Permission denied"
+      showCameraStatus(.denied)
     }
   }
 
   private func sample(_ sample: DetectionSample) {
     guard running else { return }
     outline = sample.corners
-    cameraAction.accessibilityValue = sample.failure == nil ? "Running" : "Camera failed"
-    preview.accessibilityValue =
-      sample.failure == nil
-      ? (sample.detected ? "Card detected" : "No card detected") : "Camera failed"
-    capture.isEnabled = outline != nil && !capturing
+    showCameraStatus(
+      CameraStatus(
+        available: cameraAvailable, running: running, detected: outline != nil,
+        failed: sample.failure != nil))
     if let connection = preview.previewLayer.connection,
       connection.isVideoRotationAngleSupported(90)
     {
@@ -209,7 +221,7 @@ func gateEvent(_ kind: Int32)
       DispatchQueue.main.async {
         guard let self else { return }
         self.capturing = false
-        self.capture.isEnabled = self.running && self.outline != nil
+        self.capture.isEnabled = self.currentCameraStatus.canRecognize
         self.recognition.text = message
         UIAccessibility.post(notification: .announcement, argument: message)
       }

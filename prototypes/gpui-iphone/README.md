@@ -1,4 +1,4 @@
-# Physical iPhone GPUI proof
+# iPhone GPUI proof
 
 Part of [MTGSCAN-274](https://app.plane.so/reilley/browse/MTGSCAN-274/).
 This is a bounded feasibility proof. It is not the replacement app.
@@ -23,7 +23,7 @@ A captured test photo is removed after recognition. Training crops stay in the i
 The proof does not modify or reset a gallery.
 
 The accessibility element represents the actual GPUI camera button. GPUI supplies its bounds and label. Activation enters the same controller action as a touch. It reports running/stopped state. This is one proof-specific element, not a general GPUI accessibility backend.
-The native content has a declared focus order. Disabled recognition stays disabled until the real detector finds a card. This still needs a spoken VoiceOver and double-tap check on the phone.
+The native content has a declared focus order. Disabled recognition stays disabled until the real detector finds a card. A visible camera status shares the preview's accessibility value. A device without a back camera reports **Camera unavailable** and never enables recognition. This still needs a spoken VoiceOver and double-tap acceptance check.
 
 ## Build locally
 
@@ -45,6 +45,8 @@ xcodebuild -project "$BUILD/GPUIProof.xcodeproj" -scheme GPUIProof \
   -derivedDataPath "$BUILD/derived" build
 ```
 
+To build the same proof for an existing selected Simulator, use `--simulator` with `prepare.py`, the Rust target `aarch64-apple-ios-sim`, and the Xcode destination `platform=iOS Simulator,id=<selected-udid>`. Pass `CODE_SIGNING_ALLOWED=NO` for the Simulator build. Do not create or erase a Simulator. Camera capture and recognition are unavailable there. Text, scrolling, keyboard handling and the bounded GPUI action remain testable.
+
 The iOS Rust standard library must be installed for the version selected by Mise. The supported `runtime_shaders` feature avoids the missing local Metal compiler component. It compiles bundled shader source, not downloaded executable code.
 
 The generated project has only `dev.reilley.mtgscan.test`. It uses the existing development team and test-app profile. It has no credential resource or production signing target. Verify the bundle identifier and signature before installing with `devicectl`.
@@ -62,10 +64,12 @@ Use the existing hosted test-app configuration outside the repo to obtain a shor
 mise exec -- rustfmt --edition 2024 --check prototypes/gpui-iphone/gate.rs prototypes/gpui-iphone/camera_proof.rs
 mise exec -- rustc --edition 2024 --deny warnings --test prototypes/gpui-iphone/camera_proof.rs -o /tmp/camera-proof-unit
 /tmp/camera-proof-unit
-xcrun swift-format lint --strict prototypes/gpui-iphone/Proof.swift prototypes/gpui-iphone/main.swift
+xcrun swift-format lint --strict prototypes/gpui-iphone/*.swift
+xcrun swiftc prototypes/gpui-iphone/camera_status.swift prototypes/gpui-iphone/camera_status_test.swift -o /tmp/camera-status-unit
+/tmp/camera-status-unit
 ```
 
-The unit seam checks foreground intent and running-state output. It does not prove an AVCaptureSession or a native bridge. CI reads Rust from Mise and checks this unit seam and Rust formatting. It adds no integration or E2E suite. Swift compilation, linking, signing, and the physical checks are local evidence. Legacy checks remain unchanged.
+The unit seams check foreground intent, running-state output, and unavailable/failed/detected camera presentation. They do not prove an AVCaptureSession or a native bridge. CI reads Rust from Mise and checks its unit seam and formatting. The native presentation unit checks use the same Xcode selection as the existing recognizer workflow. It adds no integration or E2E suite. Swift compilation, linking, signing, and the physical checks are local evidence. Legacy checks remain unchanged.
 
 Record each manual result separately:
 

@@ -24,3 +24,15 @@ jobs:
           mise exec -- rustc --edition 2024 --deny warnings --test prototypes/gpui-iphone/camera_proof.rs -o "$RUNNER_TEMP/camera-proof-unit"
           "$RUNNER_TEMP/camera-proof-unit"
           PYTHONPYCACHEPREFIX="$RUNNER_TEMP/python-cache" python3 -m py_compile prototypes/gpui-iphone/prepare.py
+
+  camera-status:
+    runs-on: macos-15
+    env:
+      DEVELOPER_DIR: /Applications/Xcode_26.3.app/Contents/Developer
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1
+      - name: Check the native camera status presentation
+        run: |
+          xcrun swift-format lint --strict prototypes/gpui-iphone/*.swift
+          xcrun swiftc prototypes/gpui-iphone/camera_status.swift prototypes/gpui-iphone/camera_status_test.swift -o "$RUNNER_TEMP/camera-status-unit"
+          "$RUNNER_TEMP/camera-status-unit"

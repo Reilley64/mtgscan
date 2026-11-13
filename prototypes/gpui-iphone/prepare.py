@@ -1,12 +1,19 @@
+import argparse
 import json
 import pathlib
 import plistlib
 import shutil
-import sys
 
+parser = argparse.ArgumentParser()
+parser.add_argument("upstream", type=pathlib.Path)
+parser.add_argument("build", type=pathlib.Path)
+parser.add_argument("--simulator", action="store_true")
+args = parser.parse_args()
 repo = pathlib.Path(__file__).resolve().parents[2]
-upstream = pathlib.Path(sys.argv[1]).resolve()
-build = pathlib.Path(sys.argv[2]).resolve()
+upstream = args.upstream.resolve()
+build = args.build.resolve()
+rust_target = "aarch64-apple-ios-sim" if args.simulator else "aarch64-apple-ios"
+platform = "iphonesimulator" if args.simulator else "iphoneos"
 build.mkdir(parents=True, exist_ok=True)
 example_dir = upstream / "crates/gpui_ios/examples"
 shutil.copy(repo / "prototypes/gpui-iphone/gate.rs", example_dir / "mtgscan_gate.rs")
@@ -30,7 +37,7 @@ def ref(path, kind):
 
 
 mobile = repo / "apps/mobile/modules"
-sources = [repo / "prototypes/gpui-iphone" / name for name in ["Proof.swift", "main.swift"]]
+sources = [repo / "prototypes/gpui-iphone" / name for name in ["Proof.swift", "camera_status.swift", "main.swift"]]
 sources += [mobile / "card-detector/ios/CameraSession.swift"]
 sources += sorted((mobile / "card-detector/ios/Detector").glob("*.swift"))
 sources += sorted((mobile / "card-recognizer/ios/Recognizer").glob("*.swift"))
@@ -41,7 +48,7 @@ resolved = json.loads((mobile / "card-recognizer/Package.resolved").read_text())
 webp_pin = next(pin for pin in resolved["pins"] if pin["identity"] == "libwebp-xcode")
 package = obj("XCRemoteSwiftPackageReference", repositoryURL=webp_pin["location"], requirement={"kind": "revision", "revision": webp_pin["state"]["revision"]})
 webp = obj("XCSwiftPackageProductDependency", package=package, productName="libwebp")
-rust = ref(build / "rust/aarch64-apple-ios/debug/examples/libmtgscan_gate.a", "archive.ar")
+rust = ref(build / f"rust/{rust_target}/debug/examples/libmtgscan_gate.a", "archive.ar")
 frameworks = [obj("PBXBuildFile", fileRef=rust), obj("PBXBuildFile", productRef=webp)]
 for name in ["UIKit", "Metal", "QuartzCore", "CoreText", "CoreGraphics", "Security", "SystemConfiguration"]:
     framework = obj("PBXFileReference", path=f"System/Library/Frameworks/{name}.framework", sourceTree="SDKROOT", lastKnownFileType="wrapper.framework")
@@ -55,9 +62,9 @@ settings = {
     "DEVELOPMENT_TEAM": "YDZJL5K3RQ",
     "CODE_SIGN_STYLE": "Automatic",
     "CODE_SIGN_IDENTITY": "Apple Development",
-    "SDKROOT": "iphoneos",
+    "SDKROOT": platform,
     "ALWAYS_SEARCH_USER_PATHS": "NO",
-    "SUPPORTED_PLATFORMS": "iphoneos",
+    "SUPPORTED_PLATFORMS": platform,
     "IPHONEOS_DEPLOYMENT_TARGET": "17.0",
     "SWIFT_VERSION": "5.0",
     "TARGETED_DEVICE_FAMILY": "1",
@@ -69,7 +76,7 @@ settings = {
     "MARKETING_VERSION": "0.1.0",
     "CURRENT_PROJECT_VERSION": "274",
     "OTHER_LDFLAGS": ["$(inherited)", "-lc++"],
-    "LIBRARY_SEARCH_PATHS": ["$(inherited)", str(build / "rust/aarch64-apple-ios/debug/examples")],
+    "LIBRARY_SEARCH_PATHS": ["$(inherited)", str(build / f"rust/{rust_target}/debug/examples")],
     "ENABLE_DEBUG_DYLIB": "NO",
     "SWIFT_OPTIMIZATION_LEVEL": "-Onone",
     "DEBUG_INFORMATION_FORMAT": "dwarf-with-dsym",
