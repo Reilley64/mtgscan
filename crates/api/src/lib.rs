@@ -1,7 +1,10 @@
+mod credentials;
+
 pub mod catalog;
 pub mod collection;
 pub mod collection_contract;
 
+use crate::credentials::{authorization, bearer};
 use axum::{
     Json, Router,
     extract::State,
@@ -25,13 +28,7 @@ pub async fn current_account_response(
     identity: &impl VerifyIdentity,
     authorization: Option<&str>,
 ) -> AccountResponse {
-    let credential = authorization.and_then(|value| {
-        let (scheme, credential) = value.split_once(' ')?;
-        (scheme.eq_ignore_ascii_case("bearer")
-            && !credential.is_empty()
-            && !credential.chars().any(char::is_whitespace))
-        .then_some(credential)
-    });
+    let credential = bearer(authorization);
     match current_account(identity, credential).await {
         Ok(account_id) => AccountResponse {
             status: 200,
@@ -61,13 +58,7 @@ async fn account<I: VerifyIdentity>(
     State(identity): State<Arc<I>>,
     headers: HeaderMap,
 ) -> Response {
-    let authorization = if headers.get_all(header::AUTHORIZATION).iter().count() == 1 {
-        headers
-            .get(header::AUTHORIZATION)
-            .and_then(|value| value.to_str().ok())
-    } else {
-        None
-    };
+    let authorization = authorization(&headers);
     let reply = current_account_response(identity.as_ref(), authorization).await;
     let mut response = (
         StatusCode::from_u16(reply.status).unwrap(),

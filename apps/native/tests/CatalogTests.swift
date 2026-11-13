@@ -9,6 +9,9 @@ func catalogFixture<T: Decodable>(_ name: String, as type: T.Type) throws -> T {
 final class CatalogRemote: CatalogService {
   var failure: CatalogFailure?
   var printingFailure: CatalogFailure?
+  var omitOraclePrinting = false
+  var foilOnly = false
+  var printingRequests: [(ownedOnly: Bool, cursor: String?)] = []
   var suspend = false
   var pending: CheckedContinuation<CatalogSearchPage, Error>?
 
@@ -28,6 +31,7 @@ final class CatalogRemote: CatalogService {
   {
     if let failure { throw failure }
     var page = try catalogFixture("cards", as: CatalogCardsPage.self)
+    if printingID == nil && omitOraclePrinting { page.items[0].printing = nil }
     if printingID == "20000000-0000-4000-8000-000000000002" {
       let printings = try catalogFixture("printings", as: CatalogPrintingsPage.self)
       page.items[0].printing = printings.items[1]
@@ -39,8 +43,18 @@ final class CatalogRemote: CatalogService {
     -> CatalogPrintingsPage
   {
     if let failure { throw failure }
+    printingRequests.append((ownedOnly, cursor))
     if let printingFailure { throw printingFailure }
     var page = try catalogFixture("printings", as: CatalogPrintingsPage.self)
+    if foilOnly {
+      page.items = [
+        CatalogPrinting(
+          printingId: "20000000-0000-4000-8000-000000000003", set: "syn",
+          setName: "Synthetic set", collectorNumber: "1", rarity: "rare", finishes: ["foil"],
+          releasedAt: "2026-01-01", imageUris: ["https://fixture.invalid/card"],
+          artCropUri: "https://fixture.invalid/art", artist: "Synthetic artist", ownedQuantity: 1)
+      ]
+    }
     if cursor != nil {
       page.items = []
       page.nextCursor = nil
@@ -57,7 +71,52 @@ final class CatalogRemote: CatalogService {
 
 enum CatalogTests {
   @MainActor
+  private static func ownedPrintingsFailure() async throws {
+    let remote = CatalogRemote()
+    let controller = CatalogController(api: remote)
+    controller.setAccount("owner-a")
+    await controller.open("10000000-0000-4000-8000-000000000001")
+    precondition(!controller.presentation.printings.isEmpty)
+    precondition(controller.presentation.printingCursor != nil)
+    remote.printingFailure = .unavailable
+    await controller.showOwnedPrintings(true)
+    precondition(controller.presentation.ownedOnly)
+    precondition(
+      controller.presentation.printings.isEmpty,
+      "Failed owned-only transition must clear incompatible rows")
+    precondition(controller.presentation.printingCursor == nil)
+    remote.printingFailure = nil
+    await controller.loadPrintings(reset: true)
+    precondition(controller.presentation.printings.allSatisfy { ($0.ownedQuantity ?? 0) > 0 })
+    precondition(remote.printingRequests.last?.ownedOnly == true)
+    precondition(remote.printingRequests.last?.cursor == nil)
+  }
+
+  @MainActor
+  private static func initialPrintingRetry() async throws {
+    let remote = CatalogRemote()
+    remote.omitOraclePrinting = true
+    remote.foilOnly = true
+    remote.printingFailure = .unavailable
+    let controller = CatalogController(api: remote)
+    controller.setAccount("owner-a")
+    await controller.open("10000000-0000-4000-8000-000000000001")
+    precondition(controller.presentation.card != nil)
+    precondition(controller.presentation.card?.printing == nil)
+    precondition(controller.presentation.printingMessage != nil)
+    remote.printingFailure = nil
+    await controller.loadPrintings(reset: true)
+    precondition(
+      controller.presentation.card?.printing == controller.presentation.printings.first,
+      "Retry must restore fallback printing")
+    precondition(controller.presentation.card?.printing?.artCropUri != nil)
+    precondition(controller.presentation.finish == "foil")
+  }
+
+  @MainActor
   static func run() async throws {
+    try await ownedPrintingsFailure()
+    try await initialPrintingRetry()
     let remote = CatalogRemote()
     let controller = CatalogController(api: remote)
     precondition(controller.presentation.state == .signedOut)

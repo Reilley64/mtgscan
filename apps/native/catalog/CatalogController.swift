@@ -196,10 +196,7 @@ final class CatalogController {
       presentation.state = .loaded
       if refreshPrintings || presentation.printings.isEmpty { await loadPrintings(reset: true) }
       guard operation == generation else { return }
-      if presentation.card?.printing == nil {
-        presentation.card?.printing = presentation.printings.first
-      }
-      updateFinish()
+      normalizePrinting()
     } catch {
       guard operation == generation else { return }
       fail(error)
@@ -227,6 +224,7 @@ final class CatalogController {
         presentation.printings.append(contentsOf: page.items)
       }
       presentation.printingCursor = page.nextCursor
+      normalizePrinting()
     } catch {
       guard operation == generation else { return }
       if case CatalogFailure.refused = error {
@@ -246,6 +244,8 @@ final class CatalogController {
     generation += 1
     presentation.loadingPrintings = false
     presentation.ownedOnly = ownedOnly
+    presentation.printings.removeAll()
+    presentation.printingCursor = nil
     await loadPrintings(reset: true)
   }
 
@@ -255,7 +255,11 @@ final class CatalogController {
     onChange?()
   }
 
-  private func updateFinish() {
+  private func normalizePrinting() {
+    if presentation.card?.printing == nil {
+      let printing = presentation.printings.first
+      presentation.card?.printing = printing
+    }
     let finishes = presentation.card?.printing?.finishes ?? []
     if !finishes.contains(presentation.finish) { presentation.finish = finishes.first ?? "nonfoil" }
   }

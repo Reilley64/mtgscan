@@ -1,3 +1,4 @@
+use crate::credentials::{authorization, bearer};
 use axum::{
     Json, Router,
     extract::{RawQuery, State, rejection::JsonRejection},
@@ -57,13 +58,7 @@ async fn respond<I: VerifyIdentity, D: ReadCatalog>(
     query: Result<Json<Value>, JsonRejection>,
     operation: CatalogOperation,
 ) -> Response {
-    let authorization = if headers.get_all(header::AUTHORIZATION).iter().count() == 1 {
-        headers
-            .get(header::AUTHORIZATION)
-            .and_then(|value| value.to_str().ok())
-    } else {
-        None
-    };
+    let authorization = authorization(&headers);
     let reply = if parameters.is_some_and(|value| !value.is_empty()) {
         refused(CatalogRefusal::invalid(Some("query".into())))
     } else {
@@ -118,13 +113,7 @@ pub async fn catalog_response(
     operation: CatalogOperation,
     query: Value,
 ) -> CatalogResponse {
-    let credential = authorization.and_then(|value| {
-        let (scheme, credential) = value.split_once(' ')?;
-        (scheme.eq_ignore_ascii_case("bearer")
-            && !credential.is_empty()
-            && !credential.chars().any(char::is_whitespace))
-        .then_some(credential)
-    });
+    let credential = bearer(authorization);
     if credential.is_none() {
         return refused(CatalogRefusal {
             code: CatalogErrorCode::Unauthenticated,

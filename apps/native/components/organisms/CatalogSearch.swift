@@ -36,7 +36,7 @@ final class CatalogSearch: UIStackView {
       case .choice(let choices):
         let options =
           [("", "Any")]
-          + choices.map { ($0, $0.replacingOccurrences(of: "_", with: " ").capitalized) }
+          + choices.map { ($0.value, $0.label) }
         filters.addArrangedSubview(
           SearchControls.choice(field.label, options: options, selected: nil) { [weak self] value in
             self?.set(field, value)

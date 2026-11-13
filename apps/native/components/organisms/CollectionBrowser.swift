@@ -77,25 +77,17 @@ final class CollectionBrowser: UIStackView {
   }
 
   private func grid(_ copies: [CollectionCopy]) {
-    for start in stride(from: 0, to: copies.count, by: 3) {
-      let row = UIStackView()
-      row.spacing = Tokens.sm
-      row.distribution = .fillEqually
-      row.alignment = .top
-      for index in start..<min(start + 3, copies.count) {
-        let copy = copies[index]
-        row.addArrangedSubview(
+    addArrangedSubview(
+      CardGrid(
+        copies.map { copy in
           CollectionControls.tile(
             uri: copy.printing.imageURIs.first, meta: CollectionLabels.printing(copy),
             price: CollectionLabels.price(copy.currentPrice?.usdCents),
             label: CollectionLabels.spokenCopy(copy), finish: copy.finish,
             protected: copy.protected, held: copy.heldFor != nil,
             stale: copy.currentPrice?.stale == true, images: images,
-            action: { [onOpen] in onOpen(copy.copyID) }))
-      }
-      for _ in row.arrangedSubviews.count..<3 { row.addArrangedSubview(UIStackView()) }
-      addArrangedSubview(row)
-    }
+            action: { [onOpen] in onOpen(copy.copyID) })
+        }))
   }
 
   private func show(_ copy: CollectionCopy) {

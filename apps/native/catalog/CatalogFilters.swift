@@ -3,7 +3,7 @@ import Foundation
 struct CatalogFilterField {
   enum Kind {
     case list, number, text
-    case choice([String])
+    case choice([(value: String, label: String)])
   }
   let key: String
   let label: String
@@ -33,12 +33,21 @@ struct CatalogFilterField {
     .init(key: "rarities_exclude", label: "Exclude rarities", kind: .list),
     .init(key: "tags", label: "Oracle tag slugs", kind: .list),
     .init(key: "tags_exclude", label: "Exclude Oracle tag slugs", kind: .list),
-    .init(key: "is_commander", label: "Can be commander", kind: .choice(["true", "false"])),
-    .init(key: "is_game_changer", label: "Game Changer", kind: .choice(["true", "false"])),
+    .init(
+      key: "is_commander", label: "Can be commander",
+      kind: .choice([("true", "True"), ("false", "False")])),
+    .init(
+      key: "is_game_changer", label: "Game Changer",
+      kind: .choice([("true", "True"), ("false", "False")])),
     .init(
       key: "sort", label: "Order by",
-      kind: .choice(["relevance", "name", "mana_value", "edhrec_rank", "price", "release_date"])),
-    .init(key: "sort_order", label: "Direction", kind: .choice(["asc", "desc"])),
+      kind: .choice([
+        ("relevance", "Relevance"), ("name", "Name"), ("mana_value", "Mana value"),
+        ("edhrec_rank", "EDHREC rank"), ("price", "Price"), ("release_date", "Release date"),
+      ])),
+    .init(
+      key: "sort_order", label: "Direction",
+      kind: .choice([("asc", "Ascending"), ("desc", "Descending")])),
   ]
 
   func value(_ text: String) -> CatalogValue? {

@@ -154,26 +154,19 @@ final class CatalogBrowser: UIStackView {
           Task { await controller?.loadPrintings(reset: true) }
         })
     }
-    for start in stride(from: 0, to: state.printings.count, by: 3) {
-      let row = UIStackView()
-      row.spacing = Tokens.sm
-      row.distribution = .fillEqually
-      row.alignment = .top
-      for printing in state.printings[start..<min(start + 3, state.printings.count)] {
-        let selected = card.printing?.printingId == printing.printingId
-        let meta =
-          "\(printing.set.uppercased()) \(printing.collectorNumber)\(selected ? " · Selected" : "")"
-        let tile = CollectionControls.tile(
-          uri: printing.imageUris.first, meta: meta, price: "\(printing.ownedQuantity ?? 0) owned",
-          label: "\(card.name), \(meta), \(printing.ownedQuantity ?? 0) owned", finish: "nonfoil",
-          protected: false, held: false, stale: false, images: images
-        ) { [weak controller] in Task { await controller?.selectPrinting(printing.printingId) } }
-        if selected { tile.accessibilityTraits.insert(.selected) }
-        row.addArrangedSubview(tile)
-      }
-      for _ in row.arrangedSubviews.count..<3 { row.addArrangedSubview(UIStackView()) }
-      addArrangedSubview(row)
+    let tiles: [UIView] = state.printings.map { printing in
+      let selected = card.printing?.printingId == printing.printingId
+      let meta =
+        "\(printing.set.uppercased()) \(printing.collectorNumber)\(selected ? " · Selected" : "")"
+      let tile = CollectionControls.tile(
+        uri: printing.imageUris.first, meta: meta, price: "\(printing.ownedQuantity ?? 0) owned",
+        label: "\(card.name), \(meta), \(printing.ownedQuantity ?? 0) owned", finish: "nonfoil",
+        protected: false, held: false, stale: false, images: images
+      ) { [weak controller] in Task { await controller?.selectPrinting(printing.printingId) } }
+      if selected { tile.accessibilityTraits.insert(.selected) }
+      return tile
     }
+    addArrangedSubview(CardGrid(tiles))
     if state.printingCursor != nil {
       let button = AuthControls.button(
         state.loadingPrintings ? "Loading printings" : "Load more printings"
