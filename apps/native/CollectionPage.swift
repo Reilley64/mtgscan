@@ -59,6 +59,8 @@ final class CollectionPage: UIView, UIScrollViewDelegate {
 
   required init?(coder: NSCoder) { fatalError() }
 
+  func refresh() async { await controller.reload() }
+
   override func layoutSubviews() {
     super.layoutSubviews()
     header.frame = CGRect(x: 0, y: 0, width: bounds.width, height: Tokens.touchTarget)
