@@ -63,6 +63,11 @@ enum CollectionControls {
     return button
   }
 
+  static func configureBack(_ button: UIButton, showing: Bool) {
+    button.configuration?.image = UIImage(systemName: showing ? "chevron.left" : "xmark")
+    button.accessibilityLabel = showing ? "Back" : "Close"
+  }
+
   static func heading(_ text: String) -> UILabel {
     let label = AuthControls.label(text, style: .headline)
     label.textColor = Tokens.primary

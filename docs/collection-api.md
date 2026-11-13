@@ -88,10 +88,10 @@ The copy header keeps a fixed-size native Close control over the hero.
 On iOS 26 and later, the soft system scroll-edge effect protects content after the hero leaves the header.
 Older systems use a native material backdrop. Loading and error content reserve space below the header.
 
-This slice shows read-only metadata and USD prices.
+The browse/read slice shows metadata and USD prices. [MTGSCAN-286](collection-organization-api.md) adds opt-in protection and user-tag actions without changing the read contract.
 Search, filters, order controls, and pagination follow in MTGSCAN-283.
 Currency settings and consistent converted-price behavior follow in MTGSCAN-285.
-Copy actions and user-tag editing follow in MTGSCAN-286/301. Deck navigation follows in MTGSCAN-288.
+User-tag editing and protection use MTGSCAN-286's action path. Copy deletion follows in MTGSCAN-301. Deck navigation follows in MTGSCAN-288.
 The scanner and gallery algorithms are unchanged.
 
 ## Verification limits

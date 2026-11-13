@@ -1,3 +1,5 @@
+pub mod organization;
+
 use mtgscan_application::collection::ReadCollection;
 use mtgscan_domain::collection::{
     CardPrinting, CollectionRefusal, Copy, Deck, Face, OwnedCopy, Price, UserTag,

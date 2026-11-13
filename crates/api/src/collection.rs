@@ -39,6 +39,16 @@ fn refused(refusal: CollectionRefusal, field: Option<&'static str>) -> Collectio
     }
 }
 
+pub(crate) fn bearer_credential(authorization: Option<&str>) -> Option<&str> {
+    authorization.and_then(|value| {
+        let (scheme, credential) = value.split_once(' ')?;
+        (scheme.eq_ignore_ascii_case("bearer")
+            && !credential.is_empty()
+            && !credential.chars().any(char::is_whitespace))
+        .then_some(credential)
+    })
+}
+
 pub async fn collection_response(
     identity: &impl VerifyIdentity,
     database: &impl ReadCollection,
@@ -46,13 +56,7 @@ pub async fn collection_response(
     query: &str,
     copy_id: Option<&str>,
 ) -> CollectionResponse {
-    let credential = authorization.and_then(|value| {
-        let (scheme, credential) = value.split_once(' ')?;
-        (scheme.eq_ignore_ascii_case("bearer")
-            && !credential.is_empty()
-            && !credential.chars().any(char::is_whitespace))
-        .then_some(credential)
-    });
+    let credential = bearer_credential(authorization);
     if credential.is_none() {
         return refused(CollectionRefusal::Unauthenticated, None);
     }
@@ -99,14 +103,14 @@ pub fn router<I: VerifyIdentity + 'static, D: ReadCollection + 'static>(
         .with_state(Arc::new(Services { identity, database }))
 }
 
-fn authorization(headers: &HeaderMap) -> Option<&str> {
+pub(crate) fn authorization(headers: &HeaderMap) -> Option<&str> {
     if headers.get_all(header::AUTHORIZATION).iter().count() != 1 {
         return None;
     }
     headers.get(header::AUTHORIZATION)?.to_str().ok()
 }
 
-fn response(reply: CollectionResponse) -> Response {
+pub(crate) fn response(reply: CollectionResponse) -> Response {
     let mut result = (
         StatusCode::from_u16(reply.status).unwrap(),
         Json(reply.body),

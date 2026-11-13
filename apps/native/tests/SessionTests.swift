@@ -70,6 +70,8 @@ struct SessionTests {
     try await successfulReadsSurviveSameAccountRevalidation()
     try await invalidatedReadsStayRefusedAfterSigningInAgain()
     try await CollectionTests.run()
+    try await runOrganizationTests()
+    try await runOrganizationServiceTests()
     try await runCollectionServiceTests()
     let keychain = MemoryKeychain()
     let controller = SessionController(

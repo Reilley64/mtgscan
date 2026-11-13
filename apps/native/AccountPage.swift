@@ -64,7 +64,10 @@ private final class AccountPage: UIView {
         api: SessionCollectionService(
           session: controller, api: CollectionAPI(origin: config.apiURL)))
       collection.bind(to: controller)
-      let collectionPage = CollectionPage(controller: collection) { [weak controller] in
+      let organization = OrganizationController(
+        api: SessionOrganizationService(session: controller, origin: config.apiURL))
+      let collectionPage = CollectionPage(controller: collection, organization: organization) {
+        [weak controller] in
         Task { await controller?.signOut() }
       }
       self.collectionPage = collectionPage
