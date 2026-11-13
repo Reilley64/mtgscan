@@ -4,8 +4,7 @@ import UIKit
 final class CollectionPage: UIView, UIScrollViewDelegate {
   private let layout = AccountLayout()
   private let header = UIView()
-  private let headerBackdrop = UIVisualEffectView(
-    effect: UIBlurEffect(style: .systemChromeMaterial))
+  private lazy var headerEffect = ScrollHeaderEffect(header: header, scrollView: layout)
   private let controller: CollectionController
   private let images: any CardImages
   private lazy var close = CollectionControls.close { [weak self] in
@@ -39,15 +38,7 @@ final class CollectionPage: UIView, UIScrollViewDelegate {
     addSubview(header)
     header.addSubview(close)
     layout.delegate = self
-    if #available(iOS 26.0, *) {
-      let interaction = UIScrollEdgeElementContainerInteraction()
-      interaction.scrollView = layout
-      interaction.edge = .top
-      header.addInteraction(interaction)
-      layout.topEdgeEffect.style = .soft
-    } else {
-      header.insertSubview(headerBackdrop, at: 0)
-    }
+    _ = headerEffect
     browser.onLayout = { [weak self] in self?.updateHeaderEffect() }
     controller.onChange = { [weak self] in self?.display() }
     registerForTraitChanges([UITraitPreferredContentSizeCategory.self]) {
@@ -67,7 +58,6 @@ final class CollectionPage: UIView, UIScrollViewDelegate {
     header.frame = CGRect(x: 0, y: 0, width: bounds.width, height: Tokens.touchTarget)
     let top = !header.isHidden && browser.hero == nil ? header.frame.maxY : 0
     layout.frame = CGRect(x: 0, y: top, width: bounds.width, height: max(0, bounds.height - top))
-    headerBackdrop.frame = header.bounds
     close.frame = CGRect(x: 0, y: 0, width: Tokens.touchTarget, height: Tokens.touchTarget)
     layout.layoutIfNeeded()
     updateHeaderEffect()
@@ -94,11 +84,7 @@ final class CollectionPage: UIView, UIScrollViewDelegate {
         $0.convert($0.bounds, to: self).maxY > header.frame.maxY
       } ?? true
     let hidden = controller.presentation.selectedCopyID == nil || heroBelowHeader
-    if #available(iOS 26.0, *) {
-      layout.topEdgeEffect.isHidden = hidden
-    } else {
-      headerBackdrop.isHidden = hidden
-    }
+    headerEffect.update(hidden: hidden)
   }
 
   @objc private func goBack(_ gesture: UIScreenEdgePanGestureRecognizer) {

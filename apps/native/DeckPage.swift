@@ -1,14 +1,16 @@
 import UIKit
 
 @MainActor
-final class DeckPage: UIView, UIGestureRecognizerDelegate {
+final class DeckPage: UIView, UIGestureRecognizerDelegate, UIScrollViewDelegate {
   private let controller: DeckController
   private let copies: CollectionController
   private let images: any CardImages
   private let onCollection: () -> Void
   private let onSignOut: () -> Void
-  private let layout = AccountLayout()
+  private let layout = AccountLayout(topPadding: 0)
   private let header = UIStackView()
+  private lazy var headerEffect = ScrollHeaderEffect(header: header, scrollView: layout)
+  private var headerTitle: UILabel?
   private let ordering = UIStackView()
   private var selectedDeckID: String?
   private var selectedCopyID: String?
@@ -49,10 +51,13 @@ final class DeckPage: UIView, UIGestureRecognizerDelegate {
     header.alignment = .center
     ordering.axis = .horizontal
     ordering.spacing = Tokens.sm
-    ordering.alignment = .trailing
+    ordering.alignment = .center
     addSubview(layout)
     layout.content.addArrangedSubview(browser)
+    layout.delegate = self
+    browser.onLayout = { [weak self] in self?.updateHeaderEffect() }
     addSubview(header)
+    _ = headerEffect
     addSubview(ordering)
     addSubview(copyPage)
     controller.onChange = { [weak self] in self?.display() }
@@ -77,15 +82,19 @@ final class DeckPage: UIView, UIGestureRecognizerDelegate {
         CGSize(width: bounds.width, height: UIView.layoutFittingCompressedSize.height)
       ).height)
     header.frame = CGRect(x: 0, y: 0, width: bounds.width, height: headerHeight)
+    let top = browser.banner == nil ? headerHeight + Tokens.lg : 0
     layout.frame = CGRect(
-      x: 0, y: headerHeight, width: bounds.width, height: max(0, bounds.height - headerHeight))
+      x: 0, y: top, width: bounds.width, height: max(0, bounds.height - top))
     let orderSize = ordering.systemLayoutSizeFitting(UIView.layoutFittingCompressedSize)
     ordering.frame = CGRect(
       x: max(0, bounds.width - orderSize.width - Tokens.lg),
       y: max(headerHeight, bounds.height - orderSize.height - Tokens.lg), width: orderSize.width,
       height: orderSize.height)
-    layout.contentInset.bottom = ordering.isHidden ? 0 : orderSize.height + Tokens.lg
+    layout.contentInset.bottom =
+      ordering.isHidden ? 0 : CGFloat(PresentationData.floatingButtonClearance) - Tokens.lg
     copyPage.frame = bounds
+    layout.layoutIfNeeded()
+    updateHeaderEffect()
   }
 
   private func display() {
@@ -123,6 +132,9 @@ final class DeckPage: UIView, UIGestureRecognizerDelegate {
     let title = AuthControls.label(
       state.selectedDeckID == nil ? "Decks" : state.deck?.summary.name ?? "", style: .headline)
     title.accessibilityTraits.insert(.header)
+    title.numberOfLines = 1
+    title.lineBreakMode = .byTruncatingTail
+    headerTitle = title
     header.addArrangedSubview(title)
     header.addArrangedSubview(UIStackView())
     if let deck = state.deck {
@@ -132,8 +144,7 @@ final class DeckPage: UIView, UIGestureRecognizerDelegate {
           [weak self] _ in Task { await self?.controller.setPriority(priority) }
         }
       }
-      let more = DeckControls.menu(
-        title: "More", symbol: "ellipsis",
+      let more = DeckControls.more(
         menu: UIMenu(children: [rename, UIMenu(title: "Priority", children: priorities)]))
       more.isEnabled = !state.writing
       header.addArrangedSubview(more)
@@ -154,11 +165,11 @@ final class DeckPage: UIView, UIGestureRecognizerDelegate {
           [weak self] _ in self?.controller.sort(by: sort)
         }
       }
-      let group = DeckControls.menu(
+      let group = DeckControls.floatingMenu(
         title: "Group", symbol: "rectangle.3.group",
         menu: UIMenu(title: "Group by", children: groups))
       group.accessibilityValue = controller.grouping.rawValue
-      let sort = DeckControls.menu(
+      let sort = DeckControls.floatingMenu(
         title: "Sort", symbol: "arrow.up.arrow.down",
         menu: UIMenu(title: "Sort by", children: sorts))
       sort.accessibilityValue =
@@ -178,6 +189,22 @@ final class DeckPage: UIView, UIGestureRecognizerDelegate {
       presenter.present(DeckControls.failureAlert(title: failure), animated: true)
     }
     setNeedsLayout()
+    updateHeaderEffect()
+  }
+
+  func scrollViewDidScroll(_ scrollView: UIScrollView) { updateHeaderEffect() }
+
+  private func updateHeaderEffect() {
+    let passed =
+      browser.banner.map {
+        $0.bounds.height > 0 && $0.convert($0.bounds, to: self).maxY <= header.frame.maxY
+      } ?? false
+    let hideTitle = browser.banner != nil && !passed
+    if headerTitle?.isHidden != hideTitle {
+      headerTitle?.isHidden = hideTitle
+      setNeedsLayout()
+    }
+    headerEffect.update(hidden: !passed)
   }
 
   private func name(rename: Bool) {

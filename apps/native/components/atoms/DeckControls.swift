@@ -84,17 +84,17 @@ enum DeckControls {
     return surface(content: art, label: name, hint: "Opens the card.", action: action)
   }
 
-  static func menu(title: String, symbol: String, menu: UIMenu) -> UIButton {
-    var configuration = UIButton.Configuration.plain()
-    configuration.title = title
-    configuration.image = UIImage(systemName: symbol)
-    configuration.baseForegroundColor = Tokens.text
-    let button = UIButton(configuration: configuration)
-    button.accessibilityLabel = title
+  static func more(menu: UIMenu) -> UIButton {
+    let button = IconControls.header(label: "More", symbol: "ellipsis")
     button.menu = menu
     button.showsMenuAsPrimaryAction = true
-    button.heightAnchor.constraint(greaterThanOrEqualToConstant: Tokens.touchTarget).isActive = true
-    button.widthAnchor.constraint(greaterThanOrEqualToConstant: Tokens.touchTarget).isActive = true
+    return button
+  }
+
+  static func floatingMenu(title: String, symbol: String, menu: UIMenu) -> UIButton {
+    let button = IconControls.floating(label: title, symbol: symbol)
+    button.menu = menu
+    button.showsMenuAsPrimaryAction = true
     return button
   }
 

@@ -4,7 +4,7 @@ import UIKit
 final class AccountLayout: UIScrollView {
   let content = UIStackView()
 
-  init() {
+  init(topPadding: CGFloat? = nil) {
     super.init(frame: .zero)
     content.axis = .vertical
     content.spacing = Tokens.lg
@@ -13,7 +13,8 @@ final class AccountLayout: UIScrollView {
     NSLayoutConstraint.activate([
       content.leadingAnchor.constraint(equalTo: contentLayoutGuide.leadingAnchor),
       content.trailingAnchor.constraint(equalTo: contentLayoutGuide.trailingAnchor),
-      content.topAnchor.constraint(equalTo: contentLayoutGuide.topAnchor, constant: Tokens.lg),
+      content.topAnchor.constraint(
+        equalTo: contentLayoutGuide.topAnchor, constant: topPadding ?? Tokens.lg),
       content.bottomAnchor.constraint(
         equalTo: contentLayoutGuide.bottomAnchor, constant: -Tokens.lg),
       content.widthAnchor.constraint(equalTo: frameLayoutGuide.widthAnchor),

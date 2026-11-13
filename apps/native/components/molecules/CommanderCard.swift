@@ -46,14 +46,13 @@ final class CommanderCard: UIView {
       text.leadingAnchor.constraint(equalTo: leadingAnchor, constant: Tokens.lg),
       text.trailingAnchor.constraint(lessThanOrEqualTo: trailingAnchor, constant: -Tokens.lg),
       text.topAnchor.constraint(
-        greaterThanOrEqualTo: topAnchor, constant: CGFloat(PresentationData.commanderTopInset)),
+        greaterThanOrEqualTo: topAnchor,
+        constant: CGFloat(
+          banner ? PresentationData.headerClearance : PresentationData.commanderTopInset)),
       text.bottomAnchor.constraint(equalTo: bottomAnchor, constant: -Tokens.lg),
     ])
     if needsYou > 0 && !banner {
-      let count = AuthControls.label(String(needsYou), style: .caption2)
-      count.backgroundColor = Tokens.primary
-      count.textColor = Tokens.background
-      count.accessibilityLabel = "Needs you \(needsYou)"
+      let count = CountBadge(count: needsYou, accessibilityLabel: "Needs you \(needsYou)")
       count.translatesAutoresizingMaskIntoConstraints = false
       addSubview(count)
       NSLayoutConstraint.activate([

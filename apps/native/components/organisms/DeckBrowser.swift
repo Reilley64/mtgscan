@@ -2,6 +2,8 @@ import UIKit
 
 @MainActor
 final class DeckBrowser: UIStackView {
+  var onLayout: (() -> Void)?
+  var banner: CommanderCard? { arrangedSubviews.first as? CommanderCard }
   private let images: any CardImages
   private let onOpen: (String) -> Void
   private let onCopy: (String) -> Void
@@ -26,6 +28,11 @@ final class DeckBrowser: UIStackView {
   }
 
   required init(coder: NSCoder) { fatalError() }
+
+  override func layoutSubviews() {
+    super.layoutSubviews()
+    onLayout?()
+  }
 
   func display(_ state: DeckPresentation, grouping: DeckGrouping, sort: DeckSort, ascending: Bool) {
     for view in arrangedSubviews {

@@ -89,6 +89,10 @@ The gallery opens Cards. Deck copy tiles open that exact copy and Close returns 
 That return does not wait for a collection browse request.
 Following a copy's deck tag keeps that copy as the immediate return origin.
 Account changes clear those return origins.
+The loaded banner starts at the top of its page under Close and More.
+The header name appears only after the banner scrolls underneath it.
+Header icons keep 44-point targets. Group and Sort use the canonical round floating buttons.
+Needs you uses the shared round count badge from the canonical theme.
 Basic-land counts expand to individual read-only images, not selectable copies.
 The empty deck offers Open Collection.
 Create and Rename use native name alerts. More offers Rename and the checked advisory Priority submenu.

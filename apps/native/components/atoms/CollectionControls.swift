@@ -57,18 +57,8 @@ final class CardArtwork: UIView {
 @MainActor
 enum CollectionControls {
   static func close(_ action: @escaping () -> Void) -> UIButton {
-    var configuration: UIButton.Configuration
-    if #available(iOS 26.0, *) {
-      configuration = .glass()
-    } else {
-      configuration = .plain()
-    }
-    configuration.image = UIImage(
-      systemName: "xmark",
-      withConfiguration: UIImage.SymbolConfiguration(pointSize: UIFont.systemFontSize))
-    configuration.baseForegroundColor = Tokens.text
-    let button = UIButton(configuration: configuration, primaryAction: UIAction { _ in action() })
-    button.accessibilityLabel = "Close"
+    let button = IconControls.header(label: "Close", symbol: "xmark")
+    button.addAction(UIAction { _ in action() }, for: .touchUpInside)
     return button
   }
 
