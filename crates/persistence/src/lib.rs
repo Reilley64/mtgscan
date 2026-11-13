@@ -1,3 +1,5 @@
+mod catalog;
+
 use mtgscan_application::collection::ReadCollection;
 use mtgscan_domain::collection::{
     CardPrinting, CollectionRefusal, Copy, Deck, Face, OwnedCopy, Price, UserTag,
@@ -10,6 +12,7 @@ use sqlx::{
 };
 use std::time::Duration;
 
+#[derive(Clone)]
 pub struct PostgresCollection {
     pool: PgPool,
 }

@@ -1,0 +1,51 @@
+{
+  "rules_data_as_of": "2026-11-13T00:00:00Z",
+  "rules_stale": false,
+  "prices_observed_at": "2026-11-13T01:00:00Z",
+  "prices_stale": false,
+  "items": [
+    {
+      "oracle_id": "10000000-0000-4000-8000-000000000001",
+      "name": "Sol Ring",
+      "mana_cost": "{1}",
+      "mana_value": 1,
+      "type_line": "Artifact",
+      "color_identity": [],
+      "is_game_changer": false,
+      "can_be_commander": false,
+      "edhrec_rank": 1,
+      "oracle_text": "{T}: Add {C}{C}.",
+      "price_from": {
+        "currency": "USD",
+        "amount": "1.50",
+        "finish": "nonfoil",
+        "basis": "lowest current price over printings and finishes"
+      },
+      "owned": {
+        "quantity": 4,
+        "free_quantity": 2,
+        "protected_free_quantity": 1
+      }
+    },
+    {
+      "oracle_id": "10000000-0000-4000-8000-000000000002",
+      "name": "Ring of Three Wishes",
+      "mana_cost": "{1}",
+      "mana_value": 1,
+      "type_line": "Artifact",
+      "color_identity": [],
+      "is_game_changer": false,
+      "can_be_commander": false,
+      "edhrec_rank": null,
+      "oracle_text": "{T}: Add {C}{C}.",
+      "price_from": null,
+      "owned": {
+        "quantity": 0,
+        "free_quantity": 0,
+        "protected_free_quantity": 0
+      }
+    }
+  ],
+  "next_cursor": "opaque-search-cursor",
+  "search_id": "30000000-0000-4000-8000-000000000001"
+}
