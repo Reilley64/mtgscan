@@ -114,9 +114,66 @@ enum CatalogTests {
   }
 
   @MainActor
+  private static func paginationResumesAfterOpeningACard() async throws {
+    let remote = CatalogRemote()
+    let controller = CatalogController(api: remote)
+    controller.setAccount("owner-a")
+    await controller.search(CatalogQuery(fields: ["text": .text("ring")]))
+    remote.suspend = true
+    let oldPage = Task { await controller.more() }
+    while remote.pending == nil { await Task.yield() }
+    precondition(controller.presentation.loadingMore)
+    remote.suspend = false
+    await controller.open("10000000-0000-4000-8000-000000000001")
+    controller.closeCard()
+    remote.pending?.resume(returning: try catalogFixture("search", as: CatalogSearchPage.self))
+    await oldPage.value
+    precondition(!controller.presentation.loadingMore)
+    precondition(controller.presentation.nextCursor == "opaque-search-cursor")
+    await controller.more()
+    precondition(controller.presentation.items.count == 3)
+    precondition(controller.presentation.nextCursor == nil)
+  }
+
+  @MainActor
+  private static func obsoletePaginationDoesNotClearANewerPage() async throws {
+    let remote = CatalogRemote()
+    let controller = CatalogController(api: remote)
+    controller.setAccount("owner-a")
+    await controller.search(CatalogQuery(fields: ["text": .text("ring")]))
+    remote.suspend = true
+    let oldPage = Task { await controller.more() }
+    while remote.pending == nil { await Task.yield() }
+    let oldReply = remote.pending!
+    remote.pending = nil
+    remote.suspend = false
+    await controller.reload()
+    precondition(!controller.presentation.loadingMore)
+    remote.suspend = true
+    let newPage = Task { await controller.more() }
+    while remote.pending == nil { await Task.yield() }
+    let newReply = remote.pending!
+    remote.pending = nil
+    oldReply.resume(returning: try catalogFixture("search", as: CatalogSearchPage.self))
+    await oldPage.value
+    precondition(controller.presentation.loadingMore)
+    precondition(controller.presentation.items.count == 2)
+    var next = try catalogFixture("search", as: CatalogSearchPage.self)
+    next.items = [next.items[1]]
+    next.nextCursor = nil
+    newReply.resume(returning: next)
+    await newPage.value
+    precondition(!controller.presentation.loadingMore)
+    precondition(controller.presentation.items.count == 3)
+    precondition(controller.presentation.nextCursor == nil)
+  }
+
+  @MainActor
   static func run() async throws {
     try await ownedPrintingsFailure()
     try await initialPrintingRetry()
+    try await paginationResumesAfterOpeningACard()
+    try await obsoletePaginationDoesNotClearANewerPage()
     let remote = CatalogRemote()
     let controller = CatalogController(api: remote)
     precondition(controller.presentation.state == .signedOut)

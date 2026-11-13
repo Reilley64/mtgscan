@@ -56,9 +56,15 @@ final class CatalogController {
 
   init(api: any CatalogService) { self.api = api }
 
+  private func invalidateReads() {
+    generation += 1
+    presentation.loadingMore = false
+    presentation.loadingPrintings = false
+  }
+
   func setAccount(_ accountID: String?) {
     guard self.accountID != accountID else { return }
-    generation += 1
+    invalidateReads()
     tagGeneration += 1
     debounce?.cancel()
     tagDebounce?.cancel()
@@ -86,7 +92,7 @@ final class CatalogController {
   }
 
   private func prepare(_ query: CatalogQuery) {
-    generation += 1
+    invalidateReads()
     presentation.query = query
     presentation.items.removeAll()
     presentation.nextCursor = nil
@@ -95,8 +101,6 @@ final class CatalogController {
     presentation.selectedPrintingID = nil
     presentation.printings.removeAll()
     presentation.printingCursor = nil
-    presentation.loadingMore = false
-    presentation.loadingPrintings = false
     presentation.message = nil
     presentation.state = query.hasCriteria ? .loading : .idle
     onChange?()
@@ -109,7 +113,7 @@ final class CatalogController {
       return
     }
     guard presentation.query.hasCriteria else { return }
-    generation += 1
+    invalidateReads()
     let operation = generation
     presentation.message = nil
     if presentation.items.isEmpty { presentation.state = .loading }
@@ -133,7 +137,7 @@ final class CatalogController {
     guard let accountID, let cursor = presentation.nextCursor, !presentation.loadingMore else {
       return
     }
-    generation += 1
+    invalidateReads()
     let operation = generation
     var query = presentation.query
     query.fields["cursor"] = .text(cursor)
@@ -163,7 +167,6 @@ final class CatalogController {
     presentation.printings.removeAll()
     presentation.printingCursor = nil
     presentation.ownedOnly = false
-    presentation.loadingPrintings = false
     await loadCard(refreshPrintings: true)
   }
 
@@ -176,9 +179,8 @@ final class CatalogController {
 
   private func loadCard(refreshPrintings: Bool = false) async {
     guard let accountID, let oracleID = presentation.selectedOracleID else { return }
-    generation += 1
+    invalidateReads()
     let operation = generation
-    presentation.loadingPrintings = false
     presentation.state = .loading
     presentation.message = nil
     onChange?()
@@ -241,8 +243,7 @@ final class CatalogController {
 
   func showOwnedPrintings(_ ownedOnly: Bool) async {
     guard accountID != nil else { return }
-    generation += 1
-    presentation.loadingPrintings = false
+    invalidateReads()
     presentation.ownedOnly = ownedOnly
     presentation.printings.removeAll()
     presentation.printingCursor = nil
@@ -266,12 +267,11 @@ final class CatalogController {
 
   func closeCard() {
     guard accountID != nil else { return }
-    generation += 1
+    invalidateReads()
     presentation.card = nil
     presentation.selectedOracleID = nil
     presentation.selectedPrintingID = nil
     presentation.printings.removeAll()
-    presentation.loadingPrintings = false
     if presentation.state != .refused {
       presentation.message = nil
       presentation.state =
@@ -324,7 +324,7 @@ final class CatalogController {
   private func fail(_ error: Error) {
     switch error {
     case CatalogFailure.refused, SessionFailure.unauthenticated:
-      generation += 1
+      invalidateReads()
       tagGeneration += 1
       debounce?.cancel()
       tagDebounce?.cancel()

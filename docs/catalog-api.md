@@ -105,6 +105,8 @@ Opening a result loads its rules and printing list.
 The user can select a printing, inspect its finishes, and choose **Owned only** for the printing list.
 Card symbols, artwork, finish sheen, labels, Dynamic Type and touch targets reuse the native Atomic Design components and generated mobile tokens.
 Search transitions invalidate earlier replies. Account changes clear queries and owned results.
+Invalidating a read also releases its pagination busy state. An obsolete completion cannot clear a newer page's busy state.
+Returning to Collection reads it again while retaining its shown content on a transient failure.
 Failures retain successful data for the same query where possible and offer **Try again**.
 An expired result cursor restarts from the first page on retry.
 

@@ -104,6 +104,7 @@ final class AccountPage: UIView {
           self?.endEditing(true)
           self?.showingCatalog = false
           self?.display()
+          Task { await self?.collectionPage?.refresh() }
         }
         self.catalogPage = catalogPage
         addSubview(catalogPage)
