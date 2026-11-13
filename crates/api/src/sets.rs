@@ -1,4 +1,5 @@
-use crate::collection::{CollectionResponse, authorization, refused, response};
+use crate::collection::{CollectionResponse, refused, response};
+use crate::credentials::{authorization, bearer};
 use crate::sets_contract::{set_details, set_summary};
 use axum::{
     Router,
@@ -48,13 +49,7 @@ pub async fn sets_response(
     uri: &Uri,
     code: Option<&str>,
 ) -> CollectionResponse {
-    let credential = authorization.and_then(|value| {
-        let (scheme, token) = value.split_once(' ')?;
-        (scheme.eq_ignore_ascii_case("bearer")
-            && !token.is_empty()
-            && !token.chars().any(char::is_whitespace))
-        .then_some(token)
-    });
+    let credential = bearer(authorization);
     if credential.is_none() {
         return refused(CollectionRefusal::Unauthenticated, None);
     }
@@ -193,7 +188,7 @@ mod tests {
                 basic_land: false,
                 absent: false,
                 prices: [None; 3],
-                copies: vec![],
+                copy_counts_by_finish: vec![],
                 sections: vec![],
             }])
         }

@@ -10,7 +10,7 @@ struct SectionRow {
     name: String,
 }
 #[derive(Deserialize)]
-struct CopyRow {
+struct CopyCountRow {
     owner_id: String,
     finish: String,
     quantity: u64,
@@ -87,7 +87,8 @@ async fn read_printings(
     let printings = rows
         .iter()
         .map(|row| {
-            let Json(copies): Json<Vec<CopyRow>> = row.try_get("copies")?;
+            let Json(copy_counts): Json<Vec<CopyCountRow>> =
+                row.try_get("copy_counts_by_finish")?;
             Ok(SetPrinting {
                 set_code: row.try_get("set_code")?,
                 printing_id: row.try_get("printing_id")?,
@@ -106,9 +107,9 @@ async fn read_printings(
                     row.try_get("usd_foil_cents")?,
                     row.try_get("usd_etched_cents")?,
                 ],
-                copies: copies
+                copy_counts_by_finish: copy_counts
                     .into_iter()
-                    .map(|c| SetCopy {
+                    .map(|c| CopyCountByFinish {
                         owner_id: c.owner_id,
                         finish: c.finish,
                         quantity: c.quantity,

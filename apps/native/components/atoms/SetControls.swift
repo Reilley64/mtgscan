@@ -1,4 +1,3 @@
-import CoreImage
 import UIKit
 
 @MainActor
@@ -81,7 +80,9 @@ final class SetBanner: UIControl {
     text.spacing = Tokens.sm
     text.isUserInteractionEnabled = false
     let icon = symbols.symbol(uri: iconURI, share: share, filled: artURI == nil)
-    let iconSize = large ? Tokens.setPageBannerSymbol : Tokens.setBannerSymbol
+    let iconSize =
+      artURI == nil
+      ? Tokens.setSymbolFill : large ? Tokens.setPageBannerSymbol : Tokens.setBannerSymbol
     icon.heightAnchor.constraint(equalToConstant: iconSize).isActive = true
     icon.widthAnchor.constraint(equalToConstant: iconSize).isActive = true
     text.addArrangedSubview(icon)
@@ -124,13 +125,7 @@ final class SetBanner: UIControl {
         let image = await images.image(uri: artURI, blur: 0)
         guard !Task.isCancelled, let self else { return }
         color.image = image
-        if let image, let input = CIImage(image: image),
-          let output = CIContext().createCGImage(
-            input.applyingFilter("CIColorControls", parameters: [kCIInputSaturationKey: 0]),
-            from: input.extent)
-        {
-          gray.image = UIImage(cgImage: output)
-        }
+        if let image { gray.image = CardImageEffects.grayscale(image) }
       }
     }
   }

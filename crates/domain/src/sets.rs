@@ -38,7 +38,7 @@ pub struct SetSection {
 }
 
 #[derive(Debug, Clone, PartialEq, Eq)]
-pub struct SetCopy {
+pub struct CopyCountByFinish {
     pub owner_id: String,
     pub finish: String,
     pub quantity: u64,
@@ -59,7 +59,7 @@ pub struct SetPrinting {
     pub basic_land: bool,
     pub absent: bool,
     pub prices: [Option<i32>; 3],
-    pub copies: Vec<SetCopy>,
+    pub copy_counts_by_finish: Vec<CopyCountByFinish>,
     pub sections: Vec<i32>,
 }
 
@@ -135,7 +135,7 @@ fn completion(printings: &[SetCardPrinting]) -> FinishValues<Completion> {
 fn shown(printing: &SetPrinting, owner: &str) -> SetCardPrinting {
     let copies = |finishes: &[&str]| {
         printing
-            .copies
+            .copy_counts_by_finish
             .iter()
             .filter(|copy| {
                 copy.owner_id == owner
@@ -301,7 +301,7 @@ mod tests {
             basic_land: false,
             absent: false,
             prices: [None; 3],
-            copies: vec![],
+            copy_counts_by_finish: vec![],
             sections: vec![],
         }
     }
@@ -419,7 +419,7 @@ mod tests {
         let nonfoil = printing("nonfoil-only", "1");
         let mut etched = printing("etched-only", "2");
         etched.finishes = vec!["etched".into()];
-        etched.copies = vec![SetCopy {
+        etched.copy_counts_by_finish = vec![CopyCountByFinish {
             owner_id: "owner".into(),
             finish: "etched".into(),
             quantity: 3,

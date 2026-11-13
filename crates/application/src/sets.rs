@@ -213,7 +213,7 @@ mod tests {
                 basic_land: false,
                 absent: false,
                 prices: [None; 3],
-                copies: vec![],
+                copy_counts_by_finish: vec![],
                 sections: vec![],
             };
             for (owner_id, finish) in [
@@ -221,7 +221,7 @@ mod tests {
                 ("owner-a", "foil"),
                 ("owner-b", "nonfoil"),
             ] {
-                printing.copies.push(SetCopy {
+                printing.copy_counts_by_finish.push(CopyCountByFinish {
                     owner_id: owner_id.into(),
                     finish: finish.into(),
                     quantity: 1,

@@ -82,6 +82,7 @@ for name, value in {
     "iconButtonSymbol": number("sizes", "iconButtonSymbol"),
     "setBanner": number("sizes", "setBanner"),
     "setPageBanner": number("sizes", "setPageBanner"),
+    "setSymbolFill": number("sizes", "setSymbolFill"),
     "setBannerSymbol": number("sizes", "setBannerSymbol"),
     "setPageBannerSymbol": number("sizes", "setPageBannerSymbol"),
     "selectedOutline": number("sizes", "selectedOutline"),

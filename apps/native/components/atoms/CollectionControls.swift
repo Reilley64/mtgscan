@@ -1,4 +1,3 @@
-import CoreImage
 import UIKit
 
 @MainActor
@@ -33,12 +32,8 @@ final class CardArtwork: UIView {
       load = Task { [weak self] in
         let image = await images.image(uri: uri, blur: blur)
         guard !Task.isCancelled else { return }
-        if dimmed, let image, let input = CIImage(image: image),
-          let output = CIContext().createCGImage(
-            input.applyingFilter("CIColorControls", parameters: [kCIInputSaturationKey: 0]),
-            from: input.extent)
-        {
-          self?.imageView.image = UIImage(cgImage: output)
+        if dimmed, let image, let grayscale = CardImageEffects.grayscale(image) {
+          self?.imageView.image = grayscale
         } else {
           self?.imageView.image = image
         }

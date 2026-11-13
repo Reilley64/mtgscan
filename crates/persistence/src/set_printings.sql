@@ -6,7 +6,7 @@ select printing.set_code, printing.id::text as printing_id, card.name, printing.
   coalesce((select jsonb_agg(jsonb_build_object('owner_id', owned.user_id, 'finish', owned.finish, 'quantity', owned.quantity))
     from (select copy.user_id, copy.finish, count(*) as quantity from public.copies copy
       where copy.user_id = $1::uuid and copy.card_printing_id = printing.id
-      group by copy.user_id, copy.finish) owned), '[]'::jsonb) as copies,
+      group by copy.user_id, copy.finish) owned), '[]'::jsonb) as copy_counts_by_finish,
   array(select listed.position from public.set_section_card_printings listed
     where listed.set_code = printing.set_code and listed.card_printing_id = printing.id) as sections
 from public.card_printings printing
