@@ -32,7 +32,8 @@ enum DeckOrdering {
   static func commanders(_ deck: DeckContents) -> [DeckCard] {
     deck.cards.filter { $0.role == "commander" }.sorted {
       if $0.commanderAt != $1.commanderAt { return ($0.commanderAt ?? "") < ($1.commanderAt ?? "") }
-      return $0.copyID < $1.copyID
+      let byName = $0.name.localizedCompare($1.name)
+      return byName == .orderedSame ? $0.copyID < $1.copyID : byName == .orderedAscending
     }
   }
 
@@ -103,7 +104,7 @@ enum DeckOrdering {
   {
     let comparison: ComparisonResult
     switch sort {
-    case .name: comparison = a.name.localizedStandardCompare(b.name)
+    case .name: comparison = a.name.localizedCompare(b.name)
     case .manaValue:
       let left = a.copy?.manaValue ?? 0
       let right = b.copy?.manaValue ?? 0
@@ -129,7 +130,7 @@ enum DeckOrdering {
     if comparison != .orderedSame {
       return ascending ? comparison == .orderedAscending : comparison == .orderedDescending
     }
-    let byName = a.name.localizedStandardCompare(b.name)
+    let byName = a.name.localizedCompare(b.name)
     return byName == .orderedSame ? a.id < b.id : byName == .orderedAscending
   }
 }

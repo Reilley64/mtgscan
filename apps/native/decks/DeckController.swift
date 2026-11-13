@@ -218,7 +218,8 @@ final class DeckController {
     generation += 1
     readGeneration += 1
     presentation.writing = false
-    presentation.decks.removeAll { $0.deckID == presentation.selectedDeckID }
+    let missingID = presentation.selectedDeckID
+    presentation.decks.removeAll { $0.deckID == missingID }
     presentation.selectedDeckID = nil
     presentation.deck = nil
     presentation.state = presentation.decks.isEmpty ? .empty : .loaded
