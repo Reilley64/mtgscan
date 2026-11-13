@@ -56,10 +56,11 @@ def number(group, name):
 
 
 swift = "import UIKit\n\n@MainActor\nenum Tokens {\n"
-for name in ["background", "text", "surfaceControl", "surface", "textMuted", "line", "primary", "warning", "info", "manaGeneric", "manaWhite", "manaBlue", "manaBlack", "manaRed", "manaGreen", "manaGlyph"]:
+for name in ["background", "text", "surfaceControl", "surface", "textMuted", "line", "primary", "warning", "info", "manaGeneric", "manaWhite", "manaBlue", "manaBlack", "manaRed", "manaGreen", "manaGlyph", "quantityBadge"]:
     value = color(name)
     channels = [int(value[i:i + 2], 16) / 255 for i in [0, 2, 4]]
-    swift += f"  static let {name} = UIColor(red: {channels[0]}, green: {channels[1]}, blue: {channels[2]}, alpha: 1)\n"
+    alpha = int(value[6:8], 16) / 255 if len(value) == 8 else 1
+    swift += f"  static let {name} = UIColor(red: {channels[0]}, green: {channels[1]}, blue: {channels[2]}, alpha: {alpha})\n"
 for name, key in {"googleBackground": "background", "googleText": "text", "googleBorder": "border"}.items():
     value = color(key, "googleButtonColors")
     channels = [int(value[i:i + 2], 16) / 255 for i in [0, 2, 4]]
@@ -77,6 +78,14 @@ for name, value in {
     "signInHeight": number("sizes", "signInButton"),
     "touchTarget": float(re.search(r"const touchTarget = ([0-9]+)", theme)[1]),
     "dimmed": number("opacity", "dimmed"),
+    "floatingButton": number("sizes", "floatingButton"),
+    "iconButtonSymbol": number("sizes", "iconButtonSymbol"),
+    "setBanner": number("sizes", "setBanner"),
+    "setPageBanner": number("sizes", "setPageBanner"),
+    "setBannerSymbol": number("sizes", "setBannerSymbol"),
+    "progressBar": number("sizes", "progressBar"),
+    "quantityBadgeHeight": number("sizes", "quantityBadge"),
+    "quantityBadgeInset": number("sizes", "quantityBadgeInset"),
 }.items():
     swift += f"  static let {name}: CGFloat = {value}\n"
 (build / "Tokens.swift").write_text(swift + "}\n")
@@ -123,7 +132,7 @@ rust_target = "aarch64-apple-ios-sim" if args.simulator else "aarch64-apple-ios"
 platform = "iphonesimulator" if args.simulator else "iphoneos"
 rust = ref(build / f"rust/{rust_target}/debug/examples/libmtgscan_mobile.a", "archive.ar")
 frameworks = [obj("PBXBuildFile", fileRef=rust), obj("PBXBuildFile", productRef=google)]
-for name in ["UIKit", "Metal", "QuartzCore", "CoreText", "CoreGraphics", "Security", "SystemConfiguration", "AuthenticationServices"]:
+for name in ["UIKit", "Metal", "QuartzCore", "CoreText", "CoreGraphics", "Security", "SystemConfiguration", "AuthenticationServices", "WebKit"]:
     framework = obj("PBXFileReference", path=f"System/Library/Frameworks/{name}.framework", sourceTree="SDKROOT", lastKnownFileType="wrapper.framework")
     frameworks.append(obj("PBXBuildFile", fileRef=framework))
 framework_phase = obj("PBXFrameworksBuildPhase", buildActionMask=2147483647, files=frameworks, runOnlyForDeploymentPostprocessing=0)

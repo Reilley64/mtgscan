@@ -22,7 +22,10 @@ pub struct CollectionResponse {
     pub body: Value,
 }
 
-fn refused(refusal: CollectionRefusal, field: Option<&'static str>) -> CollectionResponse {
+pub(crate) fn refused(
+    refusal: CollectionRefusal,
+    field: Option<&'static str>,
+) -> CollectionResponse {
     let (status, code) = match refusal {
         CollectionRefusal::Unauthenticated => (401, "unauthenticated"),
         CollectionRefusal::Forbidden => (403, "forbidden"),
@@ -99,14 +102,14 @@ pub fn router<I: VerifyIdentity + 'static, D: ReadCollection + 'static>(
         .with_state(Arc::new(Services { identity, database }))
 }
 
-fn authorization(headers: &HeaderMap) -> Option<&str> {
+pub(crate) fn authorization(headers: &HeaderMap) -> Option<&str> {
     if headers.get_all(header::AUTHORIZATION).iter().count() != 1 {
         return None;
     }
     headers.get(header::AUTHORIZATION)?.to_str().ok()
 }
 
-fn response(reply: CollectionResponse) -> Response {
+pub(crate) fn response(reply: CollectionResponse) -> Response {
     let mut result = (
         StatusCode::from_u16(reply.status).unwrap(),
         Json(reply.body),
