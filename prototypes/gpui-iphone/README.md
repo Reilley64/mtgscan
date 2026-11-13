@@ -30,7 +30,7 @@ The native content has a declared focus order. Disabled recognition stays disabl
 Read `docs/agents/local-development.md` first. Hold `/tmp/mtgscan-device.lock` for every build and device command. Never replace the production bundle.
 Use the existing Xcode whose actual version is 27.1. On the tested Mac it is `/Applications/Xcode.app/Contents/Developer`. The documented versioned alternate path is absent. Do not change `xcode-select`.
 
-Rust comes only from the root `mise.toml`. Run `mise install` from the repository root. Do not copy upstream's toolchain file into this project. The proof has no container consumer or separate Rust version pin.
+Rust comes only from the root `mise.toml`. Run `mise install` and `mise run rust-components` from the repository root. Do not copy upstream's toolchain file into this project. The proof has no container consumer or separate Rust version pin.
 
 Use upstream Zed revision `42fa909546bf85d92f3ddeac0690e4ca69776cc7` in an external source directory, not in this repo. Keep its lockfile. `prepare.py` adds only a static-library example to that external source. The upstream source must be intact apart from this example. `$UPSTREAM` and `$BUILD` below are absolute external paths.
 

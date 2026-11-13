@@ -17,6 +17,8 @@ jobs:
     steps:
       - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1
       - uses: jdx/mise-action@5228313ee0372e111a38da051671ca30fc5a96db
+      - name: Install the Rust components declared in Mise
+        run: mise run rust-components
       - name: Format and compile the presentation unit seam
         run: |
           mise exec -- actionlint .github/workflows/gpui-gate.yml

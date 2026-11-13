@@ -5,7 +5,7 @@
 ## Tooling
 
 - `mise.toml` is the single source of project tool versions. Run project tools through `mise exec -- <command>`.
-- Trust the reviewed `mise.toml` in a new worktree before launching tools or agents: `mise trust mise.toml`. Node and Bun use Mise shims, so an untrusted config can stop an agent before it starts. The T3 worktree setup runs this file-specific trust step before agent launch. Other config and env files keep their own trust requirements.
+- Keep tool versions as plain strings in `[tools]`, so Node and Bun shims can start in a fresh worktree before config trust. Install Rustfmt and Clippy with `mise run rust-components`; CI uses the same task. Inline tool options can require trust and stop an agent before it starts. If another config needs trust, its launcher must finish `mise trust mise.toml` on the reviewed file before starting the agent. Other config and env files keep their own trust requirements.
 
 ## Env files
 
