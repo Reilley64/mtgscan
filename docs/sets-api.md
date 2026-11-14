@@ -16,6 +16,8 @@ The converted mobile screens read the versioned HTTP API. They do not read Supab
 
 The list returns `items` and `next_cursor`. Each item has `code`, `name`, `released_at`, `icon_svg_uri`, `set_art_uri`, and `completion`. Completion has `any`, `nonfoil`, and `foil`, each with `owned` and `size`.
 
+Changing the search or finish view starts a new list read with a skeleton. A failed replacement read shows the load failure and Try again, not a successful empty result. A same-query refresh keeps its successful empty or nonempty result and shows a failure notice when it fails.
+
 Reopening a set within five minutes of closing it immediately shows its account-scoped previous details and reads again. A transient failure retains those details. Expired entries, account changes, refusal, and a missing set do not restore stale details.
 
 The closed Sets list has the same five-minute lifetime, measured from returning to Collection. Within that time, its rows and paging state remain visible during revalidation and a transient failure. After expiry, reopening drops the old rows and cursor before reading. A list that is still open underneath a set page keeps its rows.

@@ -41,7 +41,7 @@ final class SetsBrowser: UIStackView {
           addArrangedSubview(AuthControls.button("Try again") { [weak self] in self?.onRetry?() })
         }
       }
-      return
+      if state.state != .loaded { return }
     }
     if let details = state.details {
       addArrangedSubview(banner(details.summary, view: state.finishView, large: true))

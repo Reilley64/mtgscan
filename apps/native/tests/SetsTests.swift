@@ -266,7 +266,52 @@ enum SetsTests {
   }
 
   @MainActor
+  private static func changingFinishStartsColdButTheSameEmptyQueryStaysWarm() async throws {
+    let fixture = try Data(contentsOf: URL(fileURLWithPath: "crates/api/fixtures/set-page.json"))
+    let details = try JSONDecoder().decode(SetDetails.self, from: fixture)
+    for empty in [false, true] {
+      let remote = SetsRemote(details: details)
+      remote.pages[nil] = SetList(items: empty ? [] : [details.summary], nextCursor: nil)
+      let store = MemoryFinishView()
+      store.value = .nonfoil
+      let controller = SetsController(api: remote, store: store)
+      controller.setAccount("owner-a")
+      controller.openList()
+      await controller.reload()
+      precondition(controller.presentation.state == .loaded)
+      remote.suspend = true
+      let changed = Task { await controller.choose(.foil) }
+      while remote.pending == nil { await Task.yield() }
+      precondition(controller.presentation.finishView == .foil)
+      precondition(controller.presentation.state == .loading)
+      precondition(controller.presentation.message == "Loading sets")
+      precondition(
+        controller.presentation.items.isEmpty && controller.presentation.nextCursor == nil)
+      precondition(controller.presentation.refreshing)
+      remote.pending?.resume(throwing: SetsFailure.unavailable)
+      await changed.value
+      precondition(controller.presentation.state == .failed)
+      precondition(controller.presentation.message == "Could not load Sets")
+      precondition(controller.presentation.items.isEmpty)
+      precondition(!controller.presentation.refreshing && !controller.presentation.loadingMore)
+      remote.suspend = false
+      remote.pending = nil
+      remote.pages[nil] = SetList(items: [], nextCursor: nil)
+      await controller.reload()
+      precondition(controller.presentation.state == .loaded)
+      precondition(controller.presentation.items.isEmpty)
+      precondition(controller.presentation.message == "No sets match \"\".")
+      remote.failure = .unavailable
+      await controller.reload()
+      precondition(controller.presentation.state == .loaded)
+      precondition(controller.presentation.message == "No sets match \"\".")
+      precondition(controller.presentation.notice == "Could not load Sets")
+    }
+  }
+
+  @MainActor
   static func run() async throws {
+    try await changingFinishStartsColdButTheSameEmptyQueryStaysWarm()
     try await anOpenListKeepsItsRowsUnderASetAndRejectsClosedListReplies()
     try await aClosedListDoesNotRestoreAnotherAccountOrRefusedRows()
     try await listLifetimeStartsAtCloseAndExpiresBeforeItsNextRead()

@@ -194,7 +194,8 @@ final class SetsController {
     }
     let hasData =
       code == nil
-      ? !presentation.items.isEmpty || presentation.state == .loaded : presentation.details != nil
+      ? !reset && (!presentation.items.isEmpty || presentation.state == .loaded)
+      : presentation.details != nil
     if !hasData { presentation.state = .loading }
     presentation.refreshing = true
     presentation.loadingMore = false
