@@ -33,6 +33,7 @@ final class FinishViewControl: UIStackView {
 
 @MainActor
 final class SetBanner: UIControl {
+  private let artLoading = UIView()
   private let gray = UIImageView()
   private let colorClip = UIView()
   private let color = UIImageView()
@@ -54,6 +55,10 @@ final class SetBanner: UIControl {
     layer.borderColor = Tokens.primary.cgColor
     layer.borderWidth = complete ? Tokens.selectedOutline : 0
     clipsToBounds = true
+    artLoading.backgroundColor = Tokens.line
+    artLoading.isUserInteractionEnabled = false
+    artLoading.isHidden = artURI == nil
+    addSubview(artLoading)
     gray.contentMode = .scaleAspectFill
     color.contentMode = .scaleAspectFill
     gray.alpha = Tokens.dimmed
@@ -122,11 +127,23 @@ final class SetBanner: UIControl {
     accessibilityTraits = action == nil ? .header : .button
     if let action { addAction(UIAction { _ in action() }, for: .touchUpInside) }
     if let artURI {
+      gray.alpha = 0
+      colorClip.alpha = 0
+      fillEdge.alpha = 0
+      SkeletonPulse.start([artLoading])
       load = Task { [weak self] in
         let image = await images.image(uri: artURI, blur: 0)
         guard !Task.isCancelled, let self else { return }
+        SkeletonPulse.stop(artLoading)
+        artLoading.isHidden = true
+        guard let image else { return }
         color.image = image
-        if let image { gray.image = CardImageEffects.grayscale(image) }
+        gray.image = CardImageEffects.grayscale(image)
+        UIView.animate(withDuration: 0.2) {
+          self.gray.alpha = Tokens.dimmed
+          self.colorClip.alpha = 1
+          self.fillEdge.alpha = 1
+        }
       }
     }
   }
@@ -138,6 +155,7 @@ final class SetBanner: UIControl {
 
   override func layoutSubviews() {
     super.layoutSubviews()
+    artLoading.frame = bounds
     gray.frame = bounds
     shade.frame = bounds
     colorClip.frame = CGRect(

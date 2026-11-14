@@ -84,13 +84,7 @@ enum SetSectionHeader {
     }
     stack.isAccessibilityElement = true
     stack.accessibilityLabel = label
-    if !UIAccessibility.isReduceMotionEnabled {
-      UIView.animate(
-        withDuration: 0.8, delay: 0, options: [.repeat, .autoreverse, .allowUserInteraction]
-      ) {
-        for row in blocks { row.alpha = Tokens.dimmed }
-      }
-    }
+    SkeletonPulse.start(blocks)
     return stack
   }
 }

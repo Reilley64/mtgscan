@@ -158,13 +158,7 @@ enum CollectionControls {
     }
     rows.isAccessibilityElement = true
     rows.accessibilityLabel = "Loading collection"
-    if !UIAccessibility.isReduceMotionEnabled {
-      UIView.animate(
-        withDuration: 0.8, delay: 0, options: [.repeat, .autoreverse, .allowUserInteraction]
-      ) {
-        rows.alpha = Tokens.dimmed
-      }
-    }
+    SkeletonPulse.start([rows])
     return rows
   }
 }
