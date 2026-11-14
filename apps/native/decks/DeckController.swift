@@ -45,6 +45,7 @@ final class DeckController {
   private var readGeneration = 0
   private var origins: [DeckPresentation] = []
   private var closedDecks: [String: (deck: DeckContents, closedAt: Date)] = [:]
+  private var hasLoadedGallery = false
   private(set) var presentation = DeckPresentation()
   var interactionID: Int { generation }
   var onChange: (() -> Void)?
@@ -75,6 +76,7 @@ final class DeckController {
     self.accountID = accountID
     origins.removeAll()
     closedDecks.removeAll()
+    hasLoadedGallery = false
     presentation = DeckPresentation(state: accountID == nil ? .signedOut : .loading)
     onChange?()
   }
@@ -100,6 +102,7 @@ final class DeckController {
       } else {
         let decks = try await api.browse(accountID: accountID)
         guard read == readGeneration, operation == generation else { return }
+        hasLoadedGallery = true
         presentation.decks = decks
         presentation.state = decks.isEmpty ? .empty : .loaded
       }
@@ -187,7 +190,8 @@ final class DeckController {
     presentation.deck = nil
     presentation.writing = false
     presentation.writeFailure = nil
-    presentation.state = presentation.decks.isEmpty ? .loading : .loaded
+    presentation.state =
+      hasLoadedGallery ? (presentation.decks.isEmpty ? .empty : .loaded) : .loading
     onChange?()
   }
 
@@ -271,6 +275,7 @@ final class DeckController {
     readGeneration += 1
     origins.removeAll()
     closedDecks.removeAll()
+    hasLoadedGallery = false
     presentation = DeckPresentation(state: .refused)
   }
 

@@ -45,6 +45,81 @@ final class DeckRemote: DeckService {
 
 enum DeckTests {
   @MainActor
+  private static func returningToGalleryRetainsSuccessfulEmptyAndNonemptyResults() async throws {
+    let fixture = try Data(contentsOf: URL(fileURLWithPath: "crates/api/fixtures/deck.json"))
+    let deck = try JSONDecoder().decode(DeckContents.self, from: fixture)
+    for summaries in [[], [deck.summary]] {
+      let remote = DeckRemote()
+      remote.deck = deck
+      remote.decks = summaries
+      let controller = DeckController(api: remote)
+      controller.setAccount("owner-a")
+      await controller.reload()
+      let expected: DeckState = summaries.isEmpty ? .empty : .loaded
+      precondition(controller.presentation.state == expected)
+      await controller.open(deck.summary.deckID)
+      remote.suspend = true
+      let closing = Task { await controller.close() }
+      while remote.pending == nil { await Task.yield() }
+      precondition(
+        controller.presentation.state == expected,
+        "A successful gallery result must remain visible while returning to the gallery")
+      precondition(controller.presentation.decks == summaries)
+      remote.pending?.resume(throwing: DeckFailure.unavailable)
+      await closing.value
+      precondition(controller.presentation.state == expected)
+      precondition(controller.presentation.decks == summaries)
+      remote.suspend = false
+      remote.decks = [deck.summary]
+      await controller.reload()
+      precondition(controller.presentation.state == .loaded)
+      precondition(controller.presentation.decks == [deck.summary])
+    }
+  }
+
+  @MainActor
+  private static func unreadOrClearedGalleryDoesNotBecomeSuccessfulEmpty() async throws {
+    let fixture = try Data(contentsOf: URL(fileURLWithPath: "crates/api/fixtures/deck.json"))
+    let deck = try JSONDecoder().decode(DeckContents.self, from: fixture)
+    for boundary in ["unread", "account change", "refusal", "obsolete response"] {
+      let remote = DeckRemote()
+      remote.deck = deck
+      let controller = DeckController(api: remote)
+      controller.setAccount("owner-a")
+      switch boundary {
+      case "account change":
+        await controller.reload()
+        controller.setAccount("owner-b")
+      case "refusal":
+        await controller.reload()
+        remote.failure = .forbidden
+        await controller.reload()
+        precondition(controller.presentation.state == .refused)
+        remote.failure = nil
+      case "obsolete response":
+        remote.suspend = true
+        let old = Task { await controller.reload() }
+        while remote.pending == nil { await Task.yield() }
+        controller.setAccount("owner-b")
+        remote.pending?.resume(returning: [])
+        await old.value
+        remote.pending = nil
+        remote.suspend = false
+      default: break
+      }
+      await controller.open(deck.summary.deckID)
+      remote.suspend = true
+      let closing = Task { await controller.close() }
+      while remote.pending == nil { await Task.yield() }
+      precondition(controller.presentation.state == .loading)
+      remote.pending?.resume(throwing: DeckFailure.unavailable)
+      await closing.value
+      precondition(controller.presentation.state == .failed)
+      precondition(controller.presentation.decks.isEmpty)
+    }
+  }
+
+  @MainActor
   private static func contentsLoadWhileUsageIsPending() async throws {
     let fixture = try Data(contentsOf: URL(fileURLWithPath: "crates/api/fixtures/deck.json"))
     let deck = try JSONDecoder().decode(DeckContents.self, from: fixture)
@@ -247,6 +322,8 @@ enum DeckTests {
 
   @MainActor
   static func run() async throws {
+    try await returningToGalleryRetainsSuccessfulEmptyAndNonemptyResults()
+    try await unreadOrClearedGalleryDoesNotBecomeSuccessfulEmpty()
     try await contentsLoadWhileUsageIsPending()
     try await usageRefusalsRespectTheCurrentNavigation()
     try await leavingDeckClearsOriginsWithoutWaitingForBrowse()
