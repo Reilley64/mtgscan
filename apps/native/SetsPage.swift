@@ -128,7 +128,10 @@ private final class SetsScreen: UIViewController, UISearchBarDelegate, UIScrollV
     browser.onRetry = { [weak self] in Task { await self?.controller.reload() } }
     browser.onChoose = { [weak self] view in Task { await self?.controller.choose(view) } }
     registerForTraitChanges([UITraitPreferredContentSizeCategory.self]) {
-      (screen: SetsScreen, _: UITraitCollection) in screen.display()
+      (screen: SetsScreen, _: UITraitCollection) in
+      screen.display()
+      screen.navigationController?.navigationBar.invalidateIntrinsicContentSize()
+      screen.navigationController?.view.setNeedsLayout()
     }
     display()
   }
