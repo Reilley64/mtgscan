@@ -82,7 +82,9 @@ final class CollectionController {
     let operation = generation
     let copyID = presentation.selectedCopyID
     let previousState = presentation.state
-    if presentation.copy == nil && (copyID != nil || presentation.copies.isEmpty) {
+    if presentation.copy == nil,
+      copyID != nil || (presentation.copies.isEmpty && previousState != .empty)
+    {
       presentation.state = .loading
     }
     presentation.refreshing = true

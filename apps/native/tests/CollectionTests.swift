@@ -68,7 +68,60 @@ enum CollectionTests {
   }
 
   @MainActor
+  private static func overlappingEmptyRefreshesRetainTheResultAndNewestOwnership() async throws {
+    let fixture = try Data(
+      contentsOf: URL(fileURLWithPath: "crates/api/fixtures/collection-copy.json"))
+    let copy = try JSONDecoder().decode(CollectionCopy.self, from: fixture)
+    for (olderCompletesFirst, olderFails) in [
+      (true, false), (false, false), (true, true), (false, true),
+    ] {
+      let remote = CollectionRemote()
+      let controller = CollectionController(api: remote)
+      controller.setAccount("owner-a")
+      await controller.reload()
+      precondition(controller.presentation.state == .empty)
+      remote.suspend = true
+      let older = Task { await controller.reload() }
+      while remote.pending == nil { await Task.yield() }
+      let olderReply = remote.pending
+      remote.pending = nil
+      let olderResult: Result<[CollectionCopy], Error> =
+        olderFails ? .failure(CollectionFailure.forbidden) : .success([copy])
+      precondition(controller.presentation.state == .empty)
+      precondition(controller.presentation.refreshing)
+      let latest = Task { await controller.reload() }
+      while remote.pending == nil { await Task.yield() }
+      let latestReply = remote.pending
+      remote.pending = nil
+      precondition(controller.presentation.state == .empty)
+      precondition(controller.presentation.message == "Your collection is empty")
+      precondition(controller.presentation.refreshing)
+      if olderCompletesFirst {
+        olderReply?.resume(with: olderResult)
+        await older.value
+        precondition(controller.presentation.state == .empty)
+        precondition(controller.presentation.copies.isEmpty)
+        precondition(controller.presentation.refreshing)
+      }
+      latestReply?.resume(throwing: CollectionFailure.unavailable)
+      await latest.value
+      precondition(controller.presentation.state == .empty)
+      precondition(controller.presentation.message == "Your collection is empty")
+      precondition(controller.presentation.copies.isEmpty)
+      precondition(!controller.presentation.refreshing)
+      if !olderCompletesFirst {
+        olderReply?.resume(with: olderResult)
+        await older.value
+        precondition(controller.presentation.state == .empty)
+        precondition(controller.presentation.copies.isEmpty)
+        precondition(!controller.presentation.refreshing)
+      }
+    }
+  }
+
+  @MainActor
   static func run() async throws {
+    try await overlappingEmptyRefreshesRetainTheResultAndNewestOwnership()
     await showingAnEmptyBrowseRetainsItsTransientFailureState()
     try await leavingCopyIsLocalAndRejectsItsLateRead()
     let remote = CollectionRemote()

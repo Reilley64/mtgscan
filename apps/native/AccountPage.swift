@@ -137,7 +137,6 @@ final class AccountPage: UIView {
             collection?.showBrowse()
             self?.deckReturnTab = nil
             self?.selectTab(0)
-            Task { await collection?.reload() }
           },
           onSignOut: { [weak controller] in Task { await controller?.signOut() } })
         self.deckPage = deckPage
