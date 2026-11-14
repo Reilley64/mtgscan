@@ -1,0 +1,12 @@
+{
+  "code": "tst",
+  "name": "Test set",
+  "released_at": "2026-01-01",
+  "icon_svg_uri": "set.svg",
+  "set_art_uri": "art.jpg",
+  "completion": {"any": {"owned": 0, "size": 1}, "nonfoil": {"owned": 0, "size": 1}, "foil": {"owned": 0, "size": 0}},
+  "main_set": [{"printing_id": "10000000-0000-4000-8000-000000000001", "name": "Card", "collector_number": "1", "image_uri": "card.jpg", "finishes": ["nonfoil"], "counts": {"any": 0, "nonfoil": 0, "foil": null}}],
+  "variants": {"name": "Variants", "completion": {"any": {"owned": 0, "size": 0}, "nonfoil": {"owned": 0, "size": 0}, "foil": {"owned": 0, "size": 0}}, "card_printings": []},
+  "sections": [],
+  "other": {"name": "Other cards", "completion": {"any": {"owned": 0, "size": 1}, "nonfoil": {"owned": 0, "size": 1}, "foil": {"owned": 0, "size": 0}}, "card_printings": [{"printing_id": "10000000-0000-4000-8000-000000000001", "name": "Card", "collector_number": "1", "image_uri": "card.jpg", "finishes": ["nonfoil"], "counts": {"any": 0, "nonfoil": 0, "foil": null}}]}
+}

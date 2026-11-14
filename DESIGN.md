@@ -397,6 +397,10 @@ This file records the design settled in Wayfinder tickets #11 (scan batch flow) 
 
 The tokens at the top of this file are the app theme. `apps/mobile/src/theme.ts` holds them, and the NativeWind theme is built from it. Each token is a class with the same name: `bg-surface-control` and `text-text-muted` for colors, `text-body-strong` for a type style, `rounded-sm` for a corner, and `gap-xs` or `py-lg` for spacing. New UI uses these classes, not inline style objects.
 
+### Bounded GPUI proof
+
+`prototypes/gpui-iphone` is a feasibility screen, not a product screen. It retains the upstream GPUI example's dark backdrop and blue control so the device evidence is easy to distinguish from the app. It uses native system text styles to check Dynamic Type without NativeWind. The 180 pt preview and 280 pt GPUI button are proof-only geometry. The button is at least 52 pt high, and native controls are at least 44 pt high. None of these values adds or changes a product token. Do not copy this styling into conversion screens.
+
 ## Colors
 
 The palette is near-black neutrals with one lime accent. Card art supplies every other color.
@@ -495,6 +499,7 @@ A list that loads in pages reads the next page as the user nears its end. While 
     - "Gallery download paused. It continues when you are online." with a **Try again** button, when the phone is offline.
     - "Gallery download did not work." with a **Try again** button, when a part fails its SHA-256 check three times or the download is refused.
     - "Not enough space for the gallery. It needs 269.4 MB." with a **Try again** button. The number is the space that this download and install need.
+    - The converted native gallery component also shows "Gallery download cancelled." and "This gallery version needs a newer app." with **Try again**. **Cancel** stops a pending update and keeps the installed gallery. Cancellation survives restart. **Try again** starts the update again. Installation itself cannot be cancelled.
   - A gallery update downloads in the background. Scanning goes on with the installed gallery, and the app switches to the new one when it is installed.
   - The first time the user opens Scan with the gallery on the phone, iOS asks for camera access.
   - When camera access is off, the tab shows its empty state with an **Open Settings** button, which opens the app's page in iOS Settings. See Empty states.
@@ -584,6 +589,23 @@ The owner picked layout B of the HTML prototype (`prototypes/collection-manageme
   - VoiceOver reads "Sort, Relevance", or the sort and its direction, such as "Sort, Price, high to low".
   - The sort lasts until the app restarts and is not saved. The button hides while the user types in the search bar and while the Filters drawer is open. It also hides while the tab shows an empty state, because there is nothing to sort.
 
+### Native catalog queries
+
+The Rust native shell has a read-only catalog query route for MTGSCAN-284. It does not replace Collection search or the scanner's local gallery name search.
+
+- **Search card catalog** opens it from Collection. **Collection** returns to the collection browser.
+- The **Search card catalog** field searches after a pause in typing of 300 ms. Before a query, the page says "Search by name, rules text, or Oracle tag."
+- **Filters** expands explicit fields in the same page. These represent catalog query fields, not the Collection chip grammar. List fields say "Separate list values with commas. Use [] for an empty color identity." Positive and excluded filters stay separate. **Order by** and **Direction** use native menus.
+- **Find Oracle tags** waits 300 ms after typing. A suggestion shows its label and card count. Picking one adds its slug to **Oracle tag slugs**.
+- Results keep the server's order. Each shows the name, mana cost, type line, owned and free quantities, and lowest current price. **Load more** keeps the current filters and cursor.
+- Opening a result dismisses the keyboard and loads its rules and card printings. **Back to search** keeps the query and loaded results. Dragging the page dismisses the keyboard interactively.
+- Card artwork, finish sheen and card symbols use the same components as the copy page. An artist is credited as "Illustrated by Mark Tedin". **Finish** changes only this read-only presentation.
+- **Card printings** retains the server's printing order. **Show** offers **All printings** and **Owned only**. Each printing shows its set code, collector number and owned quantity. The selected printing adds "Selected". **Load more printings** continues the list.
+- Loading says "Loading card catalog" or "Loading card". An empty result says "No cards found". A failed read says "Could not load the card catalog", "Could not load this card", "Could not load card printings" or "Could not load Oracle tags", with **Try again**.
+- Refused fields retain their server field paths. Unknown vocabulary uses the existing "No set named \"zzz\".", "No Oracle tag named \"zzz\"." and "No keyword named \"zzz\"." copy. Other refused fields use "<field> is not a valid chip." An expired cursor says "The page expired. Search again." Retry starts at the first page.
+- Account changes clear the query and owned results. A session refusal clears owned results and says "Your session ended. Sign in again."
+- Controls use local Dynamic Type traits and targets of at least 44 pt. The catalog uses the native shell's generated tokens, not a separate palette.
+
 ### Sets
 
 Sets lists every released set that has a card printing in the card catalog, with the user's set completion in the finish view (#366, #368). Each set is a banner of its set art, option B of the HTML prototype `docs/prototypes/sets-art-fill.html` (#369). A set with no set art keeps option A, the set symbol filling up.
@@ -629,6 +651,8 @@ Sets lists every released set that has a card printing in the card catalog, with
   - In the Foil view, a lit tile carries the foil sheen.
 
 ### Sign-in screen
+
+The first converted GPUI account shell in `apps/native` uses the existing sign-in title, subtitle, provider order and privacy copy with the collection read added in MTGSCAN-276. GPUI owns the window and page layout. Native atoms wrap Apple's white sign-in control and Google's branded dark sign-in button. Native text uses Dynamic Type. Generated colors, spacing, corners and touch targets come from `theme.ts`. The account shell now opens the read-only collection binder after sign-in. It shows three copies per row and opens the exact copy ID. The copy page retains its art crop, artist credit, metadata, USD prices, user tags and card symbols. **Close** and the left-edge gesture return to the binder. Loading, empty, failed, refused and missing-copy output stay distinct. Sign-out clears account data and any cached copy. Search, pagination, converted prices and copy actions remain in their following conversion slices. The account error screen retains **Sign out** and **Try again**. Until the isolated test app's public provider configuration is supplied, both provider controls are disabled and the shell says **Sign-in is not configured for this test app.** It never substitutes a password form.
 
 The app shows the sign-in screen whenever there is no session. It is the binder wall design (prototype `prototypes/sign-in/index.html?variant=D`, commit 4b31c79 on `prototype/first-release`).
 

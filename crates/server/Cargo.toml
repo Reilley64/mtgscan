@@ -1,0 +1,15 @@
+[package]
+name = "mtgscan-server"
+version = "0.1.0"
+edition.workspace = true
+publish.workspace = true
+
+[lints]
+workspace = true
+
+[dependencies]
+mtgscan-identity.workspace = true
+mtgscan-api.workspace = true
+mtgscan-persistence.workspace = true
+tokio.workspace = true
+axum.workspace = true

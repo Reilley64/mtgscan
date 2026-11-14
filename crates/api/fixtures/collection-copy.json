@@ -1,0 +1,28 @@
+{
+  "copy_id": "10000000-0000-4000-8000-000000000001",
+  "printing": {
+    "printing_id": "20000000-0000-4000-8000-000000000001",
+    "name": "Sol Ring",
+    "set_code": "c21",
+    "set_name": "Commander 2021",
+    "collector_number": "263",
+    "rarity": "uncommon",
+    "image_uris": ["https://example.test/card.jpg"],
+    "art_crop_uri": "https://example.test/art.jpg",
+    "artist": "Mark Tedin",
+    "type_line": "Artifact",
+    "mana_cost": "{1}",
+    "commander_legality": "legal",
+    "faces": [{"name": "Sol Ring", "oracle_text": "{T}: Add {C}{C}."}]
+  },
+  "finish": "foil",
+  "condition": "lightly_played",
+  "language": "en",
+  "protected": true,
+  "added_at": "2026-10-30T10:00:00Z",
+  "current_price": {"usd_cents": 150, "stale": false},
+  "purchase_day_usd_cents": 100,
+  "user_tags": [{"user_tag_id": "30000000-0000-4000-8000-000000000001", "name": "Signed"}],
+  "deck": null,
+  "held_for": null
+}

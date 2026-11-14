@@ -1,0 +1,51 @@
+name: Rust and native auth unit checks
+
+on:
+  pull_request:
+    paths:
+      - Cargo.toml
+      - Cargo.lock
+      - crates/**
+      - apps/native/**
+      - apps/mobile/modules/card-recognizer/ios/**
+      - apps/mobile/src/theme.ts
+      - apps/mobile/assets/google-logo*.png
+      - apps/mobile/assets/fonts/mana.ttf
+      - apps/mobile/src/lib/card-symbols.ts
+      - apps/mobile/src/collection/copy-labels.ts
+      - scripts/native-presentation-data.ts
+      - scripts/check-rust-boundaries.py
+      - mise.toml
+      - .github/workflows/rust-auth.yml
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  rust:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1
+      - uses: jdx/mise-action@5228313ee0372e111a38da051671ca30fc5a96db
+      - run: mise run rust-components
+      - run: mise run rust-check
+      - run: mise exec -- rustfmt --edition 2024 --config skip_children=true --check apps/native/shell.rs
+      - run: mise exec -- actionlint .github/workflows/rust-auth.yml
+      - run: python3 -m py_compile apps/native/prepare.py scripts/check-rust-boundaries.py
+
+  native-session:
+    runs-on: macos-15
+    env:
+      DEVELOPER_DIR: /Applications/Xcode_26.3.app/Contents/Developer
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1
+      - uses: jdx/mise-action@5228313ee0372e111a38da051671ca30fc5a96db
+      - run: mise exec -- bun install --frozen-lockfile
+      - run: mise run native-unit
+      - run: mise run native-gallery-unit
+      - name: Check the native external adapters
+        run: |
+          mise exec -- xcrun swiftc -warnings-as-errors -typecheck apps/native/auth/SessionController.swift apps/native/auth/ServiceClients.swift apps/native/auth/KeychainSessionStore.swift apps/native/collection/CollectionAPI.swift apps/native/collection/CollectionModels.swift apps/native/collection/CollectionController.swift apps/native/catalog/*.swift apps/native/sets/*.swift
+          find apps/native -name '*.swift' -exec xcrun swift-format lint --strict {} +
+          mise exec -- xcrun swift-format lint --strict apps/mobile/modules/card-recognizer/ios/GalleryDownloadCommands.swift

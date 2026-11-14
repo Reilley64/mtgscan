@@ -10,6 +10,9 @@ struct GalleryDownloadStatus: Sendable, Equatable {
     case installing
     case installed
     case failed
+    case cancelled
+    case corrupt
+    case unsupported
     case notEnoughSpace = "not_enough_space"
   }
 
@@ -20,9 +23,14 @@ struct GalleryDownloadStatus: Sendable, Equatable {
   var bytesNeeded: Int64 = 0
 
   var javaScriptObject: [String: Any] {
+    let legacyState: State
+    switch state {
+    case .cancelled, .corrupt, .unsupported: legacyState = .failed
+    default: legacyState = state
+    }
     var object: [String: Any] = [
       "version": version,
-      "state": state.rawValue,
+      "state": legacyState.rawValue,
       "bytesDone": bytesDone,
       "bytesTotal": bytesTotal,
     ]
@@ -69,9 +77,12 @@ final class GalleryDownloads: NSObject, URLSessionDownloadDelegate, @unchecked S
   private var status: GalleryDownloadStatus?
   private var lastProgressSentAt = Date.distantPast
   private var cancelledOnPurpose: Set<Int> = []
-  private var backgroundEventsDone: (@Sendable () -> Void)?
+  private static let backgroundEvents = GalleryBackgroundEvents(identifier: sessionIdentifier) { completion in
+    DispatchQueue.main.async(execute: DispatchWorkItem(block: completion))
+  }
   private var listener: (@Sendable (GalleryDownloadStatus) -> Void)?
   private var session: URLSession!
+  private var commands: GalleryDownloadCommands!
 
   static var installedDirectory: URL { supportDirectory.appendingPathComponent("gallery", isDirectory: true) }
   private static var downloadsDirectory: URL {
@@ -83,13 +94,19 @@ final class GalleryDownloads: NSObject, URLSessionDownloadDelegate, @unchecked S
 
   override private init() {
     super.init()
-    let configuration = URLSessionConfiguration.background(withIdentifier: Self.sessionIdentifier)
-    configuration.sessionSendsLaunchEvents = true
-    configuration.isDiscretionary = false
-    let delegateQueue = OperationQueue()
-    delegateQueue.maxConcurrentOperationCount = 1
-    delegateQueue.underlyingQueue = queue
-    session = URLSession(configuration: configuration, delegate: self, delegateQueue: delegateQueue)
+    queue.sync {
+      removeAbandonedStaging()
+      restoreJob()
+      if job?.pending.isEmpty == true { Self.backgroundEvents.beginInstallation() }
+      let configuration = URLSessionConfiguration.background(withIdentifier: Self.sessionIdentifier)
+      configuration.sessionSendsLaunchEvents = true
+      configuration.isDiscretionary = false
+      let delegateQueue = OperationQueue()
+      delegateQueue.maxConcurrentOperationCount = 1
+      delegateQueue.underlyingQueue = queue
+      session = URLSession(configuration: configuration, delegate: self, delegateQueue: delegateQueue)
+      commands = GalleryDownloadCommands { [unowned self] in await self.session.allTasks }
+    }
     pathMonitor.pathUpdateHandler = { [weak self] path in
       guard let self else { return }
       self.path = path
@@ -97,8 +114,11 @@ final class GalleryDownloads: NSObject, URLSessionDownloadDelegate, @unchecked S
     }
     pathMonitor.start(queue: queue)
     queue.async {
-      self.removeAbandonedStaging()
-      self.restoreJob()
+      if self.job?.pending.isEmpty == true {
+        self.install()
+      } else {
+        self.sendPendingStatus(force: true)
+      }
     }
   }
 
@@ -106,8 +126,45 @@ final class GalleryDownloads: NSObject, URLSessionDownloadDelegate, @unchecked S
     queue.async { self.listener = listener }
   }
 
-  func handleBackgroundEvents(completion: @escaping @Sendable () -> Void) {
-    queue.async { self.backgroundEventsDone = completion }
+  static func handleBackgroundEvents(identifier: String, completion: @escaping @Sendable () -> Void) {
+    if !backgroundEvents.handleEvents(identifier: identifier, reconnect: { _ = shared }, completion: completion) {
+      DispatchQueue.main.async { completion() }
+    }
+  }
+
+  func cancel(persistCancellation: Bool = true) async -> Bool {
+    await commands.cancel { tasks in
+      self.queue.sync {
+        guard self.job?.installing != true else { return false }
+        let version = self.job?.version ?? ""
+        var didCancel = true
+        if persistCancellation {
+          do {
+            try FileManager.default.createDirectory(at: Self.downloadsDirectory, withIntermediateDirectories: true)
+            try Self.excludeFromBackup(Self.downloadsDirectory)
+            try Data().write(to: Self.downloadsDirectory.appendingPathComponent("cancelled"), options: .atomic)
+            self.send(GalleryDownloadStatus(version: version, state: .cancelled))
+          } catch {
+            self.send(GalleryDownloadStatus(version: version, state: .failed))
+            didCancel = false
+          }
+        } else {
+          let cancellation = Self.downloadsDirectory.appendingPathComponent("cancelled")
+          do {
+            if FileManager.default.fileExists(atPath: cancellation.path) {
+              try FileManager.default.removeItem(at: cancellation)
+            }
+            self.status = nil
+          } catch {
+            self.send(GalleryDownloadStatus(version: version, state: .failed))
+            didCancel = false
+          }
+        }
+        self.job = nil
+        tasks.forEach(self.cancelOnPurpose)
+        return didCancel
+      }
+    }
   }
 
   func currentStatus() async -> GalleryDownloadStatus? {
@@ -125,19 +182,13 @@ final class GalleryDownloads: NSObject, URLSessionDownloadDelegate, @unchecked S
   }
 
   func download(version: String, manifest manifestData: Data, urls: [String: URL], allowsCellularAccess: Bool) async throws {
-    let manifest = try GalleryInstaller.manifest(from: manifestData)
-    guard manifest.version == version else {
-      throw GalleryInstaller.Failure.unsupportedManifest("the manifest names gallery version \(manifest.version)")
-    }
-    let tasks = await session.allTasks
-    try await withCheckedThrowingContinuation { (continuation: CheckedContinuation<Void, Error>) in
-      queue.async {
-        do {
-          try self.start(manifest: manifest, data: manifestData, urls: urls, allowsCellularAccess: allowsCellularAccess, tasks: tasks)
-          continuation.resume()
-        } catch {
-          continuation.resume(throwing: error)
-        }
+    try await commands.download { tasks in
+      let manifest = try GalleryInstaller.manifest(from: manifestData)
+      guard manifest.version == version else {
+        throw GalleryInstaller.Failure.unsupportedManifest("the manifest names gallery version \(manifest.version)")
+      }
+      try self.queue.sync {
+        try self.start(manifest: manifest, data: manifestData, urls: urls, allowsCellularAccess: allowsCellularAccess, tasks: tasks)
       }
     }
   }
@@ -150,7 +201,7 @@ final class GalleryDownloads: NSObject, URLSessionDownloadDelegate, @unchecked S
     tasks: [URLSessionTask]
   ) throws {
     let version = manifest.version
-    if Self.installedVersion()?.version == version {
+    if (try? GalleryInstaller.validatedInstalledManifest(in: Self.installedDirectory))?.version == version {
       tasks.forEach(cancelOnPurpose)
       job = nil
       send(GalleryDownloadStatus(version: version, state: .installed))
@@ -217,6 +268,8 @@ final class GalleryDownloads: NSObject, URLSessionDownloadDelegate, @unchecked S
     let fileManager = FileManager.default
     try fileManager.createDirectory(at: Self.downloadsDirectory, withIntermediateDirectories: true)
     try Self.excludeFromBackup(Self.downloadsDirectory)
+    let cancellation = Self.downloadsDirectory.appendingPathComponent("cancelled")
+    if fileManager.fileExists(atPath: cancellation.path) { try fileManager.removeItem(at: cancellation) }
     for other in (try? fileManager.contentsOfDirectory(at: Self.downloadsDirectory, includingPropertiesForKeys: nil)) ?? []
     where other.lastPathComponent != directory.lastPathComponent {
       try? fileManager.removeItem(at: other)
@@ -285,7 +338,7 @@ final class GalleryDownloads: NSObject, URLSessionDownloadDelegate, @unchecked S
     task.resume()
   }
 
-  private func fail() {
+  private func fail(_ state: GalleryDownloadStatus.State = .failed) {
     guard let job else { return }
     session.getAllTasks { tasks in
       self.queue.async { tasks.forEach(self.cancelOnPurpose) }
@@ -293,7 +346,7 @@ final class GalleryDownloads: NSObject, URLSessionDownloadDelegate, @unchecked S
     self.job = nil
     send(GalleryDownloadStatus(
       version: job.version,
-      state: .failed,
+      state: state,
       bytesDone: job.bytesDone,
       bytesTotal: job.bytesTotal
     ))
@@ -331,6 +384,7 @@ final class GalleryDownloads: NSObject, URLSessionDownloadDelegate, @unchecked S
     guard var job, !job.installing else { return }
     job.installing = true
     self.job = job
+    Self.backgroundEvents.beginInstallation()
     send(GalleryDownloadStatus(version: job.version, state: .installing, bytesDone: job.bytesTotal, bytesTotal: job.bytesTotal))
     let directory = job.directory
     let version = job.version
@@ -342,23 +396,33 @@ final class GalleryDownloads: NSObject, URLSessionDownloadDelegate, @unchecked S
           at: Self.installedDirectory.deletingLastPathComponent(), withIntermediateDirectories: true
         )
         try GalleryInstaller.install(from: directory, into: Self.installedDirectory)
-        try Self.excludeFromBackup(Self.installedDirectory)
       })
       self.queue.async {
+        defer { Self.backgroundEvents.endInstallation() }
         guard self.job?.version == version else { return }
         self.job = nil
         switch result {
         case .success:
           try? FileManager.default.removeItem(at: directory)
           self.send(GalleryDownloadStatus(version: version, state: .installed))
-        case .failure:
-          self.send(GalleryDownloadStatus(version: version, state: .failed))
+        case .failure(let error):
+          let state: GalleryDownloadStatus.State
+          switch error {
+          case GalleryInstaller.Failure.partMismatch, GalleryInstaller.Failure.malformedPart: state = .corrupt
+          case GalleryInstaller.Failure.unsupportedManifest: state = .unsupported
+          default: state = .failed
+          }
+          self.send(GalleryDownloadStatus(version: version, state: state))
         }
       }
     }
   }
 
   private func restoreJob() {
+    if FileManager.default.fileExists(atPath: Self.downloadsDirectory.appendingPathComponent("cancelled").path) {
+      send(GalleryDownloadStatus(version: "", state: .cancelled))
+      return
+    }
     let directories = (try? FileManager.default.contentsOfDirectory(
       at: Self.downloadsDirectory, includingPropertiesForKeys: nil
     )) ?? []
@@ -424,7 +488,7 @@ final class GalleryDownloads: NSObject, URLSessionDownloadDelegate, @unchecked S
       let attempts = (job.attempts[partName] ?? 0) + 1
       self.job?.attempts[partName] = attempts
       if attempts > Self.downloadsAgainPerPart {
-        fail()
+        fail(.corrupt)
       } else {
         startTask(part: partName, resuming: false)
       }
@@ -470,9 +534,8 @@ final class GalleryDownloads: NSObject, URLSessionDownloadDelegate, @unchecked S
   }
 
   func urlSessionDidFinishEvents(forBackgroundURLSession session: URLSession) {
-    let done = backgroundEventsDone
-    backgroundEventsDone = nil
-    if let done { DispatchQueue.main.async { done() } }
+    guard let identifier = session.configuration.identifier else { return }
+    Self.backgroundEvents.didFinishEvents(identifier: identifier)
   }
 }
 

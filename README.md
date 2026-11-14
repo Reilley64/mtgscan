@@ -2,7 +2,18 @@
 
 An iPhone app for scanning Magic: The Gathering cards, keeping a collection, and building Commander decks. The first release is iOS only. Android comes later. An authenticated remote MCP service lets compatible AI chats search the card catalog and collection, inspect decks, plan swaps, add to the buylist, and change user tags. It cannot change decks or copies.
 
+## Rust conversion
+
+The converted path starts with the [GPUI native account shell](apps/native/README.md), its [versioned current-account API](docs/account-api.md), and the [collection browse and copy page read](docs/collection-api.md).
+The collection read uses one Rust application layer and a scoped direct-Postgres adapter. The [Sets API and native screens](docs/sets-api.md) use the same boundary for released sets, finish views, set sections, set completion, and set art. Hosted activation remains a separate approved step.
+The [catalog-enabled reader](docs/catalog-api.md#reader-provisioning) also needs a narrow Auth-owner provisioning step. The adapter refuses incomplete grants at connection time.
+It is isolated from the existing Expo app and does not replace collection, deck or scanner paths.
+[ADR 0016](docs/adr/0016-route-native-accounts-through-one-rust-application.md) records the dependency boundaries and unit-only verification scope.
+Use root Mise for the new Rust and native check commands. Existing setup and checks below still apply to legacy paths.
+
 ## Development
+
+The bounded [physical iPhone GPUI proof](prototypes/gpui-iphone/README.md) is separate from the app. Its Rust version comes from `mise.toml` for local and CI commands. It does not authorize conversion work until MTGSCAN-274 passes every manual gate.
 
 The repo is a Bun workspace. The Expo app lives in `apps/mobile`. The public website, with the homepage, the privacy policy, the consent page, and the problem pages, lives in `apps/site`. It is static HTML, and only the consent page has a script.
 
@@ -57,7 +68,7 @@ A card result also has:
 - `artMargin`, the similarity of the top candidate minus the similarity of the best candidate with other art. It is null when no other art was compared.
 - `trainingCrop`, the file URI of the straightened card as a 488 x 680 WebP at quality 90 in `Caches/training-crops`. That is the size of the crops in the scanner evidence pack. The recognizer writes it with libwebp, the encoder that Android will also use (ADR 0015). On iOS it uses the libwebp that `expo-image` brings into the app, so the app holds one copy. The crop is upright, in the rotation that the recognizer chose. A not-a-card result and a failed recognition write no crop.
 
-The module compiles against the libwebp headers in `ios/WebP`. They come from the libwebp version that `Package.swift` pins for the macOS tests. The Recognizer check builds the app for the Simulator, then runs `modules/card-recognizer/scripts/check-libwebp-version.mjs` on the built app. The script builds a probe against those headers and the app's `SDWebImageWebPCoder.framework`, and runs it in a new iPhone 16e Simulator, or in the Simulator with the UDID in its second argument. The probe prints `WebPGetEncoderVersion()`. The script fails when that version differs from the pin. The check also runs when `bun.lock` changes, so an `expo-image` update runs it. To run it locally, run `bun modules/card-recognizer/scripts/check-libwebp-version.mjs <mtgscan.app> D2C1596D-8A88-4D39-A587-CAB648D05CA1` in `apps/mobile`, with the path of a Simulator build of the app. The UDID is the shared iPhone 16e Simulator, so the check creates no Simulator on your Mac. Take the device lock first, as in `docs/agents/local-development.md`. To move to a new libwebp, copy `encode.h`, `types.h`, and `COPYING` from that version into `ios/WebP`, and pin it in `Package.swift`.
+The module compiles against the libwebp headers in `ios/WebP`. They come from the libwebp version that `Package.swift` pins for the macOS tests. The Recognizer check builds the app for the Simulator, then runs `modules/card-recognizer/scripts/check-libwebp-version.mjs` on the built app. The script builds a probe against those headers and the app's `SDWebImageWebPCoder.framework`, and runs it in a new iPhone 16e Simulator, or in the Simulator with the UDID in its second argument. The probe prints `WebPGetEncoderVersion()`. The script fails when that version differs from the pin. The check also runs when `bun.lock` changes, so an `expo-image` update runs it. To run it locally, run `bun modules/card-recognizer/scripts/check-libwebp-version.mjs <mtgscan.app> <existing-simulator-udid>` in `apps/mobile`, with the path of a Simulator build of the app. Discover the UDID of the selected existing Simulator as described in `docs/agents/local-development.md`. Always pass it locally so the check reuses that Simulator instead of creating one. Take the device lock first, as in `docs/agents/local-development.md`. To move to a new libwebp, copy `encode.h`, `types.h`, and `COPYING` from that version into `ios/WebP`, and pin it in `Package.swift`.
 
 The recognizer reads the collector line from the bottom 16% of the straightened card with Vision text recognition. It takes the set code from the line with the language code, such as "ELD • EN". A code read before a dot, a star, or a hyphen that is a set code in the gallery names its set. Vision often misreads that line, so the reader also takes a code:
 
@@ -133,7 +144,9 @@ The macOS command loads the model from the path it is given, a `.mlpackage` or a
 
 ### Gallery download
 
-The app keeps the gallery on the phone up to date. The code is in `apps/mobile/src/gallery` and in the recognizer module.
+The app keeps the gallery on the phone up to date. The legacy code is in `apps/mobile/src/gallery` and in the recognizer module.
+
+The converted mobile shell uses `apps/native/gallery`. It reads the same published pointer and manifest through authenticated Storage. It reuses the native background downloader and atomic installer. The GPUI application delegate retains the gallery background-session completion before reconnecting the downloader, even without a scene. It releases that completion on the main queue only after session events drain and any installation commits or fails. Persisted jobs are restored before session reconnection. Shared native components show readiness, progress, cancellation, retry, unsupported versions and corrupt downloads. An explicit cancellation survives restart until **Try again**. Sign-out pauses the update without deleting the installed gallery or verified parts. The installer checks the compiled model shape before activation and reuses an installed base only with matching model metadata and recognizer thresholds. `mise run native-gallery-unit` runs the coordinator, policy and Storage mapping units with fake external capabilities. These units do not establish real iOS background relaunch, network transfer or recognition parity.
 
 1. On each app start with a session, it reads `published.json` from the `gallery` bucket with the user's session. When the published gallery version is the installed one, it does nothing. A pointer whose gallery format the build does not know counts as no newer gallery version. A phone with an installed gallery keeps scanning with it. A phone with none downloads nothing and shows that the gallery download did not work, with **Try again**.
 2. Otherwise it reads the manifest, signs a URL for every part for 7 days, and passes them to `downloadGallery` in the recognizer module.
@@ -317,6 +330,8 @@ The app is on Expo SDK 58, with React Native 0.88. Local builds and EAS builds u
 `apps/mobile` pins `@shopify/flash-list` to 2.3.3. For SDK 58, `expo install` picks 2.3.2. Version 2.3.3 fixes blank rows during fast scrolling ([Shopify/flash-list#2510](https://github.com/Shopify/flash-list/pull/2510)). `expo.install.exclude` in `apps/mobile/package.json` leaves the package out of `expo install --check`. Check the pin again on each SDK upgrade.
 
 ### Catalog search
+
+The Rust native path also exposes catalog search, card queries, printing lists and Oracle-tag lookup through one backend application entry point. [Catalog API and native interactions](docs/catalog-api.md) describe its versioned routes, scoped persistence, canonical contracts and verification limits. This path does not replace collection search or local gallery name search.
 
 Signed-in users search the card catalog with `supabase.rpc('search_catalog', { query })`. The query is a typed object, never a query string. `supabase/search.ts` has its contract, `searchCatalog`, with the query and the result page.
 

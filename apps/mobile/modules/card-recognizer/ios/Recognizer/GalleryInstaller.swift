@@ -2,35 +2,6 @@ import CoreML
 import CryptoKit
 import Foundation
 
-public struct GalleryManifest: Codable, Sendable {
-  public static let formatVersion = 2
-
-  public struct Part: Codable, Sendable {
-    public static let gallery = "gallery"
-    public static let printingList = "printing_list"
-    public static let model = "model"
-
-    public let name: String
-    public let kind: String
-    public let addOn: Int
-    public let firstRow: Int
-    public let rowCount: Int
-    public let compressedBytes: Int
-    public let rawBytes: Int
-    public let sha256: String
-
-    var key: String { "\(name)|\(sha256)" }
-  }
-
-  public let formatVersion: Int
-  public let version: String
-  public let builtAt: String
-  public let model: FeaturePrintModel
-  public let thresholds: RecognizerThresholds
-  public let rows: Int
-  public let parts: [Part]
-}
-
 public enum GalleryInstaller {
   public static let manifestFile = "manifest.json"
 
@@ -49,7 +20,39 @@ public enum GalleryInstaller {
     guard format == GalleryManifest.formatVersion else {
       throw Failure.unsupportedManifest("format version \(format)")
     }
-    return try JSONDecoder().decode(GalleryManifest.self, from: data)
+    let manifest = try JSONDecoder().decode(GalleryManifest.self, from: data)
+    if let encoding = manifest.encoding, encoding.type != "int8" || encoding.scale != "per_vector" {
+      throw Failure.unsupportedManifest("the gallery encoding is unsupported")
+    }
+    guard manifest.parts.contains(where: { $0.kind == GalleryManifest.Part.model }) else {
+      throw Failure.unsupportedManifest("the gallery version has no model part")
+    }
+    guard safeName(manifest.version), manifest.rows > 0, manifest.rows <= Int32.max,
+          manifest.model.vectorSize > 0, manifest.model.vectorSize <= Int32.max,
+          manifest.model.inputSize.width > 0, manifest.model.inputSize.height > 0,
+          validHash(manifest.model.sha256),
+          [manifest.thresholds.notACard, manifest.thresholds.orientationMargin, manifest.thresholds.artMargin].allSatisfy({ $0.isFinite && $0 >= 0 && $0 <= 2 }),
+          Set(manifest.parts.map(\.name)).count == manifest.parts.count,
+          manifest.parts.filter({ $0.kind == GalleryManifest.Part.model }).count == 1,
+          manifest.parts.allSatisfy({ part in
+            safeName(part.name) && validHash(part.sha256)
+              && [GalleryManifest.Part.gallery, GalleryManifest.Part.printingList, GalleryManifest.Part.model].contains(part.kind)
+              && part.addOn >= 0 && part.firstRow >= 0 && part.rowCount >= 0
+              && part.compressedBytes > 0 && part.compressedBytes <= Int32.max
+              && part.rawBytes > 0 && part.rawBytes <= Int32.max
+              && (part.kind != GalleryManifest.Part.model || (part.addOn == 0 && part.firstRow == 0 && part.rowCount == 0))
+          })
+    else { throw Failure.malformedPart(manifestFile) }
+    return manifest
+  }
+
+  private static func safeName(_ value: String) -> Bool {
+    !value.isEmpty && value != "." && value != ".."
+      && value.utf8.allSatisfy { (45...57).contains($0) && $0 != 47 || (65...90).contains($0) || $0 == 95 || (97...122).contains($0) }
+  }
+
+  private static func validHash(_ value: String) -> Bool {
+    value.count == 64 && value.utf8.allSatisfy { (48...57).contains($0) || (97...102).contains($0) }
   }
 
   public static func manifest(in directory: URL) throws -> GalleryManifest {
@@ -58,15 +61,34 @@ public enum GalleryInstaller {
 
   public static func partMatches(_ part: GalleryManifest.Part, file: URL) -> Bool {
     guard let compressed = try? Data(contentsOf: file, options: .alwaysMapped) else { return false }
-    return compressed.count == part.compressedBytes && sha256(of: compressed) == part.sha256
+    return partMatches(part, data: compressed)
+  }
+
+  public static func partMatches(_ part: GalleryManifest.Part, data: Data) -> Bool {
+    data.count == part.compressedBytes && sha256(of: data) == part.sha256
   }
 
   public static func verifiedPart(_ part: GalleryManifest.Part, in directory: URL) throws -> Data {
     let compressed = try Data(contentsOf: directory.appendingPathComponent(part.name))
-    guard compressed.count == part.compressedBytes, sha256(of: compressed) == part.sha256 else {
+    guard partMatches(part, data: compressed) else {
       throw Failure.partMismatch(part.name)
     }
     return try inflated(compressed, rawBytes: part.rawBytes, name: part.name)
+  }
+
+  public static func canReuse(_ installed: GalleryManifest, for manifest: GalleryManifest) -> Bool {
+    guard installed.model == manifest.model, installed.thresholds == manifest.thresholds else { return false }
+    let wanted = Set(manifest.parts.map(\.key))
+    let installedKeys = Set(installed.parts.map(\.key))
+    let lastInstalledAddOn = installed.parts.map(\.addOn).max() ?? -1
+    return installedKeys.isSubset(of: wanted)
+      && manifest.parts.allSatisfy { installedKeys.contains($0.key) || $0.addOn > lastInstalledAddOn }
+  }
+
+  public static func partsToDownload(_ manifest: GalleryManifest, installed: GalleryManifest?) -> [GalleryManifest.Part] {
+    guard let installed, canReuse(installed, for: manifest) else { return manifest.parts }
+    let existing = Set(installed.parts.map(\.key))
+    return manifest.parts.filter { !existing.contains($0.key) }
   }
 
   public static func partsToDownload(_ manifest: GalleryManifest, over destination: URL) -> [GalleryManifest.Part] {
@@ -149,6 +171,7 @@ public enum GalleryInstaller {
       } else {
         throw Failure.unsupportedManifest("the gallery version has no model part")
       }
+      try validateModel(in: staging, model: manifest.model)
       try JSONSerialization.data(withJSONObject: rows, options: [.sortedKeys, .withoutEscapingSlashes])
         .write(to: staging.appendingPathComponent(GalleryFile.printingList))
       let header = GalleryHeader(
@@ -164,6 +187,10 @@ public enum GalleryInstaller {
         at: directory.appendingPathComponent(manifestFile),
         to: staging.appendingPathComponent(manifestFile)
       )
+      var backupExcluded = staging
+      var resources = URLResourceValues()
+      resources.isExcludedFromBackup = true
+      try backupExcluded.setResourceValues(resources)
       if FileManager.default.fileExists(atPath: destination.path) {
         _ = try FileManager.default.replaceItemAt(destination, withItemAt: staging)
       } else {
@@ -173,6 +200,23 @@ public enum GalleryInstaller {
       try? FileManager.default.removeItem(at: staging)
       throw error
     }
+  }
+
+  public static func modelShapeMatches(input: [Int], output: [Int], model: FeaturePrintModel) -> Bool {
+    input == [1, 3, model.inputSize.height, model.inputSize.width]
+      && !output.isEmpty && output.allSatisfy({ $0 > 0 })
+      && output.reduce(1, { $0.multipliedReportingOverflow(by: $1).overflow ? 0 : $0 * $1 }) == model.vectorSize
+  }
+
+  public static func validateModel(in directory: URL, model: FeaturePrintModel) throws {
+    let configuration = MLModelConfiguration()
+    configuration.computeUnits = .all
+    let loaded = try MLModel(contentsOf: directory.appendingPathComponent(GalleryFile.compiledModel), configuration: configuration)
+    guard let input = loaded.modelDescription.inputDescriptionsByName[FeaturePrintModel.inputName]?.multiArrayConstraint,
+          let output = loaded.modelDescription.outputDescriptionsByName[FeaturePrintModel.outputName]?.multiArrayConstraint,
+          output.dataType == .float16,
+          modelShapeMatches(input: input.shape.map(\.intValue), output: output.shape.map(\.intValue), model: model)
+    else { throw Failure.unsupportedManifest("the compiled model does not match the gallery") }
   }
 
   static func installModel(_ part: GalleryManifest.Part, of manifest: GalleryManifest, from directory: URL, into staging: URL) throws {
@@ -188,19 +232,24 @@ public enum GalleryInstaller {
     try FileManager.default.removeItem(at: package)
   }
 
+  public static func validatedInstalledManifest(in directory: URL) throws -> GalleryManifest {
+    let manifest = try Self.manifest(in: directory)
+    let header = try JSONDecoder().decode(GalleryHeader.self, from: Data(contentsOf: directory.appendingPathComponent(GalleryFile.header)))
+    let vectors = try directory.appendingPathComponent(GalleryFile.float16Vectors).resourceValues(forKeys: [.fileSizeKey]).fileSize
+    guard header.version == manifest.version, header.count == manifest.rows,
+          header.model == manifest.model, header.thresholds == manifest.thresholds,
+          header.encoding == GalleryHeader.float16,
+          try installedRows(in: directory).count == manifest.rows,
+          vectors == manifest.rows * manifest.model.vectorSize * MemoryLayout<Float16>.size
+    else { throw Failure.malformedPart(manifestFile) }
+    try validateModel(in: directory, model: manifest.model)
+    return manifest
+  }
+
   static func installedParts(for manifest: GalleryManifest, in destination: URL) -> GalleryManifest? {
-    guard let installed = try? Self.manifest(in: destination),
-          let header = try? JSONDecoder().decode(
-            GalleryHeader.self,
-            from: Data(contentsOf: destination.appendingPathComponent(GalleryFile.header))
-          ),
-          header.version == installed.version, header.count == installed.rows
+    guard let installed = try? validatedInstalledManifest(in: destination), canReuse(installed, for: manifest)
     else { return nil }
-    let wanted = Set(manifest.parts.map(\.key))
-    let installedKeys = Set(installed.parts.map(\.key))
-    let lastInstalledAddOn = installed.parts.map(\.addOn).max() ?? -1
-    let comesAfterInstalled = manifest.parts.allSatisfy { installedKeys.contains($0.key) || $0.addOn > lastInstalledAddOn }
-    return installedKeys.isSubset(of: wanted) && comesAfterInstalled ? installed : nil
+    return installed
   }
 
   static func installedRows(in destination: URL) throws -> [[String: Any]] {

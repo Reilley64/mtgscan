@@ -1,4 +1,6 @@
 .DS_Store
+/target/
+apps/native/PublicConfiguration.json
 .idea/
 node_modules/
 *.tsbuildinfo
