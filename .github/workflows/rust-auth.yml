@@ -46,6 +46,6 @@ jobs:
       - run: mise run native-gallery-unit
       - name: Check the native external adapters
         run: |
-          mise exec -- xcrun swiftc -warnings-as-errors -typecheck apps/native/auth/SessionController.swift apps/native/auth/ServiceClients.swift apps/native/auth/KeychainSessionStore.swift apps/native/collection/CollectionAPI.swift apps/native/collection/CollectionModels.swift apps/native/collection/CollectionController.swift apps/native/catalog/*.swift
+          mise exec -- xcrun swiftc -warnings-as-errors -typecheck apps/native/auth/SessionController.swift apps/native/auth/ServiceClients.swift apps/native/auth/KeychainSessionStore.swift apps/native/collection/CollectionAPI.swift apps/native/collection/CollectionModels.swift apps/native/collection/CollectionController.swift apps/native/catalog/*.swift apps/native/sets/*.swift
           find apps/native -name '*.swift' -exec xcrun swift-format lint --strict {} +
           mise exec -- xcrun swift-format lint --strict apps/mobile/modules/card-recognizer/ios/GalleryDownloadCommands.swift

@@ -6,11 +6,15 @@ final class CardArtwork: UIView {
   private let sheen = CAGradientLayer()
   private var load: Task<Void, Never>?
 
-  init(uri: String?, images: any CardImages, finish: String = "nonfoil", blur: CGFloat = 0) {
+  init(
+    uri: String?, images: any CardImages, finish: String = "nonfoil", blur: CGFloat = 0,
+    dimmed: Bool = false
+  ) {
     super.init(frame: .zero)
     backgroundColor = blur > 0 ? .clear : Tokens.line
     clipsToBounds = true
     imageView.contentMode = blur > 0 ? .scaleAspectFill : .scaleAspectFit
+    imageView.alpha = dimmed ? Tokens.dimmed : 1
     addSubview(imageView)
     let stops = finish == "foil" ? PresentationData.foilSheen : PresentationData.etchedSheen
     sheen.colors = stops.map { stop in
@@ -28,7 +32,11 @@ final class CardArtwork: UIView {
       load = Task { [weak self] in
         let image = await images.image(uri: uri, blur: blur)
         guard !Task.isCancelled else { return }
-        self?.imageView.image = image
+        if dimmed, let image, let grayscale = CardImageEffects.grayscale(image) {
+          self?.imageView.image = grayscale
+        } else {
+          self?.imageView.image = image
+        }
       }
     }
     isAccessibilityElement = false
@@ -150,13 +158,7 @@ enum CollectionControls {
     }
     rows.isAccessibilityElement = true
     rows.accessibilityLabel = "Loading collection"
-    if !UIAccessibility.isReduceMotionEnabled {
-      UIView.animate(
-        withDuration: 0.8, delay: 0, options: [.repeat, .autoreverse, .allowUserInteraction]
-      ) {
-        rows.alpha = Tokens.dimmed
-      }
-    }
+    SkeletonPulse.start([rows])
     return rows
   }
 }

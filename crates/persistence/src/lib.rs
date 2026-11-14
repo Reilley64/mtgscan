@@ -1,4 +1,5 @@
 mod catalog;
+mod sets;
 
 use mtgscan_application::collection::ReadCollection;
 use mtgscan_domain::collection::{

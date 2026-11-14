@@ -1,7 +1,8 @@
 # Native account and collection presentation
 
-Part of [MTGSCAN-275](https://app.plane.so/reilley/browse/MTGSCAN-275/), [MTGSCAN-276](https://app.plane.so/reilley/browse/MTGSCAN-276/), [MTGSCAN-279](https://app.plane.so/reilley/browse/MTGSCAN-279/) and [MTGSCAN-284](https://app.plane.so/reilley/browse/MTGSCAN-284/).
+Part of [MTGSCAN-275](https://app.plane.so/reilley/browse/MTGSCAN-275/), [MTGSCAN-276](https://app.plane.so/reilley/browse/MTGSCAN-276/), [MTGSCAN-279](https://app.plane.so/reilley/browse/MTGSCAN-279/), [MTGSCAN-284](https://app.plane.so/reilley/browse/MTGSCAN-284/) and [MTGSCAN-287](https://app.plane.so/reilley/browse/MTGSCAN-287/).
 The signed-in shell opens the collection browse and read-only copy page with gallery readiness and retry.
+Sets opens from the collection browse.
 **Search card catalog** opens catalog queries, rules and printing inspection through the same backend application.
 Returning to Collection keeps the gallery coordinator and its current status.
 After foreground session revalidation, the visible catalog or Collection refreshes and gallery coordination resumes.
@@ -51,6 +52,9 @@ CI retains all legacy checks and adds scoped Rust, native session and gallery un
 
 The signed-in collection browse composes the shared `GalleryStatus` organism below the account controls and above the binder grid.
 Opening a copy keeps its existing hero and native Close header. Closing the copy returns to the browse and gallery controls.
+Sets and set pages share the session and finish view. Returning from Sets reloads the collection without replacing the gallery coordinator.
+Sets refreshes on foreground and page appearance. Collection and catalog refresh after foreground session revalidation.
+The [Sets API and limits](../../docs/sets-api.md) describe the read path and separate SQL and native checks.
 `GalleryController` owns local readiness, update, cancellation and lifecycle presentation.
 `GalleryStorage` reads only the existing published artifacts with the current session. It never publishes or changes hosted artifacts.
 `NativeGalleryDevice` adapts the existing background download and installation code. Mobile does not link the backend application.

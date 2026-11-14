@@ -12,6 +12,8 @@ final class CollectionPage: UIView, UIScrollViewDelegate {
     Task { await self?.controller.closeCopy() }
   }
   private var selectedCopyID: String?
+  private var setsPage: SetsPage?
+  private lazy var setsButton = SetNavigation.setsButton { [weak self] in self?.setsPage?.open() }
   private lazy var browser = CollectionBrowser(
     images: images,
     onOpen: { [weak self] id in Task { await self?.controller.open(id) } },
@@ -23,8 +25,8 @@ final class CollectionPage: UIView, UIScrollViewDelegate {
   private let onCatalog: (() -> Void)?
 
   init(
-    controller: CollectionController, images: (any CardImages)? = nil,
-    gallery: GalleryStatus? = nil,
+    controller: CollectionController, setsController: SetsController? = nil,
+    images: (any CardImages)? = nil, gallery: GalleryStatus? = nil,
     onCatalog: (() -> Void)? = nil, onSignOut: @escaping () -> Void
   ) {
     self.controller = controller
@@ -50,6 +52,15 @@ final class CollectionPage: UIView, UIScrollViewDelegate {
     }
     browser.onLayout = { [weak self] in self?.updateHeaderEffect() }
     controller.onChange = { [weak self] in self?.display() }
+    if let setsController {
+      let setsPage = SetsPage(controller: setsController, images: self.images) {
+        [weak controller] in
+        Task { await controller?.reload() }
+      }
+      self.setsPage = setsPage
+      addSubview(setsButton)
+      addSubview(setsPage)
+    }
     registerForTraitChanges([UITraitPreferredContentSizeCategory.self]) {
       (view: CollectionPage, _: UITraitCollection) in
       view.display()
@@ -69,6 +80,10 @@ final class CollectionPage: UIView, UIScrollViewDelegate {
     header.frame = CGRect(x: 0, y: 0, width: bounds.width, height: Tokens.touchTarget)
     let top = !header.isHidden && browser.hero == nil ? header.frame.maxY : 0
     layout.frame = CGRect(x: 0, y: top, width: bounds.width, height: max(0, bounds.height - top))
+    setsButton.frame = CGRect(
+      x: Tokens.lg, y: bounds.height - safeAreaInsets.bottom - Tokens.lg - Tokens.floatingButton,
+      width: Tokens.floatingButton, height: Tokens.floatingButton)
+    setsPage?.frame = bounds
     headerBackdrop.frame = header.bounds
     close.frame = CGRect(x: 0, y: 0, width: Tokens.touchTarget, height: Tokens.touchTarget)
     layout.layoutIfNeeded()
@@ -78,6 +93,9 @@ final class CollectionPage: UIView, UIScrollViewDelegate {
   private func display() {
     let state = controller.presentation
     browser.display(state)
+    setsButton.isHidden =
+      setsPage == nil || state.selectedCopyID != nil || state.state != .loaded
+      || state.copies.isEmpty
     header.isHidden = state.selectedCopyID == nil
     if selectedCopyID != state.selectedCopyID {
       selectedCopyID = state.selectedCopyID

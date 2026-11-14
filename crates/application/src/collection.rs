@@ -11,7 +11,7 @@ pub trait ReadCollection: Send + Sync {
     ) -> impl Future<Output = Result<Vec<OwnedCopy>, CollectionRefusal>> + Send;
 }
 
-async fn caller(
+pub(crate) async fn caller(
     identity: &impl VerifyIdentity,
     credential: Option<&str>,
 ) -> Result<Caller, CollectionRefusal> {

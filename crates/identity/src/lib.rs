@@ -1,4 +1,5 @@
 use base64::{Engine, engine::general_purpose::URL_SAFE_NO_PAD};
+pub use mtgscan_application::Clock;
 use mtgscan_application::VerifyIdentity;
 use mtgscan_domain::{Caller, Refusal};
 use serde::Deserialize;
@@ -19,10 +20,6 @@ pub trait AuthUserService: Send + Sync {
         &self,
         credential: &str,
     ) -> impl Future<Output = Result<AuthUser, Refusal>> + Send;
-}
-
-pub trait Clock: Send + Sync {
-    fn unix_seconds(&self) -> u64;
 }
 
 pub struct SystemClock;

@@ -64,9 +64,14 @@ final class AccountPage: UIView {
         guard let controller else { throw SessionFailure.unauthenticated }
         return try await controller.accessTokenForRequest()
       }
+      let sets = SetsController(
+        api: SessionSetsService(session: controller, api: SetsAPI(origin: config.apiURL)),
+        store: KeychainFinishViewStore())
       let catalog = CatalogController(
         api: SessionCatalogService(session: controller, api: CatalogAPI(origin: config.apiURL)))
-      self.init(controller: controller, collection: collection, gallery: gallery, catalog: catalog)
+      self.init(
+        controller: controller, collection: collection, gallery: gallery,
+        catalog: catalog, sets: sets)
       self.provider = provider
     } else {
       self.init(controller: nil, collection: nil, gallery: nil)
@@ -75,7 +80,8 @@ final class AccountPage: UIView {
 
   init(
     controller: SessionController?, collection: CollectionController?, gallery: GalleryFeature?,
-    catalog: CatalogController? = nil, images: (any CardImages)? = nil
+    catalog: CatalogController? = nil, sets: SetsController? = nil,
+    images: (any CardImages)? = nil
   ) {
     self.controller = controller
     self.gallery = gallery
@@ -85,7 +91,7 @@ final class AccountPage: UIView {
     layout.content.addArrangedSubview(authentication)
     if let controller, let collection {
       let collectionPage = CollectionPage(
-        controller: collection, images: images, gallery: gallery?.view,
+        controller: collection, setsController: sets, images: images, gallery: gallery?.view,
         onCatalog: catalog == nil
           ? nil
           : { [weak self] in
@@ -116,6 +122,7 @@ final class AccountPage: UIView {
         self?.catalogPage?.setAccount(accountID)
         if accountID == nil { self?.showingCatalog = false }
       }
+      sets?.bind(to: controller)
       controller.onAccountChange?(controller.presentation.accountID)
       controller.onChange = { [weak self] in self?.display() }
     }
