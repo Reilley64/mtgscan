@@ -165,7 +165,8 @@ final class AccountPage: UIView {
       }
       addSubview(tabs)
       tabs.onSelect = { [weak self] index in self?.selectTab(index) }
-      controller.onAccountChange = { [weak self, weak collection, weak decks, weak copies] accountID in
+      controller.onAccountChange = {
+        [weak self, weak collection, weak decks, weak copies] accountID in
         let changed = collection?.setAccount(accountID) == true
         if changed { self?.deckReturnTab = nil }
         decks?.setAccount(accountID)
