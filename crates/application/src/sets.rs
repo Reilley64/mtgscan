@@ -23,16 +23,9 @@ async fn owner(
     identity: &impl VerifyIdentity,
     credential: Option<&str>,
 ) -> Result<String, SetsError> {
-    let credential = credential
-        .filter(|value| !value.is_empty())
-        .ok_or(SetsError::Refused(CollectionRefusal::Unauthenticated))?;
-    let caller = identity.verify(credential).await.map_err(|error| {
-        SetsError::Refused(match error {
-            mtgscan_domain::Refusal::Unauthenticated => CollectionRefusal::Unauthenticated,
-            mtgscan_domain::Refusal::McpTokenForbidden => CollectionRefusal::Forbidden,
-            mtgscan_domain::Refusal::Unavailable => CollectionRefusal::Unavailable,
-        })
-    })?;
+    let caller = crate::collection::caller(identity, credential)
+        .await
+        .map_err(SetsError::Refused)?;
     Ok(caller.collection_owner().into())
 }
 

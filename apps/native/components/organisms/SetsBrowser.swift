@@ -24,7 +24,8 @@ final class SetsBrowser: UIStackView {
     }
     if let message = state.message {
       if state.state == .loading {
-        let skeleton = SetSectionHeader.loading(message, rows: state.code == nil ? 4 : 1)
+        let skeleton = SetSectionHeader.loading(
+          message, rows: state.code == nil ? 4 : 1, large: state.code != nil)
         if state.code != nil {
           let grid = CollectionControls.skeleton()
           grid.accessibilityElementsHidden = true

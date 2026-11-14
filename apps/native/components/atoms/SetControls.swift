@@ -103,6 +103,7 @@ final class SetBanner: UIControl {
     text.addArrangedSubview(information)
     if let percent {
       let label = AuthControls.label(complete ? "✓" : "\(percent)%", style: .headline)
+      if complete { label.textColor = Tokens.primary }
       label.setContentCompressionResistancePriority(.required, for: .horizontal)
       text.addArrangedSubview(label)
     }
@@ -169,7 +170,6 @@ final class SetPageTile: UIView {
       let badge = AuthControls.label("\(quantity)", style: .caption2)
       badge.textAlignment = .center
       badge.backgroundColor = Tokens.quantityBadge
-      badge.textColor = .white
       badge.layer.cornerRadius = Tokens.quantityBadgeHeight / 2
       badge.clipsToBounds = true
       badge.translatesAutoresizingMaskIntoConstraints = false

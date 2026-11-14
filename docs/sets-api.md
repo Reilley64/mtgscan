@@ -16,6 +16,8 @@ The converted mobile screens read the versioned HTTP API. They do not read Supab
 
 The list returns `items` and `next_cursor`. Each item has `code`, `name`, `released_at`, `icon_svg_uri`, `set_art_uri`, and `completion`. Completion has `any`, `nonfoil`, and `foil`, each with `owned` and `size`.
 
+Reopening a set within five minutes of closing it immediately shows its account-scoped previous details and reads again. A transient failure retains those details. Expired entries, account changes, refusal, and a missing set do not restore stale details.
+
 The set page adds `main_set`, `variants`, `sections`, and `other`. Each group has completion and `card_printings`. Sections keep Scryfall's order and can overlap. Other cards are the printings in no section. Each printing has its ID, name, collector number, image URI, available finishes, and the three finish-view copy counts. A null count means unavailable in that view. Switching the set page's finish view needs no new request. The native keychain keeps the shared choice across restarts.
 
 ## Policy and persistence

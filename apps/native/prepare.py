@@ -89,7 +89,7 @@ for name, value in {
     "signInHeight": number("sizes", "signInButton"),
     "touchTarget": float(re.search(r"const touchTarget = ([0-9]+)", theme)[1]),
     "dimmed": number("opacity", "dimmed"),
-    "floatingButton": number("sizes", "floatingButton"),
+    "floatingButton": float(re.search(r"const floatingButton = ([0-9]+)", theme)[1]),
     "iconButtonSymbol": number("sizes", "iconButtonSymbol"),
     "setBanner": number("sizes", "setBanner"),
     "setPageBanner": number("sizes", "setPageBanner"),

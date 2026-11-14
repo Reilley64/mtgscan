@@ -55,19 +55,23 @@ struct SetsPresentation {
 final class SetsController {
   private let api: any SetsService
   private let store: any FinishViewStore
+  private let now: () -> Date
   private let pause: () async throws -> Void
   private var accountID: String?
   private var generation = 0
   private var listNeedsReset = false
+  private var closedSets: [String: (details: SetDetails, closedAt: Date)] = [:]
   private(set) var presentation = SetsPresentation()
   var onChange: (() -> Void)?
 
   init(
     api: any SetsService, store: any FinishViewStore,
+    now: @escaping () -> Date = Date.init,
     pause: @escaping () async throws -> Void = { try await Task.sleep(for: .milliseconds(300)) }
   ) {
     self.api = api
     self.store = store
+    self.now = now
     self.pause = pause
     presentation.finishView = (try? store.load()) ?? .any
   }
@@ -85,6 +89,7 @@ final class SetsController {
     guard accountID != self.accountID else { return }
     generation += 1
     self.accountID = accountID
+    closedSets.removeAll()
     let finishView = presentation.finishView
     let accountRevision = presentation.accountRevision + 1
     presentation = SetsPresentation(
@@ -129,13 +134,18 @@ final class SetsController {
     guard accountID != nil else { return }
     generation += 1
     presentation.code = code
-    presentation.details = nil
-    presentation.state = .loading
+    let cutoff = now().addingTimeInterval(-300)
+    closedSets = closedSets.filter { $0.value.closedAt > cutoff }
+    presentation.details = closedSets[code]?.details
+    presentation.state = presentation.details == nil ? .loading : .loaded
     await reload()
   }
 
   func closeSet() async {
     guard accountID != nil else { return }
+    if let code = presentation.code, let details = presentation.details {
+      closedSets[code] = (details, now())
+    }
     generation += 1
     presentation.code = nil
     presentation.details = nil
@@ -224,11 +234,13 @@ final class SetsController {
   private func fail(_ error: Error, retaining: Bool) {
     switch error {
     case SetsFailure.unauthenticated, SetsFailure.forbidden, SessionFailure.unauthenticated:
+      closedSets.removeAll()
       presentation.items = []
       presentation.details = nil
       presentation.nextCursor = nil
       presentation.state = .refused
     case SetsFailure.notFound:
+      if let code = presentation.code { closedSets.removeValue(forKey: code) }
       presentation.details = nil
       presentation.state = .missing
     default:

@@ -54,6 +54,8 @@ for (const [name, value] of Object.entries({
   manaSymbolSplitFontSize: typography.manaSymbolSplit.fontSize,
   manaSymbolBareFontSize: typography.manaSymbolBare.fontSize,
   manaSymbolSplitInset: sizes.manaSymbolSplitInset,
+  skeletonTitleBar: sizes.skeletonTitleBar,
+  skeletonMetaBar: sizes.skeletonMetaBar,
 })) {
   console.log(`  static let ${name}: Double = ${value}`);
 }
