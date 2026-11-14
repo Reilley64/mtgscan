@@ -117,6 +117,7 @@ private final class SetsScreen: UIViewController, UISearchBarDelegate, UIScrollV
     view.backgroundColor = Tokens.background
     layout.scroll.content.addArrangedSubview(browser)
     layout.scroll.delegate = self
+    setContentScrollView(layout.scroll, for: .top)
     if code == nil {
       let search = SetNavigation.search(delegate: self)
       search.text = controller.presentation.searchText
