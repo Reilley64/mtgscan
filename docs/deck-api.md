@@ -79,6 +79,14 @@ SQL and database row mapping remain in infrastructure.
 Read-only SQL helpers project existing card counts, basic-land identities and evaluation staleness.
 They do not create a second deck judge or a metadata application service.
 
+After migrations, an authorized Auth schema and function grantor must run
+[`supabase/provision/runtime-roles-auth.sql`](../supabase/provision/runtime-roles-auth.sql).
+This replaces the reader-only setup and atomically provisions the existing collection reader and deck metadata role.
+Migration records alone do not prove effective Auth grants: the ordinary migration identity can lack grant authority.
+The deck adapter rejects missing schema usage or `auth.uid()`/`auth.jwt()` execution before serving requests.
+This setup grants no table permissions, role flags, memberships, ownership, grant option or RLS bypass.
+Use only the existing authorized owner on an approved synthetic stack; establish and approve the hosted owner path separately.
+
 Password provisioning, hosted migration application, secret delivery, deployment and retirement of old-client authority require their separate reviewed plan and approval.
 This source change performs none of those actions.
 

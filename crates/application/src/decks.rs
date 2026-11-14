@@ -99,11 +99,7 @@ async fn caller(
     identity: &impl VerifyIdentity,
     credential: Option<&str>,
 ) -> Result<Caller, DeckRefusal> {
-    let credential = credential
-        .filter(|value| !value.is_empty())
-        .ok_or(DeckRefusal::Unauthenticated)?;
-    identity
-        .verify(credential)
+    crate::verified_caller(identity, credential)
         .await
         .map_err(|error| match error {
             Refusal::Unauthenticated => DeckRefusal::Unauthenticated,

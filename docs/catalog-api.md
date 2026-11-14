@@ -66,10 +66,11 @@ The adapter checks effective schema usage and Auth function execution when it co
 It refuses incomplete provisioning before serving requests.
 
 After the migrations, an authorized Auth schema and function grantor must run
-[`supabase/provision/collection-reader-auth.sql`](../supabase/provision/collection-reader-auth.sql).
-The file grants only Auth schema usage and execution of `auth.uid()` and `auth.jwt()` to the existing reader.
+[`supabase/provision/runtime-roles-auth.sql`](../supabase/provision/runtime-roles-auth.sql).
+The file grants only Auth schema usage and execution of `auth.uid()` and `auth.jwt()` to the existing collection reader and deck metadata role.
 It changes no role flags, memberships, table permissions, helper security mode or RLS.
-It checks grant authority first and verifies the effective grants in one transaction.
+It checks grant authority first and verifies both roles' effective grants in one transaction.
+Both adapters use the same effective-privilege check at startup; deck attribution triggers also need this Auth access.
 Do not repeat the grant as an ordinary migration role that lacks grant option.
 
 For an approved isolated local stack, use its existing Auth owner connection and this file.

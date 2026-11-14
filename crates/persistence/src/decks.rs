@@ -28,6 +28,12 @@ impl PostgresDecks {
         if !allowed {
             return Err("Deck persistence requires its dedicated scoped role");
         }
+        let provisioned = crate::auth_provisioned(&pool)
+            .await
+            .map_err(|_| "Could not verify deck Auth provisioning")?;
+        if !provisioned {
+            return Err("Deck persistence requires completed Auth provisioning");
+        }
         Ok(Self { pool })
     }
 

@@ -15,14 +15,23 @@ impl<T: VerifyIdentity> VerifyIdentity for std::sync::Arc<T> {
     }
 }
 
+pub(crate) async fn verified_caller(
+    identity: &impl VerifyIdentity,
+    credential: Option<&str>,
+) -> Result<Caller, Refusal> {
+    let credential = credential
+        .filter(|value| !value.is_empty())
+        .ok_or(Refusal::Unauthenticated)?;
+    identity.verify(credential).await
+}
+
 pub async fn current_account(
     identity: &impl VerifyIdentity,
     credential: Option<&str>,
 ) -> Result<String, Refusal> {
-    let credential = credential
-        .filter(|value| !value.is_empty())
-        .ok_or(Refusal::Unauthenticated)?;
-    identity.verify(credential).await?.native_account()
+    verified_caller(identity, credential)
+        .await?
+        .native_account()
 }
 
 #[cfg(test)]

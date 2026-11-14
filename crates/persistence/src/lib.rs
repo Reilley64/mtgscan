@@ -20,6 +20,19 @@ pub struct PostgresCollection {
     pool: PgPool,
 }
 
+async fn auth_provisioned(pool: &PgPool) -> Result<bool, sqlx::Error> {
+    sqlx::query_scalar(
+        "select case when has_schema_privilege(current_user, 'public', 'USAGE')
+         and has_schema_privilege(current_user, 'private', 'USAGE')
+         and has_schema_privilege(current_user, 'auth', 'USAGE')
+         then has_function_privilege(current_user, 'auth.uid()', 'EXECUTE')
+         and has_function_privilege(current_user, 'auth.jwt()', 'EXECUTE')
+         else false end",
+    )
+    .fetch_one(pool)
+    .await
+}
+
 impl PostgresCollection {
     pub async fn connect(url: &str) -> Result<Self, &'static str> {
         let pool = PgPoolOptions::new()
@@ -40,17 +53,9 @@ impl PostgresCollection {
         if !allowed {
             return Err("Collection persistence requires its dedicated read-only role");
         }
-        let provisioned: bool = sqlx::query_scalar(
-            "select case when has_schema_privilege(current_user, 'public', 'USAGE')
-             and has_schema_privilege(current_user, 'private', 'USAGE')
-             and has_schema_privilege(current_user, 'auth', 'USAGE')
-             then has_function_privilege(current_user, 'auth.uid()', 'EXECUTE')
-             and has_function_privilege(current_user, 'auth.jwt()', 'EXECUTE')
-             else false end",
-        )
-        .fetch_one(&pool)
-        .await
-        .map_err(|_| "Could not verify collection reader provisioning")?;
+        let provisioned = auth_provisioned(&pool)
+            .await
+            .map_err(|_| "Could not verify collection reader provisioning")?;
         if !provisioned {
             return Err("Collection persistence requires completed reader provisioning");
         }
