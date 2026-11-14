@@ -39,9 +39,6 @@ final class SetsPage: UIView, UINavigationControllerDelegate {
         isHidden = true
       }
     }
-    NotificationCenter.default.addObserver(
-      self, selector: #selector(foreground), name: UIApplication.didBecomeActiveNotification,
-      object: nil)
   }
   required init?(coder: NSCoder) { fatalError() }
 
@@ -85,9 +82,7 @@ final class SetsPage: UIView, UINavigationControllerDelegate {
     }
   }
 
-  @objc private func foreground() {
-    if !isHidden { Task { await controller.reload() } }
-  }
+  func refresh() async { await controller.reload() }
 }
 
 @MainActor

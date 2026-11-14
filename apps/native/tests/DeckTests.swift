@@ -9,6 +9,8 @@ final class DeckRemote: DeckService {
   var pending: CheckedContinuation<[DeckSummary], Error>?
   var suspendContents = false
   var pendingContents: CheckedContinuation<DeckContents, Error>?
+  var suspendUsage = false
+  var pendingUsage: CheckedContinuation<Void, Error>?
   var writes: [DeckMetadataChange] = []
 
   func browse(accountID: String) async throws -> [DeckSummary] {
@@ -33,12 +35,81 @@ final class DeckRemote: DeckService {
   }
 
   func metadata(accountID: String, deckID: String, change: DeckMetadataChange) async throws {
+    if case .used = change, suspendUsage {
+      try await withCheckedThrowingContinuation { pendingUsage = $0 }
+    }
     if let failure { throw failure }
     writes.append(change)
   }
 }
 
 enum DeckTests {
+  @MainActor
+  private static func contentsLoadWhileUsageIsPending() async throws {
+    let fixture = try Data(contentsOf: URL(fileURLWithPath: "crates/api/fixtures/deck.json"))
+    let deck = try JSONDecoder().decode(DeckContents.self, from: fixture)
+    let remote = DeckRemote()
+    remote.deck = deck
+    remote.suspendUsage = true
+    let controller = DeckController(api: remote)
+    controller.setAccount("owner-a")
+    let opening = Task { await controller.open(deck.summary.deckID) }
+    while remote.pendingUsage == nil { await Task.yield() }
+    precondition(
+      controller.presentation.state == .loaded,
+      "Deck contents must load while the usage write is pending")
+    precondition(controller.presentation.deck?.summary.revision == 7)
+    remote.pendingUsage?.resume(throwing: DeckFailure.unavailable)
+    await opening.value
+    precondition(controller.presentation.state == .loaded)
+    precondition(controller.presentation.deck?.summary.revision == 7)
+  }
+
+  @MainActor
+  private static func usageRefusalsRespectTheCurrentNavigation() async throws {
+    let fixture = try Data(contentsOf: URL(fileURLWithPath: "crates/api/fixtures/deck.json"))
+    let deck = try JSONDecoder().decode(DeckContents.self, from: fixture)
+    for failure in [DeckFailure.unauthenticated, .forbidden, .notFound] {
+      for contentsPending in [false, true] {
+        let remote = DeckRemote()
+        remote.deck = deck
+        remote.suspendUsage = true
+        remote.suspendContents = contentsPending
+        let controller = DeckController(api: remote)
+        controller.setAccount("owner-a")
+        let opening = Task { await controller.open(deck.summary.deckID) }
+        while remote.pendingUsage == nil { await Task.yield() }
+        remote.pendingUsage?.resume(throwing: failure)
+        for _ in 0..<256 { await Task.yield() }
+        precondition(controller.presentation.deck == nil)
+        precondition(
+          controller.presentation.state == (failure == .notFound ? .empty : .refused))
+        if contentsPending { remote.pendingContents?.resume(returning: deck) }
+        await opening.value
+        precondition(controller.presentation.deck == nil)
+        precondition(
+          controller.presentation.state == (failure == .notFound ? .empty : .refused))
+      }
+    }
+    for changeAccount in [false, true] {
+      let remote = DeckRemote()
+      remote.deck = deck
+      remote.suspendUsage = true
+      let controller = DeckController(api: remote)
+      controller.setAccount("owner-a")
+      let opening = Task { await controller.open(deck.summary.deckID) }
+      while remote.pendingUsage == nil { await Task.yield() }
+      if changeAccount { controller.setAccount("owner-b") } else { controller.showGallery() }
+      await controller.reload()
+      precondition(controller.presentation.state == .empty)
+      remote.pendingUsage?.resume(throwing: DeckFailure.forbidden)
+      await opening.value
+      precondition(controller.presentation.state == .empty)
+      precondition(controller.presentation.deck == nil)
+      precondition(controller.presentation.selectedDeckID == nil)
+    }
+  }
+
   @MainActor
   private static func warmReopenRetainsContentsOnTransientFailure() async throws {
     let fixture = try Data(contentsOf: URL(fileURLWithPath: "crates/api/fixtures/deck.json"))
@@ -176,6 +247,8 @@ enum DeckTests {
 
   @MainActor
   static func run() async throws {
+    try await contentsLoadWhileUsageIsPending()
+    try await usageRefusalsRespectTheCurrentNavigation()
     try await leavingDeckClearsOriginsWithoutWaitingForBrowse()
     try await warmReopenRetainsContentsOnTransientFailure()
     try await warmDeckLifetimeStartsAtCloseAndExpires()

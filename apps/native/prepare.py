@@ -67,7 +67,7 @@ def number(group, name):
 
 
 swift = "import UIKit\n\n@MainActor\nenum Tokens {\n"
-for name in ["background", "text", "surfaceControl", "surface", "textMuted", "line", "primary", "warning", "info", "danger", "outgoing", "badge", "manaGeneric", "manaWhite", "manaBlue", "manaBlack", "manaRed", "manaGreen", "manaGlyph", "quantityBadge"]:
+for name in ["background", "text", "surfaceControl", "surface", "textMuted", "textDim", "line", "primary", "warning", "info", "danger", "outgoing", "badge", "manaGeneric", "manaWhite", "manaBlue", "manaBlack", "manaRed", "manaGreen", "manaGlyph", "quantityBadge"]:
     value = color(name)
     channels = [int(value[i:i + 2], 16) / 255 for i in [0, 2, 4]]
     alpha = int(value[6:8], 16) / 255 if len(value) == 8 else 1

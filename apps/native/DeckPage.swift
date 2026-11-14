@@ -74,6 +74,14 @@ final class DeckPage: UIView, UIGestureRecognizerDelegate, UIScrollViewDelegate 
 
   required init?(coder: NSCoder) { fatalError() }
 
+  func refresh() async {
+    if copyIsOpen {
+      await copyPage.refresh()
+    } else {
+      await controller.reload()
+    }
+  }
+
   override func layoutSubviews() {
     super.layoutSubviews()
     let headerHeight = max(
@@ -138,14 +146,20 @@ final class DeckPage: UIView, UIGestureRecognizerDelegate, UIScrollViewDelegate 
     header.addArrangedSubview(title)
     header.addArrangedSubview(UIStackView())
     if let deck = state.deck {
-      let rename = UIAction(title: "Rename") { [weak self] _ in self?.name(rename: true) }
+      let rename = UIAction(title: "Rename", image: UIImage(systemName: "pencil")) {
+        [weak self] _ in
+        self?.name(rename: true)
+      }
       let priorities = DeckPriority.allCases.map { priority in
         UIAction(title: priority.title, state: deck.summary.priority == priority ? .on : .off) {
           [weak self] _ in Task { await self?.controller.setPriority(priority) }
         }
       }
       let more = DeckControls.more(
-        menu: UIMenu(children: [rename, UIMenu(title: "Priority", children: priorities)]))
+        menu: UIMenu(children: [
+          rename,
+          UIMenu(title: "Priority", image: UIImage(systemName: "flag"), children: priorities),
+        ]))
       more.isEnabled = !state.writing
       header.addArrangedSubview(more)
     } else if state.selectedDeckID == nil {
@@ -241,8 +255,8 @@ final class DeckPage: UIView, UIGestureRecognizerDelegate, UIScrollViewDelegate 
   }
 
   private func openCollection() {
-    controller.showGallery()
     onCollection()
+    controller.showGallery()
     Task { await controller.reload() }
   }
 

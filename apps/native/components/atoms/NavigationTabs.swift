@@ -11,7 +11,7 @@ final class NavigationTabs: UITabBar, UITabBarDelegate {
     }
     selectedItem = items?.first
     tintColor = Tokens.primary
-    unselectedItemTintColor = Tokens.textMuted
+    unselectedItemTintColor = Tokens.textDim
     delegate = self
   }
 

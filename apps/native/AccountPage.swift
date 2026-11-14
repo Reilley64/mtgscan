@@ -35,8 +35,6 @@ final class AccountPage: UIView {
   private var provider: NativeSignIn?
   private var collectionPage: CollectionPage?
   private var deckPage: DeckPage?
-  private var collection: CollectionController?
-  private var decks: DeckController?
   private var selectedTab = 0
   private var collectionPushed = false
   private var deckPushed = false
@@ -100,8 +98,6 @@ final class AccountPage: UIView {
     images: (any CardImages)? = nil
   ) {
     self.controller = controller
-    self.collection = collection
-    self.decks = decks
     self.gallery = gallery
     super.init(frame: .zero)
     backgroundColor = Tokens.background
@@ -247,7 +243,7 @@ final class AccountPage: UIView {
     tabs.select(index)
     display()
     Task {
-      if index == 0 { await collection?.reload() } else { await decks?.reload() }
+      if index == 0 { await collectionPage?.refresh() } else { await deckPage?.refresh() }
     }
   }
 
@@ -259,7 +255,7 @@ final class AccountPage: UIView {
       await controller?.resume()
       if hadAccount { gallery?.foreground() }
       if selectedTab == 1 {
-        await decks?.reload()
+        await deckPage?.refresh()
       } else if showingCatalog {
         await catalogPage?.refresh()
       } else {

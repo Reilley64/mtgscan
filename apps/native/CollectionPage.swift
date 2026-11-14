@@ -70,7 +70,13 @@ final class CollectionPage: UIView, UIScrollViewDelegate {
 
   required init?(coder: NSCoder) { fatalError() }
 
-  func refresh() async { await controller.reload() }
+  func refresh() async {
+    if let setsPage, !setsPage.isHidden {
+      await setsPage.refresh()
+    } else {
+      await controller.reload()
+    }
+  }
 
   override func layoutSubviews() {
     super.layoutSubviews()

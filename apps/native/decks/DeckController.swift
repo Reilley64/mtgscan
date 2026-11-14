@@ -148,23 +148,26 @@ final class DeckController {
     presentation.writeFailure = nil
     presentation.state = presentation.deck == nil ? .loading : .loaded
     onChange?()
-    do {
-      try await api.metadata(accountID: accountID, deckID: id, change: .used)
-    } catch {
+    guard operation == generation else { return }
+    let usage = Task {
       guard operation == generation else { return }
-      if isRefusal(error) {
-        refuse()
-        onChange?()
-        return
-      }
-      if case DeckFailure.notFound = error {
-        removeMissingDeck()
-        onChange?()
-        return
+      do {
+        try await api.metadata(accountID: accountID, deckID: id, change: .used)
+      } catch {
+        guard operation == generation else { return }
+        if isRefusal(error) {
+          refuse()
+          onChange?()
+          return
+        }
+        if case DeckFailure.notFound = error {
+          removeMissingDeck()
+          onChange?()
+        }
       }
     }
-    guard operation == generation else { return }
     await reload()
+    await usage.value
   }
 
   private func rememberDeck() {
