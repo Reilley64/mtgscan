@@ -137,7 +137,139 @@ enum SetsTests {
   }
 
   @MainActor
+  private static func listLifetimeStartsAtCloseAndExpiresBeforeItsNextRead() async throws {
+    let fixture = try Data(contentsOf: URL(fileURLWithPath: "crates/api/fixtures/set-page.json"))
+    let details = try JSONDecoder().decode(SetDetails.self, from: fixture)
+    for empty in [false, true] {
+      let remote = SetsRemote(details: details)
+      let rows =
+        empty
+        ? []
+        : (0..<20).map { index in
+          CardSet(
+            code: "s\(index)", name: "Set \(index)", releasedAt: "2026-01-01",
+            iconSVGURI: "set.svg", setArtURI: nil, completion: details.summary.completion)
+        }
+      remote.pages[nil] = SetList(items: rows, nextCursor: empty ? nil : "next")
+      var seconds: TimeInterval = 1000
+      let controller = SetsController(
+        api: remote, store: MemoryFinishView(), now: { Date(timeIntervalSince1970: seconds) })
+      controller.setAccount("owner-a")
+      controller.openList()
+      await controller.reload()
+      seconds = 2000
+      controller.closeList()
+      seconds = 2299
+      controller.openList()
+      precondition(controller.presentation.state == .loaded)
+      precondition(controller.presentation.items.count == rows.count)
+      precondition(controller.presentation.nextCursor == (empty ? nil : "next"))
+      remote.failure = .unavailable
+      await controller.reload()
+      precondition(controller.presentation.state == .loaded)
+      precondition(controller.presentation.items.count == rows.count)
+      controller.closeList()
+      seconds = 2599
+      controller.openList()
+      precondition(controller.presentation.items.isEmpty)
+      precondition(controller.presentation.nextCursor == nil)
+      precondition(controller.presentation.state == .loading)
+      remote.failure = nil
+      remote.suspend = true
+      let expired = Task { await controller.reload() }
+      while remote.pending == nil { await Task.yield() }
+      precondition(controller.presentation.state == .loading)
+      precondition(controller.presentation.items.isEmpty)
+      remote.pending?.resume(throwing: SetsFailure.unavailable)
+      await expired.value
+      precondition(controller.presentation.state == .failed)
+      precondition(controller.presentation.items.isEmpty)
+      precondition(controller.presentation.nextCursor == nil)
+    }
+  }
+
+  @MainActor
+  private static func anOpenListKeepsItsRowsUnderASetAndRejectsClosedListReplies() async throws {
+    let fixture = try Data(contentsOf: URL(fileURLWithPath: "crates/api/fixtures/set-page.json"))
+    let details = try JSONDecoder().decode(SetDetails.self, from: fixture)
+    let remote = SetsRemote(details: details)
+    var seconds: TimeInterval = 1000
+    let controller = SetsController(
+      api: remote, store: MemoryFinishView(), now: { Date(timeIntervalSince1970: seconds) })
+    controller.setAccount("owner-a")
+    controller.openList()
+    await controller.reload()
+    await controller.open("tst")
+    seconds = 2000
+    remote.failure = .unavailable
+    await controller.closeSet()
+    precondition(controller.presentation.state == .loaded)
+    precondition(controller.presentation.items.first?.name == "Test set")
+    remote.failure = nil
+    remote.suspend = true
+    let old = Task { await controller.reload() }
+    while remote.pending == nil { await Task.yield() }
+    let oldReply = remote.pending
+    remote.pending = nil
+    controller.closeList()
+    precondition(!controller.presentation.refreshing && !controller.presentation.loadingMore)
+    oldReply?.resume(returning: SetList(items: [], nextCursor: nil))
+    await old.value
+    precondition(controller.presentation.items.first?.name == "Test set")
+    seconds = 2299
+    controller.openList()
+    let current = Task { await controller.reload() }
+    while remote.pending == nil { await Task.yield() }
+    precondition(controller.presentation.items.first?.name == "Test set")
+    precondition(controller.presentation.refreshing)
+    remote.pending?.resume(throwing: SetsFailure.unavailable)
+    await current.value
+    precondition(controller.presentation.state == .loaded)
+    precondition(controller.presentation.items.first?.name == "Test set")
+    precondition(!controller.presentation.refreshing)
+  }
+
+  @MainActor
+  private static func aClosedListDoesNotRestoreAnotherAccountOrRefusedRows() async throws {
+    let fixture = try Data(contentsOf: URL(fileURLWithPath: "crates/api/fixtures/set-page.json"))
+    let details = try JSONDecoder().decode(SetDetails.self, from: fixture)
+    for failure in [SetsFailure.unauthenticated, .forbidden] {
+      let remote = SetsRemote(details: details)
+      let controller = SetsController(api: remote, store: MemoryFinishView())
+      controller.setAccount("owner-a")
+      controller.openList()
+      await controller.reload()
+      controller.closeList()
+      controller.openList()
+      remote.failure = failure
+      await controller.reload()
+      precondition(controller.presentation.state == .refused)
+      precondition(
+        controller.presentation.items.isEmpty && controller.presentation.nextCursor == nil)
+      controller.closeList()
+      controller.openList()
+      precondition(controller.presentation.items.isEmpty)
+    }
+    for account: String? in ["owner-b", nil] {
+      let remote = SetsRemote(details: details)
+      let controller = SetsController(api: remote, store: MemoryFinishView())
+      controller.setAccount("owner-a")
+      controller.openList()
+      await controller.reload()
+      controller.closeList()
+      controller.setAccount(account)
+      controller.openList()
+      precondition(
+        controller.presentation.items.isEmpty && controller.presentation.nextCursor == nil)
+      precondition(controller.presentation.state == (account == nil ? .signedOut : .loading))
+    }
+  }
+
+  @MainActor
   static func run() async throws {
+    try await anOpenListKeepsItsRowsUnderASetAndRejectsClosedListReplies()
+    try await aClosedListDoesNotRestoreAnotherAccountOrRefusedRows()
+    try await listLifetimeStartsAtCloseAndExpiresBeforeItsNextRead()
     try await reopenedSetRetainsContentDuringRevalidation()
     try await warmLifetimeStartsAtCloseAndExpires()
     try await cachedSetsClearOnAccountChangeAndRefusal()

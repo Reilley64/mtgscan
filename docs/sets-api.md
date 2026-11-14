@@ -18,6 +18,8 @@ The list returns `items` and `next_cursor`. Each item has `code`, `name`, `relea
 
 Reopening a set within five minutes of closing it immediately shows its account-scoped previous details and reads again. A transient failure retains those details. Expired entries, account changes, refusal, and a missing set do not restore stale details.
 
+The closed Sets list has the same five-minute lifetime, measured from returning to Collection. Within that time, its rows and paging state remain visible during revalidation and a transient failure. After expiry, reopening drops the old rows and cursor before reading. A list that is still open underneath a set page keeps its rows.
+
 The set page adds `main_set`, `variants`, `sections`, and `other`. Each group has completion and `card_printings`. Sections keep Scryfall's order and can overlap. Other cards are the printings in no section. Each printing has its ID, name, collector number, image URI, available finishes, and the three finish-view copy counts. A null count means unavailable in that view. Switching the set page's finish view needs no new request. The native keychain keeps the shared choice across restarts.
 
 ## Policy and persistence

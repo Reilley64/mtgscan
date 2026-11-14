@@ -53,6 +53,7 @@ struct SetsPresentation {
 
 @MainActor
 final class SetsController {
+  private static let warmLifetime: TimeInterval = 300
   private let api: any SetsService
   private let store: any FinishViewStore
   private let now: () -> Date
@@ -60,6 +61,7 @@ final class SetsController {
   private var accountID: String?
   private var generation = 0
   private var listNeedsReset = false
+  private var listClosedAt: Date?
   private var closedSets: [String: (details: SetDetails, closedAt: Date)] = [:]
   private(set) var presentation = SetsPresentation()
   var onChange: (() -> Void)?
@@ -89,6 +91,7 @@ final class SetsController {
     guard accountID != self.accountID else { return }
     generation += 1
     self.accountID = accountID
+    listClosedAt = nil
     closedSets.removeAll()
     let finishView = presentation.finishView
     let accountRevision = presentation.accountRevision + 1
@@ -96,6 +99,30 @@ final class SetsController {
       accountRevision: accountRevision, state: accountID == nil ? .signedOut : .loading,
       finishView: finishView)
     listNeedsReset = false
+    onChange?()
+  }
+
+  func openList() {
+    guard accountID != nil else { return }
+    generation += 1
+    if let closedAt = listClosedAt, now().timeIntervalSince(closedAt) >= Self.warmLifetime {
+      presentation.items = []
+      presentation.nextCursor = nil
+      presentation.state = .loading
+      presentation.notice = nil
+    }
+    listClosedAt = nil
+    presentation.refreshing = false
+    presentation.loadingMore = false
+    onChange?()
+  }
+
+  func closeList() {
+    guard accountID != nil else { return }
+    generation += 1
+    listClosedAt = now()
+    presentation.refreshing = false
+    presentation.loadingMore = false
     onChange?()
   }
 
@@ -134,7 +161,7 @@ final class SetsController {
     guard accountID != nil else { return }
     generation += 1
     presentation.code = code
-    let cutoff = now().addingTimeInterval(-300)
+    let cutoff = now().addingTimeInterval(-Self.warmLifetime)
     closedSets = closedSets.filter { $0.value.closedAt > cutoff }
     presentation.details = closedSets[code]?.details
     presentation.state = presentation.details == nil ? .loading : .loaded
@@ -234,6 +261,7 @@ final class SetsController {
   private func fail(_ error: Error, retaining: Bool) {
     switch error {
     case SetsFailure.unauthenticated, SetsFailure.forbidden, SessionFailure.unauthenticated:
+      listClosedAt = nil
       closedSets.removeAll()
       presentation.items = []
       presentation.details = nil

@@ -56,6 +56,7 @@ final class SetsPage: UIView, UINavigationControllerDelegate {
       addSubview(navigation.view)
       navigation.didMove(toParent: owner)
     }
+    controller.openList()
     isHidden = false
     navigation.setViewControllers([root, screen(code: nil)], animated: false)
     setNeedsLayout()
@@ -74,7 +75,8 @@ final class SetsPage: UIView, UINavigationControllerDelegate {
     _ navigationController: UINavigationController, didShow viewController: UIViewController,
     animated: Bool
   ) {
-    if viewController === root {
+    if viewController === root, navigationController.topViewController === root, !isHidden {
+      controller.closeList()
       isHidden = true
       onClose()
     }
