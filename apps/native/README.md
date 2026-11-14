@@ -1,12 +1,12 @@
-# Native account and collection presentation
+# Native account, collection and scan presentation
 
-Part of [MTGSCAN-275](https://app.plane.so/reilley/browse/MTGSCAN-275/), [MTGSCAN-276](https://app.plane.so/reilley/browse/MTGSCAN-276/), [MTGSCAN-279](https://app.plane.so/reilley/browse/MTGSCAN-279/) and [MTGSCAN-284](https://app.plane.so/reilley/browse/MTGSCAN-284/).
+Part of [MTGSCAN-275](https://app.plane.so/reilley/browse/MTGSCAN-275/), [MTGSCAN-276](https://app.plane.so/reilley/browse/MTGSCAN-276/), [MTGSCAN-279](https://app.plane.so/reilley/browse/MTGSCAN-279/), [MTGSCAN-280](https://app.plane.so/reilley/browse/MTGSCAN-280/) and [MTGSCAN-284](https://app.plane.so/reilley/browse/MTGSCAN-284/).
 The signed-in shell opens the collection browse and read-only copy page with gallery readiness and retry.
 **Search card catalog** opens catalog queries, rules and printing inspection through the same backend application.
 Returning to Collection keeps the gallery coordinator and its current status.
 After foreground session revalidation, the visible catalog or Collection refreshes and gallery coordination resumes.
 [Catalog API and limits](../../docs/catalog-api.md) describe this MTGSCAN-284 slice.
-It is not the scanner replacement.
+The local scan capture and review slice is described below. Server commit and training uploads are not included.
 [Collection API and limits](../../docs/collection-api.md) describe the new read path and the later slices.
 MTGSCAN-274 passed under separate owner acceptance. Its historical stop reports do not re-block this slice.
 
@@ -37,6 +37,7 @@ mise exec -- bun install --frozen-lockfile
 mise run rust-check
 DEVELOPER_DIR=/Applications/Xcode.app/Contents/Developer mise run native-unit
 DEVELOPER_DIR=/Applications/Xcode.app/Contents/Developer mise run native-gallery-unit
+DEVELOPER_DIR=/Applications/Xcode.app/Contents/Developer mise run native-scan-unit
 ```
 
 The Swift unit executable runs real session and collection controllers with fake external provider, keychain, Auth, API and clock capabilities.
@@ -74,6 +75,39 @@ The engine restores the persisted job before reconnecting the session. A fully v
 `GalleryBackgroundEvents` owns each completion until the matching session drains and any installation commits or fails, then releases it once on the main queue.
 Its unit checks substitute only the external main-thread delivery scheduler. They cover session matching, startup ordering, stale foreground drains, retained callback ownership and installation deferral.
 Real OS background transfer/relaunch, device model behavior, spoken VoiceOver and recognition parity still need manual acceptance.
+
+## Local scan capture and review
+
+**Scan cards** in Collection opens the native Scan screen. Returning to Collection retains its existing coordinator and gallery controls.
+The gallery must be ready before camera permission is requested. Camera access, foreground focus, runtime failure and **Try again** control the retained `CameraSession`.
+The capture policy keeps the existing 400 ms hold, motion and signature checks, 1000 ms departure and stream-gap handling, and three-photo-failure stop.
+Native detector, recognition, OCR, feature print model, thresholds, gallery format and WebP encoding algorithms are unchanged.
+`GalleryPrinting` has moved verbatim into its own file so public review units can use the canonical printing type without loading a model.
+The native target links the existing pinned libwebp dependency and packages the existing scan sounds.
+
+Review shows the first candidate for both accept and abstain. It does not show recognition scores.
+Printing, finish, condition and language edits preserve `scanId`, which is the permanent copy ID.
+**+1** allocates a new ID, copies the chosen attributes and leaves crop evidence on the photographed copy only.
+Not-a-card and no-photo results leave the previous chip. An unrecognized scan stays outside the batch until a non-basic printing is chosen.
+Basic lands never become copies. Local name search and printing order use the retained `CardNameIndex`.
+Same-text twins come first in the printing picker. Artwork alone comes from the accepted session-bound catalog API.
+No image URL is invented. Metadata and local-choice failures have a retry control.
+The review drawer uses one native navigation stack and the shared `CardGrid`, `CardHero` and artwork controls.
+
+Pending review uses the existing Documents file `scan-batch-<account ID>.json` and format 3.
+Readers retain format 1 and 2 compatibility, copy IDs, correction evidence and `commitPending`.
+A pending server commit is not replayed by this slice. Unknown or unreadable formats are kept and block new capture until a successful read retry.
+Writes are atomic. A write failure stays visible and retains unsaved work in memory for that account until retry.
+Do not close the app while it reports a save failure. No implementation can guarantee disk durability after a refused filesystem write.
+Sign-out clears visible review and invalidates old capture completions without deleting another account's pending file.
+New photographed crops stay in the existing account/copy path under Documents `training-crops` until a later commit/upload slice handles them.
+Removing a scan drops only its local pending crop after the batch write succeeds. Existing upload queues are not read or changed here.
+The feedback adapter uses the existing sound files, silent-switch behavior and legacy `scan-sounds` keychain item. It never migrates or writes that setting.
+
+`native-scan-unit` runs real public review, capture and local-choice behavior with fake external files, camera, recognition, artwork, identity and scheduling capabilities.
+It uses Swift 6 complete concurrency checking. It does not run camera access, real recognition, model loading, image downloads, keychain queries or an app.
+Full SDK compilation is separate from runtime acceptance. Actual-root rendering, gestures, keyboard, text scaling, VoiceOver, real camera inference and OS lifecycle proof remain manual gates.
+This slice adds no server commit, remote copy write, commit retry protocol, training upload, migration, cutover or deployment.
 
 ## Build the isolated app
 

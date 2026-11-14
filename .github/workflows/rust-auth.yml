@@ -44,6 +44,7 @@ jobs:
       - run: mise exec -- bun install --frozen-lockfile
       - run: mise run native-unit
       - run: mise run native-gallery-unit
+      - run: mise run native-scan-unit
       - name: Check the native external adapters
         run: |
           mise exec -- xcrun swiftc -warnings-as-errors -typecheck apps/native/auth/SessionController.swift apps/native/auth/ServiceClients.swift apps/native/auth/KeychainSessionStore.swift apps/native/collection/CollectionAPI.swift apps/native/collection/CollectionModels.swift apps/native/collection/CollectionController.swift apps/native/catalog/*.swift
