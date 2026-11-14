@@ -67,7 +67,7 @@ def number(group, name):
 
 
 swift = "import UIKit\n\n@MainActor\nenum Tokens {\n"
-for name in ["background", "text", "surfaceControl", "surface", "textMuted", "line", "primary", "warning", "info", "manaGeneric", "manaWhite", "manaBlue", "manaBlack", "manaRed", "manaGreen", "manaGlyph"]:
+for name in ["background", "text", "surfaceControl", "surface", "textMuted", "line", "primary", "warning", "info", "danger", "cameraOff", "cardOutline", "manaGeneric", "manaWhite", "manaBlue", "manaBlack", "manaRed", "manaGreen", "manaGlyph"]:
     value = color(name)
     channels = [int(value[i:i + 2], 16) / 255 for i in [0, 2, 4]]
     swift += f"  static let {name} = UIColor(red: {channels[0]}, green: {channels[1]}, blue: {channels[2]}, alpha: 1)\n"
@@ -78,6 +78,8 @@ for name, key in {"googleBackground": "background", "googleText": "text", "googl
 for name, value in {
     "googleFontSize": float(re.search(r"googleButton: \{ fontSize: ([0-9]+)", theme)[1]),
     "sm": number("spacing", "sm"),
+    "cardThumbnailWidth": number("sizes", "cardThumbnailWidth"),
+    "cardOutlineWidth": number("sizes", "cardOutline"),
     "lg": number("spacing", "lg"),
     "md": number("spacing", "md"),
     "xs": number("spacing", "xs"),
@@ -128,22 +130,28 @@ sources = sorted(source.rglob("*.swift"))
 sources = [path for path in sources if "tests" not in path.parts] + [build / "Tokens.swift", build / "PresentationData.swift"]
 recognizer = repo / "apps/mobile/modules/card-recognizer/ios"
 sources += [recognizer / name for name in ["GalleryDownloads.swift", "GalleryBackgroundEvents.swift", "GalleryDownloadCommands.swift"]]
-sources += [recognizer / "Recognizer" / name for name in [
-    "GalleryFormat.swift", "GalleryInstaller.swift", "GalleryEncoding.swift", "ModelPackage.swift", "SHA256Hex.swift",
-]]
+sources += sorted((recognizer / "Recognizer").glob("*.swift"))
+detector = repo / "apps/mobile/modules/card-detector/ios"
+sources += [detector / "CameraSession.swift"]
+sources += sorted((detector / "Detector").glob("*.swift"))
 refs = [ref(path, "sourcecode.swift") for path in sources]
 source_phase = obj("PBXSourcesBuildPhase", buildActionMask=2147483647, files=[obj("PBXBuildFile", fileRef=key) for key in refs], runOnlyForDeploymentPostprocessing=0)
 package = obj("XCRemoteSwiftPackageReference", repositoryURL="https://github.com/google/GoogleSignIn-iOS", requirement={"kind": "exactVersion", "version": "9.0.0"})
 google = obj("XCSwiftPackageProductDependency", package=package, productName="GoogleSignIn")
+webp_pin = next(pin for pin in json.loads((recognizer.parent / "Package.resolved").read_text())["pins"] if pin["identity"] == "libwebp-xcode")
+webp_package = obj("XCRemoteSwiftPackageReference", repositoryURL=webp_pin["location"], requirement={"kind": "revision", "revision": webp_pin["state"]["revision"]})
+webp = obj("XCSwiftPackageProductDependency", package=webp_package, productName="libwebp")
 rust_target = "aarch64-apple-ios-sim" if args.simulator else "aarch64-apple-ios"
 platform = "iphonesimulator" if args.simulator else "iphoneos"
 rust = ref(build / f"rust/{rust_target}/debug/examples/libmtgscan_mobile.a", "archive.ar")
-frameworks = [obj("PBXBuildFile", fileRef=rust), obj("PBXBuildFile", productRef=google)]
-for name in ["UIKit", "Metal", "QuartzCore", "CoreText", "CoreGraphics", "Security", "SystemConfiguration", "AuthenticationServices"]:
+frameworks = [obj("PBXBuildFile", fileRef=rust), obj("PBXBuildFile", productRef=google), obj("PBXBuildFile", productRef=webp)]
+for name in ["UIKit", "Metal", "QuartzCore", "CoreText", "CoreGraphics", "Security", "SystemConfiguration", "AuthenticationServices", "AVFoundation", "Vision", "CoreML", "CoreImage", "Accelerate", "ImageIO"]:
     framework = obj("PBXFileReference", path=f"System/Library/Frameworks/{name}.framework", sourceTree="SDKROOT", lastKnownFileType="wrapper.framework")
     frameworks.append(obj("PBXBuildFile", fileRef=framework))
 framework_phase = obj("PBXFrameworksBuildPhase", buildActionMask=2147483647, files=frameworks, runOnlyForDeploymentPostprocessing=0)
 resources = [obj("PBXBuildFile", fileRef=ref(repo / "apps/mobile/assets/fonts/mana.ttf", "file"))]
+for sound in (repo / "apps/mobile/assets/sounds").glob("scan-*.wav"):
+    resources.append(obj("PBXBuildFile", fileRef=ref(sound, "audio.wav")))
 for image in (repo / "apps/mobile/assets").glob("google-logo*.png"):
     resources.append(obj("PBXBuildFile", fileRef=ref(image, "image.png")))
 if config:
@@ -157,6 +165,7 @@ info = {
     "CFBundlePackageType": "APPL", "CFBundleShortVersionString": "0.1.0", "CFBundleVersion": "276",
     "UILaunchScreen": {}, "UISupportedInterfaceOrientations": ["UIInterfaceOrientationPortrait"],
     "UIAppFonts": ["mana.ttf"],
+    "NSCameraUsageDescription": "Scan Magic cards into your collection.",
 }
 if config:
     scheme = ".".join(reversed(config["googleIOSClientID"].split(".")))
@@ -178,10 +187,10 @@ settings = {
 }
 configuration = obj("XCBuildConfiguration", name="Debug", buildSettings=settings)
 configs = obj("XCConfigurationList", buildConfigurations=[configuration], defaultConfigurationName="Debug", defaultConfigurationIsVisible=0)
-target = obj("PBXNativeTarget", name="MTGScanNative", productName="MTGScanNative", productReference=product, productType="com.apple.product-type.application", buildConfigurationList=configs, buildPhases=[source_phase, framework_phase, resource_phase], dependencies=[], packageProductDependencies=[google])
+target = obj("PBXNativeTarget", name="MTGScanNative", productName="MTGScanNative", productReference=product, productType="com.apple.product-type.application", buildConfigurationList=configs, buildPhases=[source_phase, framework_phase, resource_phase], dependencies=[], packageProductDependencies=[google, webp])
 project_config = obj("XCBuildConfiguration", name="Debug", buildSettings={})
 project_configs = obj("XCConfigurationList", buildConfigurations=[project_config], defaultConfigurationName="Debug", defaultConfigurationIsVisible=0)
-project = obj("PBXProject", compatibilityVersion="Xcode 14.0", developmentRegion="en", knownRegions=["en", "Base"], buildConfigurationList=project_configs, mainGroup=group, projectDirPath="", projectRoot="", targets=[target], packageReferences=[package], attributes={"LastUpgradeCheck": "2710", "TargetAttributes": {target: {"SystemCapabilities": {"com.apple.SignInWithApple": {"enabled": 1}}}}})
+project = obj("PBXProject", compatibilityVersion="Xcode 14.0", developmentRegion="en", knownRegions=["en", "Base"], buildConfigurationList=project_configs, mainGroup=group, projectDirPath="", projectRoot="", targets=[target], packageReferences=[package, webp_package], attributes={"LastUpgradeCheck": "2710", "TargetAttributes": {target: {"SystemCapabilities": {"com.apple.SignInWithApple": {"enabled": 1}}}}})
 project_dir = build / "MTGScanNative.xcodeproj"
 project_dir.mkdir(exist_ok=True)
 with (project_dir / "project.pbxproj").open("wb") as file:

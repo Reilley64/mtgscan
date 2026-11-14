@@ -36,6 +36,8 @@ final class AccountPage: UIView {
   private var collectionPage: CollectionPage?
   private var catalogPage: CatalogPage?
   private var showingCatalog = false
+  private var showingScan = false
+  private var scan: NativeScanFeature?
   private var timer: Timer?
   private var gallery: GalleryFeature?
   private let idleTimer = TestAppIdleTimer(bundleIdentifier: Bundle.main.bundleIdentifier) {
@@ -64,9 +66,12 @@ final class AccountPage: UIView {
         guard let controller else { throw SessionFailure.unauthenticated }
         return try await controller.accessTokenForRequest()
       }
-      let catalog = CatalogController(
-        api: SessionCatalogService(session: controller, api: CatalogAPI(origin: config.apiURL)))
-      self.init(controller: controller, collection: collection, gallery: gallery, catalog: catalog)
+      let catalogService = SessionCatalogService(
+        session: controller, api: CatalogAPI(origin: config.apiURL))
+      let catalog = CatalogController(api: catalogService)
+      self.init(
+        controller: controller, collection: collection, gallery: gallery, catalog: catalog,
+        scan: NativeScanFeature(catalog: catalogService))
       self.provider = provider
     } else {
       self.init(controller: nil, collection: nil, gallery: nil)
@@ -75,10 +80,12 @@ final class AccountPage: UIView {
 
   init(
     controller: SessionController?, collection: CollectionController?, gallery: GalleryFeature?,
-    catalog: CatalogController? = nil, images: (any CardImages)? = nil
+    catalog: CatalogController? = nil, images: (any CardImages)? = nil,
+    scan: NativeScanFeature? = nil
   ) {
     self.controller = controller
     self.gallery = gallery
+    self.scan = scan
     super.init(frame: .zero)
     backgroundColor = Tokens.background
     addSubview(layout)
@@ -93,6 +100,13 @@ final class AccountPage: UIView {
             self?.showingCatalog = true
             self?.display()
             Task { await self?.catalogPage?.refresh() }
+          },
+        onScan: scan == nil
+          ? nil
+          : { [weak self] in
+            self?.endEditing(true)
+            self?.showingScan = true
+            self?.display()
           },
         onSignOut: { [weak controller] in
           Task { await controller?.signOut() }
@@ -109,12 +123,25 @@ final class AccountPage: UIView {
         self.catalogPage = catalogPage
         addSubview(catalogPage)
       }
+      if let scan {
+        addSubview(scan.page)
+        scan.page.onClose = { [weak self] in
+          self?.showingScan = false
+          self?.display()
+          Task { await self?.collectionPage?.refresh() }
+        }
+        gallery?.onScannerReadinessChange = { [weak self] in self?.display() }
+      }
       controller.onAccountChange = { [weak self, weak collection] accountID in
         if let collection, collection.setAccount(accountID), accountID != nil {
           Task { await collection.reload() }
         }
         self?.catalogPage?.setAccount(accountID)
-        if accountID == nil { self?.showingCatalog = false }
+        self?.scan?.page.setAccount(accountID)
+        if accountID == nil {
+          self?.showingCatalog = false
+          self?.showingScan = false
+        }
       }
       controller.onAccountChange?(controller.presentation.accountID)
       controller.onChange = { [weak self] in self?.display() }
@@ -139,6 +166,7 @@ final class AccountPage: UIView {
     layout.frame = bounds
     collectionPage?.frame = bounds
     catalogPage?.frame = bounds
+    scan?.page.frame = bounds
   }
 
   override func didMoveToWindow() {
@@ -153,8 +181,11 @@ final class AccountPage: UIView {
 
   private func display() {
     let accountID = controller?.presentation.accountID
-    collectionPage?.isHidden = accountID == nil || showingCatalog
-    catalogPage?.isHidden = accountID == nil || !showingCatalog
+    collectionPage?.isHidden = accountID == nil || showingCatalog || showingScan
+    catalogPage?.isHidden = accountID == nil || !showingCatalog || showingScan
+    scan?.page.isHidden = accountID == nil || !showingScan
+    scan?.page.setVisible(
+      accountID != nil && showingScan, galleryReady: gallery?.scannerReady == true)
     layout.isHidden = accountID != nil
     authentication.display(
       controller?.presentation ?? SessionPresentation(), configured: controller != nil)
@@ -168,7 +199,9 @@ final class AccountPage: UIView {
       let hadAccount = controller?.presentation.accountID != nil
       await controller?.resume()
       if hadAccount { gallery?.foreground() }
-      if showingCatalog {
+      if showingScan {
+        scan?.page.refresh()
+      } else if showingCatalog {
         await catalogPage?.refresh()
       } else {
         await collectionPage?.refresh()
@@ -180,6 +213,7 @@ final class AccountPage: UIView {
   }
 
   @objc private func background() {
+    scan?.page.background()
     idleTimer.setActive(false)
     timer?.invalidate()
     timer = nil

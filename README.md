@@ -6,6 +6,7 @@ An iPhone app for scanning Magic: The Gathering cards, keeping a collection, and
 
 The converted path starts with the [GPUI native account shell](apps/native/README.md), its [versioned current-account API](docs/account-api.md), and the [collection browse and copy page read](docs/collection-api.md).
 The collection read uses one Rust application layer and a scoped direct-Postgres adapter. Hosted activation remains a separate approved step.
+The native shell also includes [local scan capture and durable review](apps/native/README.md#local-scan-capture-and-review). It retains the native detector and recognizer, local gallery name search, and account-scoped pending scan files. It does not commit copies or upload training crops. Those remain separate slices.
 The [catalog-enabled reader](docs/catalog-api.md#reader-provisioning) also needs a narrow Auth-owner provisioning step. The adapter refuses incomplete grants at connection time.
 It is isolated from the existing Expo app and does not replace collection, deck or scanner paths.
 [ADR 0016](docs/adr/0016-route-native-accounts-through-one-rust-application.md) records the dependency boundaries and unit-only verification scope.
