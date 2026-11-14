@@ -14,7 +14,11 @@ async fn main() -> Result<(), &'static str> {
         env::var("COLLECTION_DATABASE_URL").map_err(|_| "COLLECTION_DATABASE_URL is required")?;
     let database = PostgresCollection::connect(&database_url).await?;
     let routes = mtgscan_api::router(identity.clone())
-        .merge(mtgscan_api::collection::router(identity, database));
+        .merge(mtgscan_api::collection::router(
+            identity.clone(),
+            database.clone(),
+        ))
+        .merge(mtgscan_api::catalog::router(identity, database));
     let address: SocketAddr = env::var("LISTEN_ADDRESS")
         .unwrap_or_else(|_| "127.0.0.1:8080".into())
         .parse()

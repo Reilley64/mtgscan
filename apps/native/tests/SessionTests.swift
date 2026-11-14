@@ -70,6 +70,8 @@ struct SessionTests {
     try await successfulReadsSurviveSameAccountRevalidation()
     try await invalidatedReadsStayRefusedAfterSigningInAgain()
     try await CollectionTests.run()
+    try await CatalogTests.run()
+    try await runCatalogServiceTests()
     try await runCollectionServiceTests()
     let keychain = MemoryKeychain()
     let controller = SessionController(
@@ -239,6 +241,8 @@ struct SessionTests {
     }
     while pending == nil { await Task.yield() }
     await session.resume()
+    let galleryToken = try await session.accessTokenForRequest()
+    precondition(galleryToken == "access")
     pending?.resume(returning: "owned-copy")
     let copy = try await read.value
     precondition(copy == "owned-copy")
@@ -259,7 +263,13 @@ struct SessionTests {
     }
     while pending == nil { await Task.yield() }
     await session.signOut()
+    do {
+      _ = try await session.accessTokenForRequest()
+      preconditionFailure("Sign-out must refuse gallery requests while an old read is pending")
+    } catch SessionFailure.unauthenticated {}
     await session.signIn(.google)
+    let galleryToken = try await session.accessTokenForRequest()
+    precondition(galleryToken == "access")
     pending?.resume(returning: "obsolete-copy")
     do {
       _ = try await read.value

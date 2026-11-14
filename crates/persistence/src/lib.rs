@@ -1,3 +1,5 @@
+mod catalog;
+
 use mtgscan_application::collection::ReadCollection;
 use mtgscan_domain::collection::{
     CardPrinting, CollectionRefusal, Copy, Deck, Face, OwnedCopy, Price, UserTag,
@@ -10,6 +12,7 @@ use sqlx::{
 };
 use std::time::Duration;
 
+#[derive(Clone)]
 pub struct PostgresCollection {
     pool: PgPool,
 }
@@ -33,6 +36,20 @@ impl PostgresCollection {
         .map_err(|_| "Could not verify collection database role")?;
         if !allowed {
             return Err("Collection persistence requires its dedicated read-only role");
+        }
+        let provisioned: bool = sqlx::query_scalar(
+            "select case when has_schema_privilege(current_user, 'public', 'USAGE')
+             and has_schema_privilege(current_user, 'private', 'USAGE')
+             and has_schema_privilege(current_user, 'auth', 'USAGE')
+             then has_function_privilege(current_user, 'auth.uid()', 'EXECUTE')
+             and has_function_privilege(current_user, 'auth.jwt()', 'EXECUTE')
+             else false end",
+        )
+        .fetch_one(&pool)
+        .await
+        .map_err(|_| "Could not verify collection reader provisioning")?;
+        if !provisioned {
+            return Err("Collection persistence requires completed reader provisioning");
         }
         Ok(Self { pool })
     }

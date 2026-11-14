@@ -7,18 +7,20 @@ final class CollectionBrowser: UIStackView {
   private let onClose: () -> Void
   private let onRetry: () -> Void
   private let onSignOut: () -> Void
+  private let onCatalog: (() -> Void)?
   private let gallery: GalleryStatus?
 
   init(
     images: any CardImages, onOpen: @escaping (String) -> Void,
     onClose: @escaping () -> Void, onRetry: @escaping () -> Void,
-    onSignOut: @escaping () -> Void, gallery: GalleryStatus? = nil
+    onCatalog: (() -> Void)? = nil, onSignOut: @escaping () -> Void, gallery: GalleryStatus? = nil
   ) {
     self.images = images
     self.onOpen = onOpen
     self.onClose = onClose
     self.onRetry = onRetry
     self.onSignOut = onSignOut
+    self.onCatalog = onCatalog
     self.gallery = gallery
     super.init(frame: .zero)
     axis = .vertical
@@ -44,6 +46,9 @@ final class CollectionBrowser: UIStackView {
       let heading = AuthControls.label("Collection", style: .largeTitle)
       heading.accessibilityTraits.insert(.header)
       addArrangedSubview(heading)
+      if let onCatalog {
+        addArrangedSubview(AuthControls.button("Search card catalog", action: onCatalog))
+      }
       addArrangedSubview(AuthControls.button("Sign out", action: onSignOut))
       if let gallery { addArrangedSubview(gallery) }
     }
@@ -75,25 +80,17 @@ final class CollectionBrowser: UIStackView {
   }
 
   private func grid(_ copies: [CollectionCopy]) {
-    for start in stride(from: 0, to: copies.count, by: 3) {
-      let row = UIStackView()
-      row.spacing = Tokens.sm
-      row.distribution = .fillEqually
-      row.alignment = .top
-      for index in start..<min(start + 3, copies.count) {
-        let copy = copies[index]
-        row.addArrangedSubview(
+    addArrangedSubview(
+      CardGrid(
+        copies.map { copy in
           CollectionControls.tile(
             uri: copy.printing.imageURIs.first, meta: CollectionLabels.printing(copy),
             price: CollectionLabels.price(copy.currentPrice?.usdCents),
             label: CollectionLabels.spokenCopy(copy), finish: copy.finish,
             protected: copy.protected, held: copy.heldFor != nil,
             stale: copy.currentPrice?.stale == true, images: images,
-            action: { [onOpen] in onOpen(copy.copyID) }))
-      }
-      for _ in row.arrangedSubviews.count..<3 { row.addArrangedSubview(UIStackView()) }
-      addArrangedSubview(row)
-    }
+            action: { [onOpen] in onOpen(copy.copyID) })
+        }))
   }
 
   private func show(_ copy: CollectionCopy) {

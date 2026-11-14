@@ -1,7 +1,12 @@
 # Native account and collection presentation
 
-Part of [MTGSCAN-275](https://app.plane.so/reilley/browse/MTGSCAN-275/), [MTGSCAN-276](https://app.plane.so/reilley/browse/MTGSCAN-276/) and [MTGSCAN-279](https://app.plane.so/reilley/browse/MTGSCAN-279/).
-The signed-in shell opens the collection browse and read-only copy page with gallery readiness and retry. It is not the scanner replacement.
+Part of [MTGSCAN-275](https://app.plane.so/reilley/browse/MTGSCAN-275/), [MTGSCAN-276](https://app.plane.so/reilley/browse/MTGSCAN-276/), [MTGSCAN-279](https://app.plane.so/reilley/browse/MTGSCAN-279/) and [MTGSCAN-284](https://app.plane.so/reilley/browse/MTGSCAN-284/).
+The signed-in shell opens the collection browse and read-only copy page with gallery readiness and retry.
+**Search card catalog** opens catalog queries, rules and printing inspection through the same backend application.
+Returning to Collection keeps the gallery coordinator and its current status.
+After foreground session revalidation, the visible catalog or Collection refreshes and gallery coordination resumes.
+[Catalog API and limits](../../docs/catalog-api.md) describe this MTGSCAN-284 slice.
+It is not the scanner replacement.
 [Collection API and limits](../../docs/collection-api.md) describe the new read path and the later slices.
 MTGSCAN-274 passed under separate owner acceptance. Its historical stop reports do not re-block this slice.
 
@@ -37,6 +42,7 @@ DEVELOPER_DIR=/Applications/Xcode.app/Contents/Developer mise run native-gallery
 The Swift unit executable runs real session and collection controllers with fake external provider, keychain, Auth, API and clock capabilities.
 It also generates symbols, labels, sheen stops and aspect ratio from the existing mobile sources.
 The collection checks include copy metadata, account changes, sign-out, late replies, refusal, failure, empty state and retry.
+Catalog unit sources also cover query transitions, pagination, field refusal, rules, printing selection, Oracle tags and canonical HTTP examples.
 The Rust tests run real API mapping, application and domain behavior. Identity tests substitute the trusted remote Auth capability.
 They make no network requests. They cannot establish real provider configuration, keychain behavior, session revocation or native bridge behavior.
 CI retains all legacy checks and adds scoped Rust, native session and gallery unit checks.

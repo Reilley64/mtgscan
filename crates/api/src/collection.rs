@@ -1,4 +1,5 @@
 use crate::collection_contract::{BrowseResult, CopyResult, FieldError, RefusedResult};
+use crate::credentials::{authorization, bearer};
 use axum::{
     Json, Router,
     extract::{Path, RawQuery, State},
@@ -46,13 +47,7 @@ pub async fn collection_response(
     query: &str,
     copy_id: Option<&str>,
 ) -> CollectionResponse {
-    let credential = authorization.and_then(|value| {
-        let (scheme, credential) = value.split_once(' ')?;
-        (scheme.eq_ignore_ascii_case("bearer")
-            && !credential.is_empty()
-            && !credential.chars().any(char::is_whitespace))
-        .then_some(credential)
-    });
+    let credential = bearer(authorization);
     if credential.is_none() {
         return refused(CollectionRefusal::Unauthenticated, None);
     }
@@ -97,13 +92,6 @@ pub fn router<I: VerifyIdentity + 'static, D: ReadCollection + 'static>(
         .route(COLLECTION_PATH, get(browse::<I, D>))
         .route(COPY_PATH, get(copy::<I, D>))
         .with_state(Arc::new(Services { identity, database }))
-}
-
-fn authorization(headers: &HeaderMap) -> Option<&str> {
-    if headers.get_all(header::AUTHORIZATION).iter().count() != 1 {
-        return None;
-    }
-    headers.get(header::AUTHORIZATION)?.to_str().ok()
 }
 
 fn response(reply: CollectionResponse) -> Response {

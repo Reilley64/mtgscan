@@ -34,6 +34,8 @@ final class AccountPage: UIView {
   private var controller: SessionController?
   private var provider: NativeSignIn?
   private var collectionPage: CollectionPage?
+  private var catalogPage: CatalogPage?
+  private var showingCatalog = false
   private var timer: Timer?
   private var gallery: GalleryFeature?
   private let idleTimer = TestAppIdleTimer(bundleIdentifier: Bundle.main.bundleIdentifier) {
@@ -62,7 +64,9 @@ final class AccountPage: UIView {
         guard let controller else { throw SessionFailure.unauthenticated }
         return try await controller.accessTokenForRequest()
       }
-      self.init(controller: controller, collection: collection, gallery: gallery)
+      let catalog = CatalogController(
+        api: SessionCatalogService(session: controller, api: CatalogAPI(origin: config.apiURL)))
+      self.init(controller: controller, collection: collection, gallery: gallery, catalog: catalog)
       self.provider = provider
     } else {
       self.init(controller: nil, collection: nil, gallery: nil)
@@ -71,7 +75,7 @@ final class AccountPage: UIView {
 
   init(
     controller: SessionController?, collection: CollectionController?, gallery: GalleryFeature?,
-    images: (any CardImages)? = nil
+    catalog: CatalogController? = nil, images: (any CardImages)? = nil
   ) {
     self.controller = controller
     self.gallery = gallery
@@ -80,13 +84,39 @@ final class AccountPage: UIView {
     addSubview(layout)
     layout.content.addArrangedSubview(authentication)
     if let controller, let collection {
-      collection.bind(to: controller)
-      let page = CollectionPage(controller: collection, images: images, gallery: gallery?.view) {
-        [weak controller] in
-        Task { await controller?.signOut() }
+      let collectionPage = CollectionPage(
+        controller: collection, images: images, gallery: gallery?.view,
+        onCatalog: catalog == nil
+          ? nil
+          : { [weak self] in
+            self?.endEditing(true)
+            self?.showingCatalog = true
+            self?.display()
+            Task { await self?.catalogPage?.refresh() }
+          },
+        onSignOut: { [weak controller] in
+          Task { await controller?.signOut() }
+        })
+      self.collectionPage = collectionPage
+      addSubview(collectionPage)
+      if let catalog {
+        let catalogPage = CatalogPage(controller: catalog, images: images) { [weak self] in
+          self?.endEditing(true)
+          self?.showingCatalog = false
+          self?.display()
+          Task { await self?.collectionPage?.refresh() }
+        }
+        self.catalogPage = catalogPage
+        addSubview(catalogPage)
       }
-      collectionPage = page
-      addSubview(page)
+      controller.onAccountChange = { [weak self, weak collection] accountID in
+        if let collection, collection.setAccount(accountID), accountID != nil {
+          Task { await collection.reload() }
+        }
+        self?.catalogPage?.setAccount(accountID)
+        if accountID == nil { self?.showingCatalog = false }
+      }
+      controller.onAccountChange?(controller.presentation.accountID)
       controller.onChange = { [weak self] in self?.display() }
     }
     display()
@@ -108,6 +138,7 @@ final class AccountPage: UIView {
     super.layoutSubviews()
     layout.frame = bounds
     collectionPage?.frame = bounds
+    catalogPage?.frame = bounds
   }
 
   override func didMoveToWindow() {
@@ -122,7 +153,8 @@ final class AccountPage: UIView {
 
   private func display() {
     let accountID = controller?.presentation.accountID
-    collectionPage?.isHidden = accountID == nil
+    collectionPage?.isHidden = accountID == nil || showingCatalog
+    catalogPage?.isHidden = accountID == nil || !showingCatalog
     layout.isHidden = accountID != nil
     authentication.display(
       controller?.presentation ?? SessionPresentation(), configured: controller != nil)
@@ -136,6 +168,11 @@ final class AccountPage: UIView {
       let hadAccount = controller?.presentation.accountID != nil
       await controller?.resume()
       if hadAccount { gallery?.foreground() }
+      if showingCatalog {
+        await catalogPage?.refresh()
+      } else {
+        await collectionPage?.refresh()
+      }
     }
     timer = Timer.scheduledTimer(withTimeInterval: 30, repeats: true) { [weak self] _ in
       Task { @MainActor in await self?.controller?.refreshIfNeeded() }

@@ -64,6 +64,8 @@ SQL and row mapping stay in `crates/persistence`.
 
 Password provisioning, hosted migration application, TLS connection configuration, and deployment belong to the reviewed MTGSCAN-277/278 plan.
 This PR authorizes none of those live changes.
+The catalog-enabled server also requires the narrow Auth-owner step in [Catalog queries](catalog-api.md#reader-provisioning).
+Its connection check refuses incomplete reader provisioning.
 
 ## Mobile behavior
 

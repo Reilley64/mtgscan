@@ -880,6 +880,7 @@ version = "0.1.0"
 dependencies = [
  "axum",
  "mtgscan-application",
+ "mtgscan-catalog-contract",
  "mtgscan-domain",
  "serde",
  "serde_json",
@@ -892,8 +893,18 @@ dependencies = [
 name = "mtgscan-application"
 version = "0.1.0"
 dependencies = [
+ "mtgscan-catalog-contract",
  "mtgscan-domain",
  "tokio",
+]
+
+[[package]]
+name = "mtgscan-catalog-contract"
+version = "0.1.0"
+dependencies = [
+ "serde",
+ "serde_json",
+ "serde_path_to_error",
 ]
 
 [[package]]
@@ -919,6 +930,7 @@ name = "mtgscan-persistence"
 version = "0.1.0"
 dependencies = [
  "mtgscan-application",
+ "mtgscan-catalog-contract",
  "mtgscan-domain",
  "serde",
  "serde_json",
