@@ -134,10 +134,10 @@ final class AccountPage: UIView {
         let deckPage = DeckPage(
           controller: decks, copies: copies, images: images,
           onCollection: { [weak self, weak collection] in
-            Task {
-              await collection?.closeCopy()
-              self?.selectTab(0)
-            }
+            collection?.showBrowse()
+            self?.deckReturnTab = nil
+            self?.selectTab(0)
+            Task { await collection?.reload() }
           },
           onSignOut: { [weak controller] in Task { await controller?.signOut() } })
         self.deckPage = deckPage

@@ -27,7 +27,50 @@ final class CollectionRemote: CollectionService {
 
 enum CollectionTests {
   @MainActor
+  private static func leavingCopyIsLocalAndRejectsItsLateRead() async throws {
+    let fixture = try Data(
+      contentsOf: URL(fileURLWithPath: "crates/api/fixtures/collection-copy.json"))
+    let copy = try JSONDecoder().decode(CollectionCopy.self, from: fixture)
+    let remote = CollectionRemote()
+    remote.copies = [copy]
+    let controller = CollectionController(api: remote)
+    controller.setAccount("owner-a")
+    await controller.reload()
+    await controller.open(copy.copyID)
+    remote.suspendCopy = true
+    let oldRead = Task { await controller.reload() }
+    while remote.pendingCopy == nil { await Task.yield() }
+    remote.suspend = true
+    controller.showBrowse()
+    precondition(controller.presentation.selectedCopyID == nil)
+    precondition(controller.presentation.copy == nil)
+    precondition(controller.presentation.state == .loaded)
+    precondition(controller.presentation.copies.first?.copyID == copy.copyID)
+    remote.pendingCopy?.resume(returning: copy)
+    await oldRead.value
+    precondition(controller.presentation.selectedCopyID == nil)
+    precondition(controller.presentation.copy == nil)
+    precondition(controller.presentation.state == .loaded)
+  }
+
+  @MainActor
+  private static func showingAnEmptyBrowseRetainsItsTransientFailureState() async {
+    let remote = CollectionRemote()
+    let controller = CollectionController(api: remote)
+    controller.setAccount("owner-a")
+    await controller.reload()
+    precondition(controller.presentation.state == .empty)
+    controller.showBrowse()
+    precondition(controller.presentation.state == .empty)
+    remote.failure = .unavailable
+    await controller.reload()
+    precondition(controller.presentation.state == .empty)
+  }
+
+  @MainActor
   static func run() async throws {
+    await showingAnEmptyBrowseRetainsItsTransientFailureState()
+    try await leavingCopyIsLocalAndRejectsItsLateRead()
     let remote = CollectionRemote()
     let controller = CollectionController(api: remote)
     precondition(controller.presentation.state == .signedOut)

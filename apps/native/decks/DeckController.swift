@@ -39,10 +39,12 @@ struct DeckPresentation {
 @MainActor
 final class DeckController {
   private let api: any DeckService
+  private let now: () -> Date
   private var accountID: String?
   private var generation = 0
   private var readGeneration = 0
   private var origins: [DeckPresentation] = []
+  private var closedDecks: [String: (deck: DeckContents, closedAt: Date)] = [:]
   private(set) var presentation = DeckPresentation()
   var interactionID: Int { generation }
   var onChange: (() -> Void)?
@@ -61,7 +63,10 @@ final class DeckController {
     onChange?()
   }
 
-  init(api: any DeckService) { self.api = api }
+  init(api: any DeckService, now: @escaping () -> Date = Date.init) {
+    self.api = api
+    self.now = now
+  }
 
   func setAccount(_ accountID: String?) {
     guard self.accountID != accountID else { return }
@@ -69,6 +74,7 @@ final class DeckController {
     readGeneration += 1
     self.accountID = accountID
     origins.removeAll()
+    closedDecks.removeAll()
     presentation = DeckPresentation(state: accountID == nil ? .signedOut : .loading)
     onChange?()
   }
@@ -135,10 +141,12 @@ final class DeckController {
     let operation = generation
     presentation.selectedDeckID = id
     presentation.selectedCopyID = nil
-    presentation.deck = nil
+    let cutoff = now().addingTimeInterval(-300)
+    closedDecks = closedDecks.filter { $0.value.closedAt > cutoff }
+    presentation.deck = closedDecks[id]?.deck
     presentation.writing = false
     presentation.writeFailure = nil
-    presentation.state = .loading
+    presentation.state = presentation.deck == nil ? .loading : .loaded
     onChange?()
     do {
       try await api.metadata(accountID: accountID, deckID: id, change: .used)
@@ -159,21 +167,38 @@ final class DeckController {
     await reload()
   }
 
-  func close() async {
+  private func rememberDeck() {
+    if let id = presentation.selectedDeckID, let deck = presentation.deck {
+      closedDecks[id] = (deck, now())
+    }
+  }
+
+  func showGallery() {
     guard accountID != nil else { return }
+    rememberDeck()
     generation += 1
     readGeneration += 1
-    if let origin = origins.popLast() {
-      presentation = origin
-      onChange?()
-      return
-    }
+    origins.removeAll()
     presentation.selectedDeckID = nil
     presentation.selectedCopyID = nil
     presentation.deck = nil
     presentation.writing = false
     presentation.writeFailure = nil
     presentation.state = presentation.decks.isEmpty ? .loading : .loaded
+    onChange?()
+  }
+
+  func close() async {
+    guard accountID != nil else { return }
+    if let origin = origins.popLast() {
+      rememberDeck()
+      generation += 1
+      readGeneration += 1
+      presentation = origin
+      onChange?()
+      return
+    }
+    showGallery()
     await reload()
   }
 
@@ -242,6 +267,7 @@ final class DeckController {
     generation += 1
     readGeneration += 1
     origins.removeAll()
+    closedDecks.removeAll()
     presentation = DeckPresentation(state: .refused)
   }
 
@@ -251,6 +277,7 @@ final class DeckController {
     origins.removeAll()
     presentation.writing = false
     let missingID = presentation.selectedDeckID
+    if let missingID { closedDecks.removeValue(forKey: missingID) }
     presentation.decks.removeAll { $0.deckID == missingID }
     presentation.selectedDeckID = nil
     presentation.selectedCopyID = nil

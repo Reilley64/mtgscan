@@ -161,16 +161,17 @@ final class DeckPage: UIView, UIGestureRecognizerDelegate, UIScrollViewDelegate 
         }
       }
       let sorts = DeckSort.allCases.map { sort in
-        UIAction(title: sort.rawValue, state: controller.sort == sort ? .on : .off) {
-          [weak self] _ in self?.controller.sort(by: sort)
-        }
+        DeckControls.sortChoice(
+          title: sort.rawValue, selected: controller.sort == sort, ascending: controller.ascending
+        ) { [weak self] in self?.controller.sort(by: sort) }
       }
       let group = DeckControls.floatingMenu(
-        title: "Group", symbol: "rectangle.3.group",
+        title: "Group", symbol: "rectangle.3.group", active: controller.grouping != .type,
         menu: UIMenu(title: "Group by", children: groups))
       group.accessibilityValue = controller.grouping.rawValue
       let sort = DeckControls.floatingMenu(
         title: "Sort", symbol: "arrow.up.arrow.down",
+        active: controller.sort != .name || !controller.ascending,
         menu: UIMenu(title: "Sort by", children: sorts))
       sort.accessibilityValue =
         "\(controller.sort.rawValue), \(controller.ascending ? "ascending" : "descending")"
@@ -240,10 +241,9 @@ final class DeckPage: UIView, UIGestureRecognizerDelegate, UIScrollViewDelegate 
   }
 
   private func openCollection() {
-    Task {
-      await controller.close()
-      onCollection()
-    }
+    controller.showGallery()
+    onCollection()
+    Task { await controller.reload() }
   }
 
   override func gestureRecognizerShouldBegin(_ gestureRecognizer: UIGestureRecognizer) -> Bool {

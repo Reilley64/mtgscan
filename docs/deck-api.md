@@ -95,6 +95,7 @@ This source change performs none of those actions.
 Collection remains available beside Decks. Copy deck tags open the selected deck by ID, not by name.
 The gallery opens Cards. Deck copy tiles open that exact copy and Close returns to the deck.
 That return does not wait for a collection browse request.
+Open Collection also switches locally before either deck-gallery or collection refresh completes; obsolete replies cannot restore the departed details.
 Following a copy's deck tag keeps that copy as the immediate return origin.
 Account changes clear those return origins.
 The loaded banner starts at the top of its page under Close and More.
@@ -109,6 +110,7 @@ Planned and History actions remain outside this slice.
 
 Loading, first failure, empty, refused and loaded states are distinct.
 A transient refresh failure keeps same-account content. A refused response clears it.
+Reopening a deck within five minutes of closing it shows its account-scoped previous contents immediately while marking it used and reading again. Expiry, account changes, refusal and missing decks invalidate that retained result.
 Account changes clear deck data and invalidate late reads and writes.
 A metadata refusal also invalidates an older in-flight read.
 Create does not navigate after a failed write.

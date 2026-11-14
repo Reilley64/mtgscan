@@ -7,6 +7,8 @@ final class DeckRemote: DeckService {
   var failure: DeckFailure?
   var suspend = false
   var pending: CheckedContinuation<[DeckSummary], Error>?
+  var suspendContents = false
+  var pendingContents: CheckedContinuation<DeckContents, Error>?
   var writes: [DeckMetadataChange] = []
 
   func browse(accountID: String) async throws -> [DeckSummary] {
@@ -16,6 +18,9 @@ final class DeckRemote: DeckService {
   }
 
   func contents(accountID: String, deckID: String) async throws -> DeckContents {
+    if suspendContents {
+      return try await withCheckedThrowingContinuation { pendingContents = $0 }
+    }
     if let failure { throw failure }
     guard let deck, deck.summary.deckID == deckID else { throw DeckFailure.notFound }
     return deck
@@ -35,7 +40,146 @@ final class DeckRemote: DeckService {
 
 enum DeckTests {
   @MainActor
+  private static func warmReopenRetainsContentsOnTransientFailure() async throws {
+    let fixture = try Data(contentsOf: URL(fileURLWithPath: "crates/api/fixtures/deck.json"))
+    let deck = try JSONDecoder().decode(DeckContents.self, from: fixture)
+    let remote = DeckRemote()
+    remote.deck = deck
+    remote.decks = [deck.summary]
+    let controller = DeckController(api: remote)
+    controller.setAccount("owner-a")
+    await controller.open(deck.summary.deckID)
+    await controller.close()
+    remote.suspendContents = true
+    let reopen = Task { await controller.open(deck.summary.deckID) }
+    while remote.pendingContents == nil { await Task.yield() }
+    precondition(controller.presentation.state == .loaded)
+    precondition(controller.presentation.deck?.summary.revision == 7)
+    precondition(controller.presentation.deck?.basicLands.first?.count == 8)
+    remote.pendingContents?.resume(throwing: DeckFailure.unavailable)
+    await reopen.value
+    precondition(controller.presentation.state == .loaded)
+    precondition(controller.presentation.deck?.summary.revision == 7)
+    precondition(controller.presentation.deck?.basicLands.first?.count == 8)
+  }
+
+  @MainActor
+  private static func warmDeckLifetimeStartsAtCloseAndExpires() async throws {
+    let fixture = try Data(contentsOf: URL(fileURLWithPath: "crates/api/fixtures/deck.json"))
+    let deck = try JSONDecoder().decode(DeckContents.self, from: fixture)
+    let remote = DeckRemote()
+    remote.deck = deck
+    remote.decks = [deck.summary]
+    var seconds: TimeInterval = 1000
+    let controller = DeckController(
+      api: remote, now: { Date(timeIntervalSince1970: seconds) })
+    controller.setAccount("owner-a")
+    await controller.open(deck.summary.deckID)
+    seconds = 2000
+    await controller.close()
+    seconds = 2299
+    remote.failure = .unavailable
+    await controller.open(deck.summary.deckID)
+    precondition(controller.presentation.state == .loaded)
+    precondition(controller.presentation.deck?.summary.revision == 7)
+    remote.failure = nil
+    await controller.close()
+    seconds = 2600
+    remote.suspendContents = true
+    let expired = Task { await controller.open(deck.summary.deckID) }
+    while remote.pendingContents == nil { await Task.yield() }
+    precondition(controller.presentation.state == .loading)
+    precondition(controller.presentation.deck == nil)
+    remote.pendingContents?.resume(throwing: DeckFailure.unavailable)
+    await expired.value
+    precondition(controller.presentation.state == .failed)
+    precondition(controller.presentation.deck == nil)
+  }
+
+  @MainActor
+  private static func cachedDecksClearOnAccountChangeAndRefusal() async throws {
+    let fixture = try Data(contentsOf: URL(fileURLWithPath: "crates/api/fixtures/deck.json"))
+    let deck = try JSONDecoder().decode(DeckContents.self, from: fixture)
+    for failure in [DeckFailure.unauthenticated, .forbidden, .notFound] {
+      let remote = DeckRemote()
+      remote.deck = deck
+      remote.decks = [deck.summary]
+      let controller = DeckController(api: remote)
+      controller.setAccount("owner-a")
+      await controller.open(deck.summary.deckID)
+      await controller.close()
+      remote.failure = failure
+      await controller.open(deck.summary.deckID)
+      remote.failure = nil
+      remote.suspendContents = true
+      let retry = Task { await controller.open(deck.summary.deckID) }
+      while remote.pendingContents == nil { await Task.yield() }
+      precondition(controller.presentation.deck == nil)
+      precondition(controller.presentation.state == .loading)
+      remote.pendingContents?.resume(throwing: DeckFailure.unavailable)
+      await retry.value
+    }
+    for account: String? in ["owner-b", nil] {
+      let remote = DeckRemote()
+      remote.deck = deck
+      remote.decks = [deck.summary]
+      let controller = DeckController(api: remote)
+      controller.setAccount("owner-a")
+      await controller.open(deck.summary.deckID)
+      await controller.close()
+      controller.setAccount(account)
+      controller.setAccount("owner-b")
+      remote.suspendContents = true
+      let newAccount = Task { await controller.open(deck.summary.deckID) }
+      while remote.pendingContents == nil { await Task.yield() }
+      precondition(controller.presentation.deck == nil)
+      precondition(controller.presentation.state == .loading)
+      remote.pendingContents?.resume(throwing: DeckFailure.unavailable)
+      await newAccount.value
+    }
+  }
+
+  @MainActor
+  private static func leavingDeckClearsOriginsWithoutWaitingForBrowse() async throws {
+    let fixture = try Data(contentsOf: URL(fileURLWithPath: "crates/api/fixtures/deck.json"))
+    let deck = try JSONDecoder().decode(DeckContents.self, from: fixture)
+    let remote = DeckRemote()
+    remote.deck = deck
+    remote.decks = [deck.summary]
+    let controller = DeckController(api: remote)
+    controller.setAccount("owner-a")
+    await controller.reload()
+    await controller.open(deck.summary.deckID)
+    controller.openCopy("10000000-0000-4000-8000-000000000001")
+    await controller.open(deck.summary.deckID)
+    remote.suspendContents = true
+    let oldRead = Task { await controller.reload() }
+    while remote.pendingContents == nil { await Task.yield() }
+    remote.suspend = true
+    controller.showGallery()
+    precondition(controller.presentation.selectedDeckID == nil)
+    precondition(controller.presentation.selectedCopyID == nil)
+    precondition(controller.presentation.deck == nil)
+    precondition(controller.presentation.state == .loaded)
+    precondition(controller.presentation.decks.first?.deckID == deck.summary.deckID)
+    remote.pendingContents?.resume(returning: deck)
+    await oldRead.value
+    precondition(controller.presentation.selectedDeckID == nil)
+    precondition(controller.presentation.deck == nil)
+    remote.suspend = false
+    remote.suspendContents = false
+    await controller.open(deck.summary.deckID)
+    await controller.close()
+    precondition(controller.presentation.selectedDeckID == nil)
+    precondition(controller.presentation.selectedCopyID == nil)
+  }
+
+  @MainActor
   static func run() async throws {
+    try await leavingDeckClearsOriginsWithoutWaitingForBrowse()
+    try await warmReopenRetainsContentsOnTransientFailure()
+    try await warmDeckLifetimeStartsAtCloseAndExpires()
+    try await cachedDecksClearOnAccountChangeAndRefusal()
     let remote = DeckRemote()
     let controller = DeckController(api: remote)
     precondition(controller.presentation.state == .signedOut)

@@ -91,8 +91,18 @@ enum DeckControls {
     return button
   }
 
-  static func floatingMenu(title: String, symbol: String, menu: UIMenu) -> UIButton {
-    let button = IconControls.floating(label: title, symbol: symbol)
+  static func sortChoice(
+    title: String, selected: Bool, ascending: Bool, action: @escaping () -> Void
+  ) -> UIAction {
+    UIAction(
+      title: title,
+      image: selected ? UIImage(systemName: ascending ? "arrow.up" : "arrow.down") : nil,
+      state: selected ? .on : .off
+    ) { _ in action() }
+  }
+
+  static func floatingMenu(title: String, symbol: String, active: Bool, menu: UIMenu) -> UIButton {
+    let button = IconControls.floating(label: title, symbol: symbol, active: active)
     button.menu = menu
     button.showsMenuAsPrimaryAction = true
     return button

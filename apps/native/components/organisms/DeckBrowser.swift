@@ -124,39 +124,32 @@ final class DeckBrowser: UIStackView {
   }
 
   private func grid(_ tiles: [DeckTile]) {
-    for start in stride(from: 0, to: tiles.count, by: 3) {
-      let row = UIStackView()
-      row.spacing = Tokens.sm
-      row.distribution = .fillEqually
-      row.alignment = .top
-      for tile in tiles[start..<min(start + 3, tiles.count)] {
-        var label = tile.name
-        if let copy = tile.copy {
-          label += ", \(copy.set.uppercased()) \(copy.collectorNumber)"
-          if copy.finish != "nonfoil" { label += ", \(copy.finish)" }
-          if copy.condition != "near_mint" {
-            label += ", \(PresentationData.conditionNames[copy.condition] ?? copy.condition)"
-          }
-          if copy.plannedOut { label += ", planned out" }
+    let cards: [UIView] = tiles.map { tile in
+      var label = tile.name
+      if let copy = tile.copy {
+        label += ", \(copy.set.uppercased()) \(copy.collectorNumber)"
+        if copy.finish != "nonfoil" { label += ", \(copy.finish)" }
+        if copy.condition != "near_mint" {
+          label += ", \(PresentationData.conditionNames[copy.condition] ?? copy.condition)"
         }
-        let stack = UIStackView()
-        stack.axis = .vertical
-        stack.spacing = Tokens.xs
-        let action: (() -> Void)? = tile.copyID.map { id in { [onCopy] in onCopy(id) } }
-        stack.addArrangedSubview(
-          DeckControls.card(
-            uri: tile.imageURI, name: label, finish: tile.copy?.finish ?? "nonfoil", images: images,
-            action: action))
-        if tile.copy?.plannedOut == true {
-          let caption = AuthControls.label("Planned out", style: .caption2)
-          caption.textColor = Tokens.danger
-          caption.textAlignment = .center
-          stack.addArrangedSubview(caption)
-        }
-        row.addArrangedSubview(stack)
+        if copy.plannedOut { label += ", planned out" }
       }
-      for _ in row.arrangedSubviews.count..<3 { row.addArrangedSubview(UIStackView()) }
-      addArrangedSubview(row)
+      let stack = UIStackView()
+      stack.axis = .vertical
+      stack.spacing = Tokens.xs
+      let action: (() -> Void)? = tile.copyID.map { id in { [onCopy] in onCopy(id) } }
+      stack.addArrangedSubview(
+        DeckControls.card(
+          uri: tile.imageURI, name: label, finish: tile.copy?.finish ?? "nonfoil", images: images,
+          action: action))
+      if tile.copy?.plannedOut == true {
+        let caption = AuthControls.label("Planned out", style: .caption2)
+        caption.textColor = Tokens.outgoing
+        caption.textAlignment = .center
+        stack.addArrangedSubview(caption)
+      }
+      return stack
     }
+    addArrangedSubview(CardGrid(cards))
   }
 }
