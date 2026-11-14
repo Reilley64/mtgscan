@@ -34,6 +34,16 @@ final class AccountPage: UIView {
   private var controller: SessionController?
   private var provider: NativeSignIn?
   private var collectionPage: CollectionPage?
+  private var deckPage: DeckPage?
+  private var collection: CollectionController?
+  private var decks: DeckController?
+  private var selectedTab = 0
+  private var collectionPushed = false
+  private var deckPushed = false
+  private var deckReturnTab: Int?
+  private let tabs = NavigationTabs(choices: [
+    ("Collection", "rectangle.grid.3x2"), ("Decks", "rectangle.stack"),
+  ])
   private var catalogPage: CatalogPage?
   private var showingCatalog = false
   private var timer: Timer?
@@ -66,7 +76,14 @@ final class AccountPage: UIView {
       }
       let catalog = CatalogController(
         api: SessionCatalogService(session: controller, api: CatalogAPI(origin: config.apiURL)))
-      self.init(controller: controller, collection: collection, gallery: gallery, catalog: catalog)
+      let decks = DeckController(
+        api: SessionDeckService(session: controller, api: DeckAPI(origin: config.apiURL)))
+      let copies = CollectionController(
+        api: SessionCollectionService(
+          session: controller, api: CollectionAPI(origin: config.apiURL)))
+      self.init(
+        controller: controller, collection: collection, gallery: gallery, catalog: catalog,
+        decks: decks, copies: copies)
       self.provider = provider
     } else {
       self.init(controller: nil, collection: nil, gallery: nil)
@@ -75,9 +92,12 @@ final class AccountPage: UIView {
 
   init(
     controller: SessionController?, collection: CollectionController?, gallery: GalleryFeature?,
-    catalog: CatalogController? = nil, images: (any CardImages)? = nil
+    catalog: CatalogController? = nil, decks: DeckController? = nil,
+    copies: CollectionController? = nil, images: (any CardImages)? = nil
   ) {
     self.controller = controller
+    self.collection = collection
+    self.decks = decks
     self.gallery = gallery
     super.init(frame: .zero)
     backgroundColor = Tokens.background
@@ -86,6 +106,13 @@ final class AccountPage: UIView {
     if let controller, let collection {
       let collectionPage = CollectionPage(
         controller: collection, images: images, gallery: gallery?.view,
+        onDeck: decks == nil
+          ? nil
+          : { [weak self, weak decks] id in
+            self?.deckReturnTab = 0
+            self?.selectTab(1)
+            Task { await decks?.open(id) }
+          },
         onCatalog: catalog == nil
           ? nil
           : { [weak self] in
@@ -98,7 +125,34 @@ final class AccountPage: UIView {
           Task { await controller?.signOut() }
         })
       self.collectionPage = collectionPage
+      collectionPage.onNavigationChange = { [weak self] pushed in
+        self?.collectionPushed = pushed
+        self?.display()
+      }
       addSubview(collectionPage)
+      if let decks, let copies {
+        let deckPage = DeckPage(
+          controller: decks, copies: copies, images: images,
+          onCollection: { [weak self, weak collection] in
+            collection?.showBrowse()
+            self?.deckReturnTab = nil
+            self?.selectTab(0)
+            Task { await collection?.reload() }
+          },
+          onSignOut: { [weak controller] in Task { await controller?.signOut() } })
+        self.deckPage = deckPage
+        deckPage.onNavigationChange = { [weak self] pushed in
+          guard let self else { return }
+          self.deckPushed = pushed
+          if !pushed, let origin = self.deckReturnTab {
+            self.deckReturnTab = nil
+            self.selectTab(origin)
+          } else {
+            self.display()
+          }
+        }
+        addSubview(deckPage)
+      }
       if let catalog {
         let catalogPage = CatalogPage(controller: catalog, images: images) { [weak self] in
           self?.endEditing(true)
@@ -109,9 +163,17 @@ final class AccountPage: UIView {
         self.catalogPage = catalogPage
         addSubview(catalogPage)
       }
-      controller.onAccountChange = { [weak self, weak collection] accountID in
-        if let collection, collection.setAccount(accountID), accountID != nil {
-          Task { await collection.reload() }
+      addSubview(tabs)
+      tabs.onSelect = { [weak self] index in self?.selectTab(index) }
+      controller.onAccountChange = {
+        [weak self, weak collection, weak decks, weak copies] accountID in
+        let changed = collection?.setAccount(accountID) == true
+        if changed { self?.deckReturnTab = nil }
+        decks?.setAccount(accountID)
+        copies?.setAccount(accountID)
+        if changed, accountID != nil {
+          Task { await collection?.reload() }
+          Task { await decks?.reload() }
         }
         self?.catalogPage?.setAccount(accountID)
         if accountID == nil { self?.showingCatalog = false }
@@ -137,8 +199,13 @@ final class AccountPage: UIView {
   override func layoutSubviews() {
     super.layoutSubviews()
     layout.frame = bounds
-    collectionPage?.frame = bounds
-    catalogPage?.frame = bounds
+    let tabHeight = tabs.isHidden ? 0 : tabs.sizeThatFits(bounds.size).height
+    tabs.frame = CGRect(
+      x: 0, y: max(0, bounds.height - tabHeight), width: bounds.width, height: tabHeight)
+    let content = CGRect(x: 0, y: 0, width: bounds.width, height: max(0, bounds.height - tabHeight))
+    collectionPage?.frame = content
+    deckPage?.frame = content
+    catalogPage?.frame = content
   }
 
   override func didMoveToWindow() {
@@ -153,12 +220,31 @@ final class AccountPage: UIView {
 
   private func display() {
     let accountID = controller?.presentation.accountID
-    collectionPage?.isHidden = accountID == nil || showingCatalog
-    catalogPage?.isHidden = accountID == nil || !showingCatalog
+    collectionPage?.isHidden = accountID == nil || selectedTab != 0 || showingCatalog
+    deckPage?.isHidden = accountID == nil || selectedTab != 1
+    catalogPage?.isHidden = accountID == nil || selectedTab != 0 || !showingCatalog
+    tabs.isHidden =
+      accountID == nil || deckPage == nil || showingCatalog
+      || (selectedTab == 0 ? collectionPushed : deckPushed)
+    if accountID == nil {
+      selectedTab = 0
+      deckReturnTab = nil
+      tabs.select(0)
+    }
+    setNeedsLayout()
     layout.isHidden = accountID != nil
     authentication.display(
       controller?.presentation ?? SessionPresentation(), configured: controller != nil)
     gallery?.sessionChanged(signedIn: controller?.presentation.accountID != nil)
+  }
+
+  private func selectTab(_ index: Int) {
+    selectedTab = index
+    tabs.select(index)
+    display()
+    Task {
+      if index == 0 { await collection?.reload() } else { await decks?.reload() }
+    }
   }
 
   @objc private func foreground() {
@@ -168,7 +254,9 @@ final class AccountPage: UIView {
       let hadAccount = controller?.presentation.accountID != nil
       await controller?.resume()
       if hadAccount { gallery?.foreground() }
-      if showingCatalog {
+      if selectedTab == 1 {
+        await decks?.reload()
+      } else if showingCatalog {
         await catalogPage?.refresh()
       } else {
         await collectionPage?.refresh()

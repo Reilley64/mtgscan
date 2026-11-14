@@ -17,14 +17,7 @@ pub async fn query_catalog(
     credential: Option<&str>,
     request: CatalogRequest,
 ) -> Result<CatalogResult, CatalogRefusal> {
-    let credential = credential
-        .filter(|value| !value.is_empty())
-        .ok_or(CatalogRefusal {
-            code: CatalogErrorCode::Unauthenticated,
-            field: None,
-        })?;
-    let caller = identity
-        .verify(credential)
+    let caller = crate::verified_caller(identity, credential)
         .await
         .map_err(|error| CatalogRefusal {
             code: match error {

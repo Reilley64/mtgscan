@@ -5,12 +5,17 @@ final class CardArtwork: UIView {
   private let imageView = UIImageView()
   private let sheen = CAGradientLayer()
   private var load: Task<Void, Never>?
+  private let circular: Bool
 
-  init(uri: String?, images: any CardImages, finish: String = "nonfoil", blur: CGFloat = 0) {
+  init(
+    uri: String?, images: any CardImages, finish: String = "nonfoil", blur: CGFloat = 0,
+    cropped: Bool = false, circular: Bool = false
+  ) {
+    self.circular = circular
     super.init(frame: .zero)
     backgroundColor = blur > 0 ? .clear : Tokens.line
     clipsToBounds = true
-    imageView.contentMode = blur > 0 ? .scaleAspectFill : .scaleAspectFit
+    imageView.contentMode = blur > 0 || cropped ? .scaleAspectFill : .scaleAspectFit
     addSubview(imageView)
     let stops = finish == "foil" ? PresentationData.foilSheen : PresentationData.etchedSheen
     sheen.colors = stops.map { stop in
@@ -41,25 +46,19 @@ final class CardArtwork: UIView {
     super.layoutSubviews()
     imageView.frame = bounds
     sheen.frame = bounds
-    layer.cornerRadius = bounds.width * PresentationData.printedCardCornerPerWidth
+    layer.cornerRadius =
+      circular
+      ? bounds.width / 2
+      : imageView.contentMode == .scaleAspectFill
+        ? 0 : bounds.width * PresentationData.printedCardCornerPerWidth
   }
 }
 
 @MainActor
 enum CollectionControls {
   static func close(_ action: @escaping () -> Void) -> UIButton {
-    var configuration: UIButton.Configuration
-    if #available(iOS 26.0, *) {
-      configuration = .glass()
-    } else {
-      configuration = .plain()
-    }
-    configuration.image = UIImage(
-      systemName: "xmark",
-      withConfiguration: UIImage.SymbolConfiguration(pointSize: UIFont.systemFontSize))
-    configuration.baseForegroundColor = Tokens.text
-    let button = UIButton(configuration: configuration, primaryAction: UIAction { _ in action() })
-    button.accessibilityLabel = "Close"
+    let button = IconControls.header(label: "Close", symbol: "xmark")
+    button.addAction(UIAction { _ in action() }, for: .touchUpInside)
     return button
   }
 

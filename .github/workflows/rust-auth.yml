@@ -13,6 +13,9 @@ on:
       - apps/mobile/assets/fonts/mana.ttf
       - apps/mobile/src/lib/card-symbols.ts
       - apps/mobile/src/collection/copy-labels.ts
+      - apps/mobile/src/decks/deck-groups.ts
+      - apps/mobile/src/decks/deck-labels.ts
+      - supabase/decks.ts
       - scripts/native-presentation-data.ts
       - scripts/check-rust-boundaries.py
       - mise.toml

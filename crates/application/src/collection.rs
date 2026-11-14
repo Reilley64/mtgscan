@@ -15,11 +15,7 @@ async fn caller(
     identity: &impl VerifyIdentity,
     credential: Option<&str>,
 ) -> Result<Caller, CollectionRefusal> {
-    let credential = credential
-        .filter(|value| !value.is_empty())
-        .ok_or(CollectionRefusal::Unauthenticated)?;
-    identity
-        .verify(credential)
+    crate::verified_caller(identity, credential)
         .await
         .map_err(|error| match error {
             Refusal::Unauthenticated => CollectionRefusal::Unauthenticated,

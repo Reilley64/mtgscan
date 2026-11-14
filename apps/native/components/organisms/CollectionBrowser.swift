@@ -7,19 +7,22 @@ final class CollectionBrowser: UIStackView {
   private let onClose: () -> Void
   private let onRetry: () -> Void
   private let onSignOut: () -> Void
+  private let onDeck: ((String) -> Void)?
   private let onCatalog: (() -> Void)?
   private let gallery: GalleryStatus?
 
   init(
     images: any CardImages, onOpen: @escaping (String) -> Void,
     onClose: @escaping () -> Void, onRetry: @escaping () -> Void,
-    onCatalog: (() -> Void)? = nil, onSignOut: @escaping () -> Void, gallery: GalleryStatus? = nil
+    onCatalog: (() -> Void)? = nil, onSignOut: @escaping () -> Void,
+    onDeck: ((String) -> Void)? = nil, gallery: GalleryStatus? = nil
   ) {
     self.images = images
     self.onOpen = onOpen
     self.onClose = onClose
     self.onRetry = onRetry
     self.onSignOut = onSignOut
+    self.onDeck = onDeck
     self.onCatalog = onCatalog
     self.gallery = gallery
     super.init(frame: .zero)
@@ -116,7 +119,13 @@ final class CollectionBrowser: UIStackView {
       addArrangedSubview(label)
     }
     addArrangedSubview(AuthControls.label(CollectionLabels.chips(copy)))
-    if let deck = copy.deck ?? copy.heldFor { addArrangedSubview(AuthControls.label(deck.name)) }
+    if let deck = copy.deck ?? copy.heldFor {
+      if let onDeck {
+        addArrangedSubview(AuthControls.button(deck.name) { onDeck(deck.deckID) })
+      } else {
+        addArrangedSubview(AuthControls.label(deck.name))
+      }
+    }
     addArrangedSubview(CollectionControls.heading("User tags"))
     addArrangedSubview(
       AuthControls.label(

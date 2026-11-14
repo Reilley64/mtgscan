@@ -1,11 +1,13 @@
-# Native account and collection presentation
+# Native account, collection and deck presentation
 
-Part of [MTGSCAN-275](https://app.plane.so/reilley/browse/MTGSCAN-275/), [MTGSCAN-276](https://app.plane.so/reilley/browse/MTGSCAN-276/), [MTGSCAN-279](https://app.plane.so/reilley/browse/MTGSCAN-279/) and [MTGSCAN-284](https://app.plane.so/reilley/browse/MTGSCAN-284/).
+Part of [MTGSCAN-275](https://app.plane.so/reilley/browse/MTGSCAN-275/), [MTGSCAN-276](https://app.plane.so/reilley/browse/MTGSCAN-276/), [MTGSCAN-279](https://app.plane.so/reilley/browse/MTGSCAN-279/), [MTGSCAN-284](https://app.plane.so/reilley/browse/MTGSCAN-284/) and [MTGSCAN-288](https://app.plane.so/reilley/browse/MTGSCAN-288/).
 The signed-in shell opens the collection browse and read-only copy page with gallery readiness and retry.
 **Search card catalog** opens catalog queries, rules and printing inspection through the same backend application.
+Decks navigation opens deck contents, creation, renaming and advisory priority.
 Returning to Collection keeps the gallery coordinator and its current status.
-After foreground session revalidation, the visible catalog or Collection refreshes and gallery coordination resumes.
+After foreground session revalidation, the visible Collection, catalog or Decks page refreshes and gallery coordination resumes.
 [Catalog API and limits](../../docs/catalog-api.md) describe this MTGSCAN-284 slice.
+[Deck API and limits](../../docs/deck-api.md) describe the bounded MTGSCAN-288 slice and its pending native and SQL gates.
 It is not the scanner replacement.
 [Collection API and limits](../../docs/collection-api.md) describe the new read path and the later slices.
 MTGSCAN-274 passed under separate owner acceptance. Its historical stop reports do not re-block this slice.
@@ -23,7 +25,7 @@ GPUI window and Atomic Design page
 
 Mobile never links the backend application. Collection presentation calls the versioned API with the existing secure session.
 The backend uses Axum, a narrow Reqwest Auth adapter, and a direct SQLx Postgres read adapter under the dedicated collection reader role.
-Database credentials remain server-side. No deck or MCP framework is initialized here.
+Database credentials remain server-side. Deck presentation calls the same backend application through its versioned API. No MCP framework is initialized here.
 
 ## Checks
 
@@ -39,7 +41,7 @@ DEVELOPER_DIR=/Applications/Xcode.app/Contents/Developer mise run native-unit
 DEVELOPER_DIR=/Applications/Xcode.app/Contents/Developer mise run native-gallery-unit
 ```
 
-The Swift unit executable runs real session and collection controllers with fake external provider, keychain, Auth, API and clock capabilities.
+The Swift unit executable includes real session, collection and deck controllers with fake external provider, keychain, Auth, API and clock capabilities.
 It also generates symbols, labels, sheen stops and aspect ratio from the existing mobile sources.
 The collection checks include copy metadata, account changes, sign-out, late replies, refusal, failure, empty state and retry.
 Catalog unit sources also cover query transitions, pagination, field refusal, rules, printing selection, Oracle tags and canonical HTTP examples.

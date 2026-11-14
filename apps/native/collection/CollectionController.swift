@@ -140,12 +140,22 @@ final class CollectionController {
     await reload()
   }
 
-  func closeCopy() async {
+  func showBrowse() {
     guard accountID != nil else { return }
     generation += 1
+    let closingCopy = presentation.selectedCopyID != nil
     presentation.selectedCopyID = nil
     presentation.copy = nil
-    presentation.state = presentation.copies.isEmpty ? .loading : .loaded
+    presentation.refreshing = false
+    if closingCopy {
+      presentation.state = presentation.copies.isEmpty ? .loading : .loaded
+    }
+    onChange?()
+  }
+
+  func closeCopy() async {
+    guard accountID != nil else { return }
+    showBrowse()
     await reload()
   }
 }
