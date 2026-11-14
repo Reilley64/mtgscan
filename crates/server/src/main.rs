@@ -16,7 +16,11 @@ async fn main() -> Result<(), &'static str> {
     let decks_url = env::var("DECKS_DATABASE_URL").map_err(|_| "DECKS_DATABASE_URL is required")?;
     let decks = PostgresDecks::connect(&decks_url).await?;
     let routes = mtgscan_api::router(identity.clone())
-        .merge(mtgscan_api::collection::router(identity.clone(), database))
+        .merge(mtgscan_api::collection::router(
+            identity.clone(),
+            database.clone(),
+        ))
+        .merge(mtgscan_api::catalog::router(identity.clone(), database))
         .merge(mtgscan_api::decks::router(identity, decks));
     let address: SocketAddr = env::var("LISTEN_ADDRESS")
         .unwrap_or_else(|_| "127.0.0.1:8080".into())

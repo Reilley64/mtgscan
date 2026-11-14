@@ -6,6 +6,7 @@ An iPhone app for scanning Magic: The Gathering cards, keeping a collection, and
 
 The converted path starts with the [GPUI native account shell](apps/native/README.md), its [versioned current-account API](docs/account-api.md), and the [collection browse and copy page read](docs/collection-api.md).
 The collection read and [deck gallery, contents and owner metadata operations](docs/deck-api.md) use one Rust application layer and scoped direct-Postgres adapters. Hosted activation remains a separate approved step.
+The [catalog-enabled reader](docs/catalog-api.md#reader-provisioning) also needs a narrow Auth-owner provisioning step. The adapter refuses incomplete grants at connection time.
 It is isolated from the existing Expo app and does not replace collection, deck or scanner paths.
 [ADR 0016](docs/adr/0016-route-native-accounts-through-one-rust-application.md) records the dependency boundaries and unit-only verification scope.
 Use root Mise for the new Rust and native check commands. Existing setup and checks below still apply to legacy paths.
@@ -143,7 +144,9 @@ The macOS command loads the model from the path it is given, a `.mlpackage` or a
 
 ### Gallery download
 
-The app keeps the gallery on the phone up to date. The code is in `apps/mobile/src/gallery` and in the recognizer module.
+The app keeps the gallery on the phone up to date. The legacy code is in `apps/mobile/src/gallery` and in the recognizer module.
+
+The converted mobile shell uses `apps/native/gallery`. It reads the same published pointer and manifest through authenticated Storage. It reuses the native background downloader and atomic installer. The GPUI application delegate retains the gallery background-session completion before reconnecting the downloader, even without a scene. It releases that completion on the main queue only after session events drain and any installation commits or fails. Persisted jobs are restored before session reconnection. Shared native components show readiness, progress, cancellation, retry, unsupported versions and corrupt downloads. An explicit cancellation survives restart until **Try again**. Sign-out pauses the update without deleting the installed gallery or verified parts. The installer checks the compiled model shape before activation and reuses an installed base only with matching model metadata and recognizer thresholds. `mise run native-gallery-unit` runs the coordinator, policy and Storage mapping units with fake external capabilities. These units do not establish real iOS background relaunch, network transfer or recognition parity.
 
 1. On each app start with a session, it reads `published.json` from the `gallery` bucket with the user's session. When the published gallery version is the installed one, it does nothing. A pointer whose gallery format the build does not know counts as no newer gallery version. A phone with an installed gallery keeps scanning with it. A phone with none downloads nothing and shows that the gallery download did not work, with **Try again**.
 2. Otherwise it reads the manifest, signs a URL for every part for 7 days, and passes them to `downloadGallery` in the recognizer module.
@@ -327,6 +330,8 @@ The app is on Expo SDK 58, with React Native 0.88. Local builds and EAS builds u
 `apps/mobile` pins `@shopify/flash-list` to 2.3.3. For SDK 58, `expo install` picks 2.3.2. Version 2.3.3 fixes blank rows during fast scrolling ([Shopify/flash-list#2510](https://github.com/Shopify/flash-list/pull/2510)). `expo.install.exclude` in `apps/mobile/package.json` leaves the package out of `expo install --check`. Check the pin again on each SDK upgrade.
 
 ### Catalog search
+
+The Rust native path also exposes catalog search, card queries, printing lists and Oracle-tag lookup through one backend application entry point. [Catalog API and native interactions](docs/catalog-api.md) describe its versioned routes, scoped persistence, canonical contracts and verification limits. This path does not replace collection search or local gallery name search.
 
 Signed-in users search the card catalog with `supabase.rpc('search_catalog', { query })`. The query is a typed object, never a query string. `supabase/search.ts` has its contract, `searchCatalog`, with the query and the result page.
 

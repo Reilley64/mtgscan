@@ -1,0 +1,84 @@
+{
+  "rules_data_as_of": "2026-11-13T00:00:00Z",
+  "rules_stale": false,
+  "prices_observed_at": "2026-11-13T01:00:00Z",
+  "prices_stale": false,
+  "items": [
+    {
+      "oracle_id": "10000000-0000-4000-8000-000000000001",
+      "name": "Sol Ring",
+      "mana_cost": "{1}",
+      "mana_value": 1,
+      "type_line": "Artifact",
+      "color_identity": [],
+      "is_game_changer": false,
+      "can_be_commander": false,
+      "edhrec_rank": 1,
+      "oracle_text": "{T}: Add {C}{C}.",
+      "price_from": {
+        "currency": "USD",
+        "amount": "1.50",
+        "finish": "nonfoil",
+        "basis": "lowest current price over printings and finishes"
+      },
+      "owned": {
+        "quantity": 4,
+        "free_quantity": 2,
+        "protected_free_quantity": 1
+      },
+      "colors": [],
+      "keywords": [],
+      "faces": [
+        {
+          "name": "Sol Ring",
+          "mana_cost": "{1}",
+          "type_line": "Artifact",
+          "oracle_text": "{T}: Add {C}{C}.",
+          "colors": []
+        }
+      ],
+      "commander_legality": "legal",
+      "released_at": "1993-08-05",
+      "printing_count": 2,
+      "tags": [
+        {
+          "slug": "mana-rock",
+          "label": "Mana rock"
+        }
+      ],
+      "combos": [
+        {
+          "spellbook_id": "123",
+          "other_card": {
+            "oracle_id": "10000000-0000-4000-8000-000000000002",
+            "name": "Unwinding Clock"
+          },
+          "produced_features": [
+            "Infinite colorless mana"
+          ],
+          "bracket_tag": "spicy"
+        }
+      ],
+      "printing": {
+        "printing_id": "20000000-0000-4000-8000-000000000001",
+        "set": "c21",
+        "set_name": "Commander 2021",
+        "collector_number": "263",
+        "rarity": "uncommon",
+        "finishes": [
+          "nonfoil",
+          "foil"
+        ],
+        "released_at": "2021-04-23",
+        "image_uris": [
+          "https://example.test/sol-ring.jpg"
+        ],
+        "art_crop_uri": "https://example.test/sol-ring-art.jpg",
+        "artist": "Mark Tedin"
+      }
+    }
+  ],
+  "not_found": [
+    "10000000-0000-4000-8000-000000000099"
+  ]
+}

@@ -19,18 +19,24 @@ final class CollectionPage: UIView, UIScrollViewDelegate {
     onOpen: { [weak self] id in Task { await self?.controller.open(id) } },
     onClose: { [weak self] in self?.closeCopy() },
     onRetry: { [weak self] in Task { await self?.controller.reload() } },
-    onSignOut: onSignOut, onDeck: onDeck)
+    onCatalog: onCatalog, onSignOut: onSignOut, onDeck: onDeck, gallery: gallery)
+  private let gallery: GalleryStatus?
   private let onSignOut: () -> Void
+  private let onCatalog: (() -> Void)?
 
   init(
     controller: CollectionController, images: (any CardImages)? = nil,
-    onClose: (() -> Void)? = nil, onDeck: ((String) -> Void)? = nil, onSignOut: @escaping () -> Void
+    gallery: GalleryStatus? = nil,
+    onClose: (() -> Void)? = nil, onDeck: ((String) -> Void)? = nil,
+    onCatalog: (() -> Void)? = nil, onSignOut: @escaping () -> Void
   ) {
     self.controller = controller
     self.images = images ?? HTTPSCardImages()
+    self.gallery = gallery
     self.onSignOut = onSignOut
     self.onClose = onClose
     self.onDeck = onDeck
+    self.onCatalog = onCatalog
     super.init(frame: .zero)
     backgroundColor = Tokens.background
     addSubview(layout)
@@ -52,6 +58,8 @@ final class CollectionPage: UIView, UIScrollViewDelegate {
   }
 
   required init?(coder: NSCoder) { fatalError() }
+
+  func refresh() async { await controller.reload() }
 
   override func layoutSubviews() {
     super.layoutSubviews()

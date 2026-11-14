@@ -1,9 +1,12 @@
+mod credentials;
+
+pub mod catalog;
 pub mod collection;
 pub mod collection_contract;
-mod credentials;
 mod deck_contract;
 pub mod decks;
 
+use crate::credentials::{authorization, bearer};
 use axum::{
     Json, Router,
     extract::State,
@@ -27,7 +30,7 @@ pub async fn current_account_response(
     identity: &impl VerifyIdentity,
     authorization: Option<&str>,
 ) -> AccountResponse {
-    let credential = credentials::bearer(authorization);
+    let credential = bearer(authorization);
     match current_account(identity, credential).await {
         Ok(account_id) => AccountResponse {
             status: 200,
@@ -57,8 +60,8 @@ async fn account<I: VerifyIdentity>(
     State(identity): State<Arc<I>>,
     headers: HeaderMap,
 ) -> Response {
-    let reply =
-        current_account_response(identity.as_ref(), credentials::authorization(&headers)).await;
+    let authorization = authorization(&headers);
+    let reply = current_account_response(identity.as_ref(), authorization).await;
     let mut response = (
         StatusCode::from_u16(reply.status).unwrap(),
         Json(reply.body),

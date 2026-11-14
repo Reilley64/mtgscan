@@ -33,6 +33,10 @@ impl Caller {
         &self.user_id
     }
 
+    pub fn ai_client_id(&self) -> Option<&str> {
+        self.client_id.as_deref()
+    }
+
     pub fn native_account(self) -> Result<String, Refusal> {
         if self.client_id.is_some() {
             return Err(Refusal::McpTokenForbidden);

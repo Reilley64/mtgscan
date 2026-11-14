@@ -1,0 +1,19 @@
+{
+  "rules_data_as_of": "2026-11-13T00:00:00Z",
+  "rules_stale": false,
+  "items": [
+    {
+      "id": "40000000-0000-4000-8000-000000000001",
+      "slug": "mana-rock",
+      "label": "Mana rock",
+      "aliases": [
+        "Mana stone"
+      ],
+      "description": "Artifacts that produce mana.",
+      "parent_slugs": [
+        "mana"
+      ],
+      "card_count": 123
+    }
+  ]
+}

@@ -9,6 +9,7 @@ workspace = true
 
 [dependencies]
 mtgscan-domain.workspace = true
+mtgscan-catalog-contract.workspace = true
 
 [dev-dependencies]
 tokio.workspace = true

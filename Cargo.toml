@@ -1,5 +1,5 @@
 [workspace]
-members = ["crates/domain", "crates/application", "crates/identity", "crates/api", "crates/server", "crates/persistence"]
+members = ["crates/domain", "crates/application", "crates/identity", "crates/api", "crates/server", "crates/persistence", "crates/catalog-contract"]
 resolver = "3"
 
 [workspace.package]
@@ -7,6 +7,7 @@ edition = "2024"
 publish = false
 
 [workspace.dependencies]
+mtgscan-catalog-contract = { path = "crates/catalog-contract" }
 mtgscan-domain = { path = "crates/domain" }
 mtgscan-application = { path = "crates/application" }
 mtgscan-identity = { path = "crates/identity" }
