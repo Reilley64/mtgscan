@@ -28,7 +28,7 @@ Nonfoil counts only nonfoil copies unless that printing has no nonfoil finish. T
 
 Art uses the highest current USD price in any finish among main-set and variant printings with an art crop. Ties and unpriced fallbacks use collector order. No price history or currency conversion changes are made.
 
-The Postgres adapter reads narrow batches of set printings through the existing dedicated read-only role. Migration `20270104130000` grants the required catalog columns and RLS policies. Each owner read binds transaction-local verified caller context and an explicit owner predicate. It makes no collection writes. Apply it only through the separately approved migration process.
+The Postgres adapter reads narrow batches of set printings through the existing dedicated read-only role. Migration `20270104130000` grants the required catalog columns and RLS policies. Each owner read binds transaction-local verified caller context and an explicit owner predicate. It makes no collection writes. Apply it only through the separately approved migration process. The shared adapter also requires the [Auth-owner reader provisioning](catalog-api.md#reader-provisioning) before startup. Migrations alone do not satisfy that prerequisite.
 
 ## Errors and validation limits
 

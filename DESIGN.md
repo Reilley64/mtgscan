@@ -589,6 +589,23 @@ The owner picked layout B of the HTML prototype (`prototypes/collection-manageme
   - VoiceOver reads "Sort, Relevance", or the sort and its direction, such as "Sort, Price, high to low".
   - The sort lasts until the app restarts and is not saved. The button hides while the user types in the search bar and while the Filters drawer is open. It also hides while the tab shows an empty state, because there is nothing to sort.
 
+### Native catalog queries
+
+The Rust native shell has a read-only catalog query route for MTGSCAN-284. It does not replace Collection search or the scanner's local gallery name search.
+
+- **Search card catalog** opens it from Collection. **Collection** returns to the collection browser.
+- The **Search card catalog** field searches after a pause in typing of 300 ms. Before a query, the page says "Search by name, rules text, or Oracle tag."
+- **Filters** expands explicit fields in the same page. These represent catalog query fields, not the Collection chip grammar. List fields say "Separate list values with commas. Use [] for an empty color identity." Positive and excluded filters stay separate. **Order by** and **Direction** use native menus.
+- **Find Oracle tags** waits 300 ms after typing. A suggestion shows its label and card count. Picking one adds its slug to **Oracle tag slugs**.
+- Results keep the server's order. Each shows the name, mana cost, type line, owned and free quantities, and lowest current price. **Load more** keeps the current filters and cursor.
+- Opening a result dismisses the keyboard and loads its rules and card printings. **Back to search** keeps the query and loaded results. Dragging the page dismisses the keyboard interactively.
+- Card artwork, finish sheen and card symbols use the same components as the copy page. An artist is credited as "Illustrated by Mark Tedin". **Finish** changes only this read-only presentation.
+- **Card printings** retains the server's printing order. **Show** offers **All printings** and **Owned only**. Each printing shows its set code, collector number and owned quantity. The selected printing adds "Selected". **Load more printings** continues the list.
+- Loading says "Loading card catalog" or "Loading card". An empty result says "No cards found". A failed read says "Could not load the card catalog", "Could not load this card", "Could not load card printings" or "Could not load Oracle tags", with **Try again**.
+- Refused fields retain their server field paths. Unknown vocabulary uses the existing "No set named \"zzz\".", "No Oracle tag named \"zzz\"." and "No keyword named \"zzz\"." copy. Other refused fields use "<field> is not a valid chip." An expired cursor says "The page expired. Search again." Retry starts at the first page.
+- Account changes clear the query and owned results. A session refusal clears owned results and says "Your session ended. Sign in again."
+- Controls use local Dynamic Type traits and targets of at least 44 pt. The catalog uses the native shell's generated tokens, not a separate palette.
+
 ### Sets
 
 Sets lists every released set that has a card printing in the card catalog, with the user's set completion in the finish view (#366, #368). Each set is a banner of its set art, option B of the HTML prototype `docs/prototypes/sets-art-fill.html` (#369). A set with no set art keeps option A, the set symbol filling up.

@@ -6,6 +6,7 @@ An iPhone app for scanning Magic: The Gathering cards, keeping a collection, and
 
 The converted path starts with the [GPUI native account shell](apps/native/README.md), its [versioned current-account API](docs/account-api.md), and the [collection browse and copy page read](docs/collection-api.md).
 The collection read uses one Rust application layer and a scoped direct-Postgres adapter. The [Sets API and native screens](docs/sets-api.md) use the same boundary for released sets, finish views, set sections, set completion, and set art. Hosted activation remains a separate approved step.
+The [catalog-enabled reader](docs/catalog-api.md#reader-provisioning) also needs a narrow Auth-owner provisioning step. The adapter refuses incomplete grants at connection time.
 It is isolated from the existing Expo app and does not replace collection, deck or scanner paths.
 [ADR 0016](docs/adr/0016-route-native-accounts-through-one-rust-application.md) records the dependency boundaries and unit-only verification scope.
 Use root Mise for the new Rust and native check commands. Existing setup and checks below still apply to legacy paths.
@@ -329,6 +330,8 @@ The app is on Expo SDK 58, with React Native 0.88. Local builds and EAS builds u
 `apps/mobile` pins `@shopify/flash-list` to 2.3.3. For SDK 58, `expo install` picks 2.3.2. Version 2.3.3 fixes blank rows during fast scrolling ([Shopify/flash-list#2510](https://github.com/Shopify/flash-list/pull/2510)). `expo.install.exclude` in `apps/mobile/package.json` leaves the package out of `expo install --check`. Check the pin again on each SDK upgrade.
 
 ### Catalog search
+
+The Rust native path also exposes catalog search, card queries, printing lists and Oracle-tag lookup through one backend application entry point. [Catalog API and native interactions](docs/catalog-api.md) describe its versioned routes, scoped persistence, canonical contracts and verification limits. This path does not replace collection search or local gallery name search.
 
 Signed-in users search the card catalog with `supabase.rpc('search_catalog', { query })`. The query is a typed object, never a query string. `supabase/search.ts` has its contract, `searchCatalog`, with the query and the result page.
 

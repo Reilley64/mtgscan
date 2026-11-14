@@ -7,10 +7,11 @@ metadata = json.loads(subprocess.check_output(
 ))
 allowed = {
     "mtgscan-domain": set(),
-    "mtgscan-application": {"mtgscan-domain"},
+    "mtgscan-catalog-contract": {"serde", "serde_json", "serde_path_to_error"},
+    "mtgscan-application": {"mtgscan-domain", "mtgscan-catalog-contract"},
     "mtgscan-identity": {"mtgscan-application", "mtgscan-domain", "reqwest", "serde", "serde_json", "base64", "uuid"},
-    "mtgscan-api": {"mtgscan-application", "mtgscan-domain", "axum", "serde", "serde_json", "uuid"},
-    "mtgscan-persistence": {"mtgscan-application", "mtgscan-domain", "sqlx", "serde", "serde_json"},
+    "mtgscan-api": {"mtgscan-application", "mtgscan-domain", "mtgscan-catalog-contract", "axum", "serde", "serde_json", "uuid"},
+    "mtgscan-persistence": {"mtgscan-application", "mtgscan-domain", "mtgscan-catalog-contract", "sqlx", "serde", "serde_json"},
     "mtgscan-server": {"mtgscan-identity", "mtgscan-api", "mtgscan-persistence", "axum", "tokio"},
 }
 for package in metadata["packages"]:

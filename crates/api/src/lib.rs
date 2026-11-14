@@ -1,5 +1,6 @@
 mod credentials;
 
+pub mod catalog;
 pub mod collection;
 pub mod collection_contract;
 pub mod sets;
