@@ -5,6 +5,10 @@ pub mod sets;
 use mtgscan_domain::{Caller, Refusal};
 use std::future::Future;
 
+pub trait Clock: Send + Sync {
+    fn unix_seconds(&self) -> u64;
+}
+
 pub trait VerifyIdentity: Send + Sync {
     fn verify(&self, credential: &str) -> impl Future<Output = Result<Caller, Refusal>> + Send;
 }

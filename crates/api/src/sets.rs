@@ -9,7 +9,7 @@ use axum::{
     routing::get,
 };
 use mtgscan_application::{
-    VerifyIdentity,
+    Clock, VerifyIdentity,
     sets::{ReadSets, SetListQuery, SetsError, browse_sets, open_set},
 };
 use mtgscan_domain::{collection::CollectionRefusal, sets::FinishView};
@@ -45,6 +45,7 @@ fn failure(error: SetsError) -> CollectionResponse {
 pub async fn sets_response(
     identity: &impl VerifyIdentity,
     database: &impl ReadSets,
+    clock: &impl Clock,
     authorization: Option<&str>,
     uri: &Uri,
     code: Option<&str>,
@@ -80,7 +81,7 @@ pub async fn sets_response(
         cursor: request.cursor,
         limit: request.limit.unwrap_or(20),
     };
-    match browse_sets(identity, database, credential, &query).await {
+    match browse_sets(identity, database, clock, credential, &query).await {
         Ok(page) => CollectionResponse {
             status: 200,
             body: json!({"items": page.items.iter().map(set_summary).collect::<Vec<_>>(), "next_cursor": page.next_cursor}),
@@ -89,23 +90,29 @@ pub async fn sets_response(
     }
 }
 
-struct Services<I, D> {
+struct Services<I, D, C> {
     identity: I,
     database: D,
+    clock: C,
 }
 
-pub fn router<I: VerifyIdentity + 'static, D: ReadSets + 'static>(
+pub fn router<I: VerifyIdentity + 'static, D: ReadSets + 'static, C: Clock + 'static>(
     identity: I,
     database: D,
+    clock: C,
 ) -> Router {
     Router::new()
-        .route(SETS_PATH, get(list::<I, D>))
-        .route(SET_PATH, get(detail::<I, D>))
-        .with_state(Arc::new(Services { identity, database }))
+        .route(SETS_PATH, get(list::<I, D, C>))
+        .route(SET_PATH, get(detail::<I, D, C>))
+        .with_state(Arc::new(Services {
+            identity,
+            database,
+            clock,
+        }))
 }
 
-async fn list<I: VerifyIdentity, D: ReadSets>(
-    State(services): State<Arc<Services<I, D>>>,
+async fn list<I: VerifyIdentity, D: ReadSets, C: Clock>(
+    State(services): State<Arc<Services<I, D, C>>>,
     headers: HeaderMap,
     uri: Uri,
 ) -> Response {
@@ -113,6 +120,7 @@ async fn list<I: VerifyIdentity, D: ReadSets>(
         sets_response(
             &services.identity,
             &services.database,
+            &services.clock,
             authorization(&headers),
             &uri,
             None,
@@ -121,8 +129,8 @@ async fn list<I: VerifyIdentity, D: ReadSets>(
     )
 }
 
-async fn detail<I: VerifyIdentity, D: ReadSets>(
-    State(services): State<Arc<Services<I, D>>>,
+async fn detail<I: VerifyIdentity, D: ReadSets, C: Clock>(
+    State(services): State<Arc<Services<I, D, C>>>,
     headers: HeaderMap,
     Path(code): Path<String>,
     uri: Uri,
@@ -131,6 +139,7 @@ async fn detail<I: VerifyIdentity, D: ReadSets>(
         sets_response(
             &services.identity,
             &services.database,
+            &services.clock,
             authorization(&headers),
             &uri,
             Some(&code),
@@ -155,6 +164,13 @@ mod tests {
             Ok(Caller::user("owner".into()))
         }
     }
+    struct Time(u64);
+    impl Clock for Time {
+        fn unix_seconds(&self) -> u64 {
+            self.0
+        }
+    }
+
     struct Database;
     impl ReadSets for Database {
         async fn catalog(&self) -> Result<SetCatalog, CollectionRefusal> {
@@ -194,6 +210,79 @@ mod tests {
         }
     }
 
+    struct PagedDatabase;
+    impl ReadSets for PagedDatabase {
+        async fn catalog(&self) -> Result<SetCatalog, CollectionRefusal> {
+            let mut catalog = Database.catalog().await?;
+            catalog.sets.push(CardSet {
+                code: "zzz".into(),
+                name: "Zzz set".into(),
+                ..catalog.sets[0].clone()
+            });
+            Ok(catalog)
+        }
+        async fn printings(
+            &self,
+            owner: &str,
+            codes: &[String],
+        ) -> Result<Vec<SetPrinting>, CollectionRefusal> {
+            let sample = Database.printings(owner, codes).await?.remove(0);
+            Ok(codes
+                .iter()
+                .map(|code| SetPrinting {
+                    set_code: code.clone(),
+                    ..sample.clone()
+                })
+                .collect())
+        }
+    }
+
+    #[tokio::test]
+    async fn expired_sets_cursors_return_the_canonical_cursor_refusal_without_caching() {
+        let first = router(Identity, PagedDatabase, Time(10_000))
+            .oneshot(
+                Request::builder()
+                    .uri("/api/v1/sets?finish_view=any&limit=1")
+                    .header("Authorization", "Bearer token")
+                    .body(Body::empty())
+                    .unwrap(),
+            )
+            .await
+            .unwrap();
+        assert_eq!(first.status(), 200);
+        let value: serde_json::Value =
+            serde_json::from_slice(&to_bytes(first.into_body(), 100000).await.unwrap()).unwrap();
+        let cursor = value["next_cursor"].as_str().unwrap();
+        for (time, status) in [(10_900, 200), (10_901, 400)] {
+            let result = router(Identity, PagedDatabase, Time(time))
+                .oneshot(
+                    Request::builder()
+                        .uri(format!(
+                            "/api/v1/sets?finish_view=any&limit=1&cursor={cursor}"
+                        ))
+                        .header("Authorization", "Bearer token")
+                        .body(Body::empty())
+                        .unwrap(),
+                )
+                .await
+                .unwrap();
+            assert_eq!(result.status(), status);
+            assert_eq!(result.headers()["cache-control"], "no-store");
+            let body: serde_json::Value =
+                serde_json::from_slice(&to_bytes(result.into_body(), 100000).await.unwrap())
+                    .unwrap();
+            if status == 400 {
+                assert_eq!(
+                    body,
+                    json!({"error":{"code":"invalid_cursor","field":"cursor"}})
+                );
+            } else {
+                assert_eq!(body["items"][0]["code"], "zzz");
+                assert_eq!(body["next_cursor"], serde_json::Value::Null);
+            }
+        }
+    }
+
     #[tokio::test]
     async fn sets_queries_refuse_owner_assertions_invalid_bounds_and_stale_cursors() {
         for (query, field) in [
@@ -205,21 +294,37 @@ mod tests {
             ("finish_view=any&cursor=made-up", "cursor"),
         ] {
             let uri = format!("/api/v1/sets?{query}").parse().unwrap();
-            let result =
-                sets_response(&Identity, &Database, Some("Bearer token"), &uri, None).await;
+            let result = sets_response(
+                &Identity,
+                &Database,
+                &Time(10_000),
+                Some("Bearer token"),
+                &uri,
+                None,
+            )
+            .await;
             assert_eq!(result.status, 400);
             assert_eq!(result.body["error"]["field"], field);
         }
         let uri = "/api/v1/sets?finish_view=any".parse().unwrap();
-        let result = sets_response(&Identity, &Database, None, &uri, None).await;
+        let result = sets_response(&Identity, &Database, &Time(10_000), None, &uri, None).await;
         assert_eq!(result.status, 401);
-        let result = sets_response(&Identity, &Database, Some("Bearer token"), &uri, None).await;
+        let result = sets_response(
+            &Identity,
+            &Database,
+            &Time(10_000),
+            Some("Bearer token"),
+            &uri,
+            None,
+        )
+        .await;
         assert_eq!(result.body["items"][0]["code"], "tst");
         assert_eq!(result.body["next_cursor"], serde_json::Value::Null);
         let uri = "/api/v1/sets/tst?owner=other".parse().unwrap();
         let result = sets_response(
             &Identity,
             &Database,
+            &Time(10_000),
             Some("Bearer token"),
             &uri,
             Some("tst"),
@@ -230,7 +335,7 @@ mod tests {
 
     #[tokio::test]
     async fn sets_contracts_reach_the_real_use_case_and_preserve_the_checklist() {
-        let result = router(Identity, Database)
+        let result = router(Identity, Database, Time(10_000))
             .oneshot(
                 Request::builder()
                     .uri("/api/v1/sets/tst")

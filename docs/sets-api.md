@@ -9,7 +9,7 @@ The converted mobile screens read the versioned HTTP API. They do not read Supab
 - `GET /api/v1/sets?finish_view=any` lists sets. `finish_view` is required and accepts `any`, `nonfoil`, or `foil`.
 - Optional `text` matches a set name or code without case. It accepts 1 to 100 characters. The mobile search waits 300 ms, except that clearing or Cancel reads at once.
 - Optional `limit` accepts 1 to 50. It defaults to 20. Mobile uses 20.
-- Optional `cursor` continues the same search and finish view. Treat it as opaque. An unknown cursor or a cursor from another search or finish view returns `invalid_cursor`. Restart without it.
+- Optional `cursor` continues the same search and finish view. Treat it as opaque. A cursor older than 15 minutes, an unknown cursor, or a cursor from another search or finish view returns `invalid_cursor` on `cursor`. Restart without it. The page size can change. Each next-page cursor starts a new 15-minute lifetime.
 - `GET /api/v1/sets/{code}` reads one released set. It takes no query fields.
 - Both require one Bearer credential. The verified caller determines the owner. Unknown fields, duplicate fields, and owner assertions are rejected. AI clients retain read permission.
 - Successful and refused HTTP responses use `Cache-Control: no-store`.

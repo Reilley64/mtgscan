@@ -69,10 +69,11 @@ pub struct SetList {
     pub next_cursor: Option<String>,
 }
 
-fn cursor(query: &SetListQuery, code: &str) -> String {
+fn cursor(query: &SetListQuery, code: &str, issued_at: u64) -> String {
     let text = query.text.as_deref().unwrap_or("");
     format!(
-        "{}:{}:{}:{}",
+        "{}:{}:{}:{}:{}",
+        issued_at,
         query.finish_view.key(),
         text.len(),
         text,
@@ -83,6 +84,7 @@ fn cursor(query: &SetListQuery, code: &str) -> String {
 pub async fn browse_sets(
     identity: &impl VerifyIdentity,
     database: &impl ReadSets,
+    clock: &impl crate::Clock,
     credential: Option<&str>,
     query: &SetListQuery,
 ) -> Result<SetList, SetsError> {
@@ -115,9 +117,17 @@ pub async fn browse_sets(
             .then_with(|| a.name.cmp(&b.name))
             .then_with(|| a.code.cmp(&b.code))
     });
+    let now = clock.unix_seconds();
     let start = if let Some(after) = &query.cursor {
+        let issued_at = after
+            .split_once(':')
+            .and_then(|(time, _)| time.parse::<u64>().ok())
+            .ok_or(SetsError::InvalidCursor)?;
+        if now.saturating_sub(issued_at) > 15 * 60 {
+            return Err(SetsError::InvalidCursor);
+        }
         sets.iter()
-            .position(|set| cursor(query, &set.code) == *after)
+            .position(|set| cursor(query, &set.code, issued_at) == *after)
             .ok_or(SetsError::InvalidCursor)?
             + 1
     } else {
@@ -145,7 +155,7 @@ pub async fn browse_sets(
             }
             if items.len() > query.limit {
                 items.pop();
-                let next_cursor = items.last().map(|item| cursor(query, &item.set.code));
+                let next_cursor = items.last().map(|item| cursor(query, &item.set.code, now));
                 return Ok(SetList { items, next_cursor });
             }
         }
@@ -265,6 +275,157 @@ mod tests {
         }
     }
 
+    struct Time(u64);
+    impl crate::Clock for Time {
+        fn unix_seconds(&self) -> u64 {
+            self.0
+        }
+    }
+
+    #[tokio::test]
+    async fn sets_refuse_a_cursor_older_than_fifteen_minutes() {
+        let query = SetListQuery {
+            finish_view: FinishView::Any,
+            text: None,
+            limit: 1,
+            cursor: None,
+        };
+        let page = browse_sets(
+            &Identity,
+            &PagedDatabase,
+            &Time(10_000),
+            Some("token"),
+            &query,
+        )
+        .await
+        .unwrap();
+        let query = SetListQuery {
+            cursor: Some(page.next_cursor.unwrap()),
+            ..query
+        };
+        assert_eq!(
+            browse_sets(
+                &Identity,
+                &PagedDatabase,
+                &Time(10_901),
+                Some("token"),
+                &query
+            )
+            .await,
+            Err(SetsError::InvalidCursor)
+        );
+    }
+
+    #[tokio::test]
+    async fn sets_cursors_allow_fifteen_minutes_and_a_new_page_size_and_renew_each_page() {
+        let query = SetListQuery {
+            finish_view: FinishView::Any,
+            text: None,
+            limit: 1,
+            cursor: None,
+        };
+        let first = browse_sets(
+            &Identity,
+            &PagedDatabase,
+            &Time(10_000),
+            Some("token"),
+            &query,
+        )
+        .await
+        .unwrap();
+        let query = SetListQuery {
+            limit: 2,
+            cursor: Some(first.next_cursor.unwrap()),
+            ..query
+        };
+        let next = browse_sets(
+            &Identity,
+            &PagedDatabase,
+            &Time(10_900),
+            Some("token"),
+            &query,
+        )
+        .await
+        .unwrap();
+        assert_eq!(
+            next.items
+                .iter()
+                .map(|page| page.set.code.as_str())
+                .collect::<Vec<_>>(),
+            ["s01", "s02"]
+        );
+        let query = SetListQuery {
+            cursor: Some(next.next_cursor.unwrap()),
+            ..query
+        };
+        let next = browse_sets(
+            &Identity,
+            &PagedDatabase,
+            &Time(11_800),
+            Some("token"),
+            &query,
+        )
+        .await
+        .unwrap();
+        assert_eq!(next.items[0].set.code, "s03");
+        assert_eq!(
+            browse_sets(
+                &Identity,
+                &PagedDatabase,
+                &Time(11_801),
+                Some("token"),
+                &query
+            )
+            .await,
+            Err(SetsError::InvalidCursor)
+        );
+    }
+
+    #[tokio::test]
+    async fn sets_cursors_cannot_be_reused_for_a_different_search_or_finish_view() {
+        let query = SetListQuery {
+            finish_view: FinishView::Foil,
+            text: Some("Set".into()),
+            limit: 1,
+            cursor: None,
+        };
+        let first = browse_sets(
+            &Identity,
+            &PagedDatabase,
+            &Time(10_000),
+            Some("token"),
+            &query,
+        )
+        .await
+        .unwrap();
+        let query = SetListQuery {
+            cursor: Some(first.next_cursor.unwrap()),
+            ..query
+        };
+        for changed in [
+            SetListQuery {
+                text: Some("set".into()),
+                ..query.clone()
+            },
+            SetListQuery {
+                finish_view: FinishView::Any,
+                ..query.clone()
+            },
+        ] {
+            assert_eq!(
+                browse_sets(
+                    &Identity,
+                    &PagedDatabase,
+                    &Time(10_001),
+                    Some("token"),
+                    &changed
+                )
+                .await,
+                Err(SetsError::InvalidCursor)
+            );
+        }
+    }
+
     #[tokio::test]
     async fn sets_page_after_finish_availability_and_match_name_or_code_on_the_server() {
         let query = SetListQuery {
@@ -273,7 +434,7 @@ mod tests {
             limit: 20,
             cursor: None,
         };
-        let page = browse_sets(&Identity, &PagedDatabase, Some("ai"), &query)
+        let page = browse_sets(&Identity, &PagedDatabase, &Time(10_000), Some("ai"), &query)
             .await
             .unwrap();
         assert_eq!(page.items.len(), 20);
@@ -282,6 +443,7 @@ mod tests {
         let next = browse_sets(
             &Identity,
             &PagedDatabase,
+            &Time(10_000),
             Some("token"),
             &SetListQuery {
                 cursor: page.next_cursor.clone(),
@@ -301,6 +463,7 @@ mod tests {
         let stale = browse_sets(
             &Identity,
             &PagedDatabase,
+            &Time(10_000),
             Some("token"),
             &SetListQuery {
                 cursor: page.next_cursor,
@@ -314,6 +477,7 @@ mod tests {
             let found = browse_sets(
                 &Identity,
                 &PagedDatabase,
+                &Time(10_000),
                 Some("token"),
                 &SetListQuery {
                     text: Some(text.into()),
