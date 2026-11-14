@@ -90,19 +90,12 @@ final class SetsBrowser: UIStackView {
           share: completion.share, complete: completion.complete,
           spoken: completion.spoken(section.name) + (completion.complete ? ", complete" : "")))
     }
-    for start in stride(from: 0, to: printings.count, by: 3) {
-      let row = UIStackView()
-      row.spacing = Tokens.sm
-      row.distribution = .fillEqually
-      row.alignment = .top
-      for printing in printings[start..<min(start + 3, printings.count)] {
-        row.addArrangedSubview(
+    addArrangedSubview(
+      CardGrid(
+        printings.map { printing in
           SetPageTile(
             uri: printing.imageURI, spoken: printing.spoken(view),
-            quantity: printing.counts[view] ?? 0, foil: view == .foil, images: images))
-      }
-      for _ in row.arrangedSubviews.count..<3 { row.addArrangedSubview(UIStackView()) }
-      addArrangedSubview(row)
-    }
+            quantity: printing.counts[view] ?? 0, foil: view == .foil, images: images)
+        }))
   }
 }
