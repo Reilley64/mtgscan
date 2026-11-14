@@ -5,6 +5,8 @@ pub mod collection;
 pub mod collection_contract;
 mod deck_contract;
 pub mod decks;
+pub mod sets;
+mod sets_contract;
 
 use crate::credentials::{authorization, bearer};
 use axum::{

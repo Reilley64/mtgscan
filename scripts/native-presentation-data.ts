@@ -88,18 +88,24 @@ for (const [name, value] of Object.entries({
   manaSymbolSplitFontSize: typography.manaSymbolSplit.fontSize,
   manaSymbolBareFontSize: typography.manaSymbolBare.fontSize,
   manaSymbolSplitInset: sizes.manaSymbolSplitInset,
+  skeletonTitleBar: sizes.skeletonTitleBar,
+  skeletonMetaBar: sizes.skeletonMetaBar,
 })) {
   console.log(`  static let ${name}: Double = ${value}`);
 }
-for (const name of ["foilSheen", "etchedSheen", "commanderArtScrim"] as const) {
+for (const name of ["foilSheen", "etchedSheen", "commanderArtScrim", "setArtScrim"] as const) {
   const stops = [
-    ...gradients[name].matchAll(/(transparent|rgba\([^)]+\)|#[0-9a-f]{8}) ([\d.]+)%/g),
+    ...gradients[name].matchAll(
+      /(transparent|rgba\([^)]+\)|#[0-9a-f]{8}) ([\d.]+)%/g,
+    ),
   ].map((match) => {
     const rgba =
       match[1] === "transparent"
         ? [0, 0, 0, 0]
         : match[1].startsWith("#")
-          ? [...match[1].slice(1).matchAll(/../g)].map((part, index) => Number.parseInt(part[0], 16) / (index === 3 ? 255 : 1))
+          ? [...match[1].slice(1).matchAll(/../g)].map(
+              (part, index) => Number.parseInt(part[0], 16) / (index === 3 ? 255 : 1),
+            )
           : match[1].slice(5, -1).split(",").map(Number);
     return `NativeSheenStop(rgba: [${rgba.join(", ")}], location: ${Number(match[2]) / 100})`;
   });

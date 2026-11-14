@@ -75,6 +75,8 @@ struct SessionTests {
     try await runCollectionServiceTests()
     try await DeckTests.run()
     try await runDeckServiceTests()
+    try await SetsTests.run()
+    try await runSetsServiceTests()
     let keychain = MemoryKeychain()
     let controller = SessionController(
       provider: NativeProvider(), store: keychain, auth: AuthService(),

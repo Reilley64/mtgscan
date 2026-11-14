@@ -20,7 +20,15 @@ async fn main() -> Result<(), &'static str> {
             identity.clone(),
             database.clone(),
         ))
-        .merge(mtgscan_api::catalog::router(identity.clone(), database))
+        .merge(mtgscan_api::catalog::router(
+            identity.clone(),
+            database.clone(),
+        ))
+        .merge(mtgscan_api::sets::router(
+            identity.clone(),
+            database,
+            SystemClock,
+        ))
         .merge(mtgscan_api::decks::router(identity, decks));
     let address: SocketAddr = env::var("LISTEN_ADDRESS")
         .unwrap_or_else(|_| "127.0.0.1:8080".into())

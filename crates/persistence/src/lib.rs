@@ -1,6 +1,7 @@
 mod catalog;
 mod deck_rows;
 mod decks;
+mod sets;
 pub use decks::PostgresDecks;
 
 use mtgscan_application::collection::ReadCollection;

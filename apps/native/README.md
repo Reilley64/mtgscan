@@ -1,7 +1,8 @@
 # Native account, collection and deck presentation
 
-Part of [MTGSCAN-275](https://app.plane.so/reilley/browse/MTGSCAN-275/), [MTGSCAN-276](https://app.plane.so/reilley/browse/MTGSCAN-276/), [MTGSCAN-279](https://app.plane.so/reilley/browse/MTGSCAN-279/), [MTGSCAN-284](https://app.plane.so/reilley/browse/MTGSCAN-284/) and [MTGSCAN-288](https://app.plane.so/reilley/browse/MTGSCAN-288/).
+Part of [MTGSCAN-275](https://app.plane.so/reilley/browse/MTGSCAN-275/), [MTGSCAN-276](https://app.plane.so/reilley/browse/MTGSCAN-276/), [MTGSCAN-279](https://app.plane.so/reilley/browse/MTGSCAN-279/), [MTGSCAN-284](https://app.plane.so/reilley/browse/MTGSCAN-284/), [MTGSCAN-287](https://app.plane.so/reilley/browse/MTGSCAN-287/) and [MTGSCAN-288](https://app.plane.so/reilley/browse/MTGSCAN-288/).
 The signed-in shell opens the collection browse and read-only copy page with gallery readiness and retry.
+Sets opens from the collection browse.
 **Search card catalog** opens catalog queries, rules and printing inspection through the same backend application.
 Decks navigation opens deck contents, creation, renaming and advisory priority.
 Returning to Collection keeps the gallery coordinator and its current status.
@@ -41,7 +42,7 @@ DEVELOPER_DIR=/Applications/Xcode.app/Contents/Developer mise run native-unit
 DEVELOPER_DIR=/Applications/Xcode.app/Contents/Developer mise run native-gallery-unit
 ```
 
-The Swift unit executable includes real session, collection and deck controllers with fake external provider, keychain, Auth, API and clock capabilities.
+The Swift unit executable includes real session, collection, catalog, Sets and deck controllers with fake external provider, keychain, Auth, API and clock capabilities.
 It also generates symbols, labels, sheen stops and aspect ratio from the existing mobile sources.
 The collection checks include copy metadata, account changes, sign-out, late replies, refusal, failure, empty state and retry.
 Catalog unit sources also cover query transitions, pagination, field refusal, rules, printing selection, Oracle tags and canonical HTTP examples.
@@ -53,6 +54,9 @@ CI retains all legacy checks and adds scoped Rust, native session and gallery un
 
 The signed-in collection browse composes the shared `GalleryStatus` organism below the account controls and above the binder grid.
 Opening a copy keeps its existing hero and native Close header. Closing the copy returns to the browse and gallery controls.
+Sets and set pages share the session and finish view. Returning from Sets reloads the collection without replacing the gallery coordinator.
+Sets refreshes on foreground and page appearance. Collection and catalog refresh after foreground session revalidation.
+The [Sets API and limits](../../docs/sets-api.md) describe the read path and separate SQL and native checks.
 `GalleryController` owns local readiness, update, cancellation and lifecycle presentation.
 `GalleryStorage` reads only the existing published artifacts with the current session. It never publishes or changes hosted artifacts.
 `NativeGalleryDevice` adapts the existing background download and installation code. Mobile does not link the backend application.
