@@ -24,7 +24,10 @@ final class SetsPage: UIView, UINavigationControllerDelegate {
     root.title = "Collection"
     navigation.delegate = self
     navigation.navigationBar.prefersLargeTitles = true
+    navigation.navigationBar.overrideUserInterfaceStyle = .dark
     navigation.navigationBar.tintColor = Tokens.primary
+    navigation.navigationBar.titleTextAttributes = [.foregroundColor: Tokens.text]
+    navigation.navigationBar.largeTitleTextAttributes = [.foregroundColor: Tokens.text]
     controller.onChange = { [weak self] in
       guard let self else { return }
       (navigation.topViewController as? SetsScreen)?.display()
