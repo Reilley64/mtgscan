@@ -27,6 +27,92 @@ final class CollectionRemote: CollectionService {
 
 enum CollectionTests {
   @MainActor
+  private static func retainedEmptyRefreshFailureProvidesNoticeAndRetryRecovery() async {
+    let remote = CollectionRemote()
+    let controller = CollectionController(api: remote)
+    controller.setAccount("owner-a")
+    await controller.reload()
+    precondition(controller.presentation.state == .empty)
+    precondition(controller.presentation.notice == nil)
+    remote.failure = .unavailable
+    await controller.reload()
+    precondition(controller.presentation.state == .empty)
+    precondition(
+      controller.presentation.notice == "Could not refresh your collection. Check your connection.")
+    precondition(!controller.presentation.refreshing)
+    remote.failure = nil
+    remote.suspend = true
+    let retry = Task { await controller.reload() }
+    while remote.pending == nil { await Task.yield() }
+    precondition(controller.presentation.state == .empty)
+    precondition(controller.presentation.refreshing)
+    precondition(controller.presentation.notice == nil)
+    remote.pending?.resume(returning: [])
+    await retry.value
+    precondition(controller.presentation.state == .empty)
+    precondition(!controller.presentation.refreshing)
+    precondition(controller.presentation.notice == nil)
+  }
+
+  @MainActor
+  private static func refreshNoticesStayWithTheirPageAndClearAtBoundaries() async throws {
+    let fixture = try Data(
+      contentsOf: URL(fileURLWithPath: "crates/api/fixtures/collection-copy.json"))
+    let copy = try JSONDecoder().decode(CollectionCopy.self, from: fixture)
+    let remote = CollectionRemote()
+    remote.copies = [copy]
+    let controller = CollectionController(api: remote)
+    controller.setAccount("owner-a")
+    await controller.reload()
+    remote.failure = .unavailable
+    await controller.reload()
+    precondition(controller.presentation.state == .loaded)
+    precondition(controller.presentation.copies == [copy])
+    precondition(
+      controller.presentation.notice == "Could not refresh your collection. Check your connection.")
+    remote.failure = nil
+    remote.suspendCopy = true
+    let opening = Task { await controller.open(copy.copyID) }
+    while remote.pendingCopy == nil { await Task.yield() }
+    precondition(controller.presentation.notice == nil)
+    remote.pendingCopy?.resume(returning: copy)
+    await opening.value
+    remote.suspendCopy = false
+    remote.failure = .unavailable
+    await controller.reload()
+    precondition(controller.presentation.state == .loaded)
+    precondition(controller.presentation.copy == copy)
+    precondition(
+      controller.presentation.notice == "Could not refresh this card. Check your connection.")
+    controller.showBrowse()
+    precondition(controller.presentation.notice == nil)
+    await controller.reload()
+    precondition(controller.presentation.notice != nil)
+    controller.setAccount("owner-b")
+    precondition(controller.presentation.notice == nil)
+    await controller.reload()
+    precondition(controller.presentation.state == .failed)
+    precondition(controller.presentation.notice == nil)
+    remote.failure = nil
+    remote.copies = []
+    await controller.reload()
+    for boundary in [CollectionFailure.forbidden, .notFound] {
+      remote.failure = .unavailable
+      await controller.reload()
+      precondition(controller.presentation.state == .empty)
+      precondition(controller.presentation.notice != nil)
+      remote.failure = boundary
+      await controller.reload()
+      precondition(controller.presentation.notice == nil)
+      precondition(controller.presentation.copies.isEmpty)
+      remote.failure = nil
+      await controller.reload()
+    }
+    controller.setAccount(nil)
+    precondition(controller.presentation.notice == nil)
+  }
+
+  @MainActor
   private static func leavingCopyIsLocalAndRejectsItsLateRead() async throws {
     let fixture = try Data(
       contentsOf: URL(fileURLWithPath: "crates/api/fixtures/collection-copy.json"))
@@ -109,18 +195,26 @@ enum CollectionTests {
       precondition(controller.presentation.message == "Your collection is empty")
       precondition(controller.presentation.copies.isEmpty)
       precondition(!controller.presentation.refreshing)
+      precondition(
+        controller.presentation.notice
+          == "Could not refresh your collection. Check your connection.")
       if !olderCompletesFirst {
         olderReply?.resume(with: olderResult)
         await older.value
         precondition(controller.presentation.state == .empty)
         precondition(controller.presentation.copies.isEmpty)
         precondition(!controller.presentation.refreshing)
+        precondition(
+          controller.presentation.notice
+            == "Could not refresh your collection. Check your connection.")
       }
     }
   }
 
   @MainActor
   static func run() async throws {
+    await retainedEmptyRefreshFailureProvidesNoticeAndRetryRecovery()
+    try await refreshNoticesStayWithTheirPageAndClearAtBoundaries()
     try await overlappingEmptyRefreshesRetainTheResultAndNewestOwnership()
     await showingAnEmptyBrowseRetainsItsTransientFailureState()
     try await leavingCopyIsLocalAndRejectsItsLateRead()

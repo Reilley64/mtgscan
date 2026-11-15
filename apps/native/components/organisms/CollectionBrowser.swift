@@ -77,9 +77,16 @@ final class CollectionBrowser: UIStackView {
       if state.state == .missing {
         addArrangedSubview(AuthControls.button("OK", action: onClose))
       }
-      return
+      if state.state != .empty { return }
+    } else if let copy = state.copy {
+      show(copy)
+    } else {
+      grid(state.copies)
     }
-    if let copy = state.copy { show(copy) } else { grid(state.copies) }
+    if let notice = state.notice {
+      addArrangedSubview(AuthControls.label(notice))
+      addArrangedSubview(AuthControls.button("Try again", action: onRetry))
+    }
   }
 
   private func grid(_ copies: [CollectionCopy]) {

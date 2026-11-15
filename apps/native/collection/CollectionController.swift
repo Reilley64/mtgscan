@@ -29,6 +29,7 @@ struct CollectionPresentation {
   var copy: CollectionCopy?
   var selectedCopyID: String?
   var refreshing = false
+  var notice: String?
 
   var message: String? {
     switch state {
@@ -88,6 +89,7 @@ final class CollectionController {
       presentation.state = .loading
     }
     presentation.refreshing = true
+    presentation.notice = nil
     onChange?()
     do {
       if let copyID {
@@ -122,6 +124,10 @@ final class CollectionController {
       default:
         if previousState == .loaded || previousState == .empty {
           presentation.state = previousState
+          presentation.notice =
+            copyID == nil
+            ? "Could not refresh your collection. Check your connection."
+            : "Could not refresh this card. Check your connection."
         } else {
           presentation.copy = nil
           if copyID == nil { presentation.copies.removeAll() }
@@ -149,6 +155,7 @@ final class CollectionController {
     presentation.selectedCopyID = nil
     presentation.copy = nil
     presentation.refreshing = false
+    presentation.notice = nil
     if closingCopy {
       presentation.state = presentation.copies.isEmpty ? .loading : .loaded
     }
