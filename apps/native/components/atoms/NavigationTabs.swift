@@ -12,7 +12,6 @@ final class NavigationTabs: UITabBar, UITabBarDelegate {
       appearance.stackedLayoutAppearance, appearance.inlineLayoutAppearance,
       appearance.compactInlineLayoutAppearance,
     ] {
-      layout.normal.titleTextAttributes[.foregroundColor] = Tokens.textDim
       layout.selected.titleTextAttributes[.foregroundColor] = Tokens.primary
     }
     items = choices.enumerated().map { index, choice in

@@ -443,6 +443,8 @@ Text follows the text size that the user sets in iOS. Buttons, chips, deck tags,
 
 ### App shell
 
+In the GPUI app, native `UITabBar` title labels may use the platform-rendered foreground while inactive. This is the only exception to `tab-bar.textColor` for tab labels. Inactive tab symbols still use **text dim**. Selected titles and symbols still use **primary**. Tab titles stay visible from the first draw and readable at normal and larger text sizes. Native typography, selection, accessibility roles, and touch targets of at least 44 pt remain required. Other app text keeps its token colors.
+
 A bottom tab bar holds four tabs, in this order: **Recent, Collection, Decks, Scan**. Recent has a count badge with the number of open planned swaps and open buylist cards across all decks. With none, it has no badge. The badge shows 1.5 seconds after the tab bar appears, at launch and after sign-in. On iOS 26, a badge set while the tab bar first lays out cuts the other tab labels short, such as "Collect…". The count reads again when the app comes back to the foreground and each time Recent or a deck screen reads its items.
 
 A read that runs again, when a page gains focus or after a change, and fails, keeps what the page already shows. Only a page that has shown nothing yet shows its error state.
