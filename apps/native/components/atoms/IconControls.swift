@@ -26,7 +26,9 @@ enum IconControls {
     configuration.cornerStyle = .capsule
     configuration.image = UIImage(
       systemName: symbol, withConfiguration: UIImage.SymbolConfiguration(pointSize: symbolSize))
-    configuration.baseForegroundColor = active ? Tokens.primary : Tokens.text
+    let foreground = active ? Tokens.primary : Tokens.text
+    configuration.baseForegroundColor = foreground
+    configuration.imageColorTransformer = UIConfigurationColorTransformer { _ in foreground }
     let button = UIButton(configuration: configuration)
     button.accessibilityLabel = label
     button.widthAnchor.constraint(equalToConstant: size).isActive = true
