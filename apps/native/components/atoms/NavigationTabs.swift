@@ -7,6 +7,14 @@ final class NavigationTabs: UITabBar, UITabBarDelegate {
   init(choices: [(String, String)]) {
     super.init(frame: .zero)
     overrideUserInterfaceStyle = .dark
+    let appearance = standardAppearance
+    for layout in [
+      appearance.stackedLayoutAppearance, appearance.inlineLayoutAppearance,
+      appearance.compactInlineLayoutAppearance,
+    ] {
+      layout.normal.titleTextAttributes[.foregroundColor] = Tokens.textDim
+      layout.selected.titleTextAttributes[.foregroundColor] = Tokens.primary
+    }
     items = choices.enumerated().map { index, choice in
       let symbol = UIImage(systemName: choice.1)
       let item = UITabBarItem(
@@ -14,8 +22,8 @@ final class NavigationTabs: UITabBar, UITabBarDelegate {
         image: symbol?.withTintColor(Tokens.textDim, renderingMode: .alwaysOriginal),
         selectedImage: symbol?.withTintColor(Tokens.primary, renderingMode: .alwaysOriginal))
       item.tag = index
-      item.setTitleTextAttributes([.foregroundColor: Tokens.textDim], for: .normal)
-      item.setTitleTextAttributes([.foregroundColor: Tokens.primary], for: .selected)
+      item.standardAppearance = appearance
+      item.scrollEdgeAppearance = appearance
       return item
     }
     selectedItem = items?.first
