@@ -8,23 +8,19 @@ final class NavigationTabs: UITabBar, UITabBarDelegate {
     super.init(frame: .zero)
     overrideUserInterfaceStyle = .dark
     items = choices.enumerated().map { index, choice in
-      UITabBarItem(title: choice.0, image: UIImage(systemName: choice.1), tag: index)
+      let symbol = UIImage(systemName: choice.1)
+      let item = UITabBarItem(
+        title: choice.0,
+        image: symbol?.withTintColor(Tokens.textDim, renderingMode: .alwaysOriginal),
+        selectedImage: symbol?.withTintColor(Tokens.primary, renderingMode: .alwaysOriginal))
+      item.tag = index
+      item.setTitleTextAttributes([.foregroundColor: Tokens.textDim], for: .normal)
+      item.setTitleTextAttributes([.foregroundColor: Tokens.primary], for: .selected)
+      return item
     }
     selectedItem = items?.first
     tintColor = Tokens.primary
     unselectedItemTintColor = Tokens.textDim
-    let appearance = standardAppearance
-    for layout in [
-      appearance.stackedLayoutAppearance, appearance.inlineLayoutAppearance,
-      appearance.compactInlineLayoutAppearance,
-    ] {
-      layout.normal.iconColor = Tokens.textDim
-      layout.normal.titleTextAttributes[.foregroundColor] = Tokens.textDim
-      layout.selected.iconColor = Tokens.primary
-      layout.selected.titleTextAttributes[.foregroundColor] = Tokens.primary
-    }
-    standardAppearance = appearance
-    scrollEdgeAppearance = appearance
     delegate = self
   }
 
