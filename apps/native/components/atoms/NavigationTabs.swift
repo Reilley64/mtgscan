@@ -6,6 +6,7 @@ final class NavigationTabs: UITabBar, UITabBarDelegate {
 
   init(choices: [(String, String)]) {
     super.init(frame: .zero)
+    overrideUserInterfaceStyle = .dark
     items = choices.enumerated().map { index, choice in
       UITabBarItem(title: choice.0, image: UIImage(systemName: choice.1), tag: index)
     }
