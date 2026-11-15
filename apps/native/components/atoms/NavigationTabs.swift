@@ -12,6 +12,18 @@ final class NavigationTabs: UITabBar, UITabBarDelegate {
     selectedItem = items?.first
     tintColor = Tokens.primary
     unselectedItemTintColor = Tokens.textDim
+    let appearance = standardAppearance
+    for layout in [
+      appearance.stackedLayoutAppearance, appearance.inlineLayoutAppearance,
+      appearance.compactInlineLayoutAppearance,
+    ] {
+      layout.normal.iconColor = Tokens.textDim
+      layout.normal.titleTextAttributes[.foregroundColor] = Tokens.textDim
+      layout.selected.iconColor = Tokens.primary
+      layout.selected.titleTextAttributes[.foregroundColor] = Tokens.primary
+    }
+    standardAppearance = appearance
+    scrollEdgeAppearance = appearance
     delegate = self
   }
 
