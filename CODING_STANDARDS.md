@@ -54,6 +54,7 @@ For the migrated MTGSCAN-273 paths, ADR 0016 supersedes the framework-specific r
 - Drawers and modals stack one level at most (`DESIGN.md`, Sheets). A drawer over a drawer, a modal over a modal, or a drawer over a modal is a finding. Push a screen inside the same drawer instead, or show the step inline. A modal (page sheet, alert, or confirmation sheet) over a drawer is allowed, and so are native menus.
 - Give every control an accessibility role and a label that matches its visible text.
 - Give every control a touch target of at least 44 by 44 pt. Use `hitSlop` when the control looks smaller, as `Button` and `Chip` do.
+- The GPUI deck screen's native **Group by** and **Sort by** choice rows use the owner-approved platform-size exception in `DESIGN.md`. It does not apply to their floating buttons or other app controls.
 
 ## Atomic Design
 
