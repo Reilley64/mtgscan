@@ -11,7 +11,7 @@ import {
   type TypedValue,
 } from '@/collection/collection-search';
 import { shownCopyCount } from '@/collection/total-labels';
-import { userTagsFound } from '@/collection/user-tag-names';
+import { userTagSuggestionMatches } from '@/collection/user-tag-names';
 import { userTagsRead } from '@/collection/user-tags';
 import { cardCountLabel } from '@/decks/deck-labels';
 import { decksRead } from '@/decks/use-decks';
@@ -42,8 +42,7 @@ async function oracleTagSuggestions(typed: TypedValue, fetchRead: FetchRead): Pr
 
 async function userTagSuggestions(typed: TypedValue, fetchRead: FetchRead): Promise<SearchSuggestion[]> {
   const { items } = await fetchRead(userTagsRead);
-  return userTagsFound(items, typed.value)
-    .slice(0, suggestionLimit)
+  return userTagSuggestionMatches(items, typed.value)
     .map((userTag) => chipSuggestion(typed, userTag.name, shownCopyCount(userTag.copy_count)));
 }
 
