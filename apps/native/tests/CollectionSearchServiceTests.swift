@@ -14,9 +14,10 @@ enum CollectionSearchServiceTests {
     let service = SessionCollectionService(session: session, api: api)
     let query = CollectionSearchQuery(json: #"{"text":"A+B & 100% café","tags_exclude":["storm"]}"#)
 
-    try await searchNeedsTheCurrentAccount(service, query: query, accountID: "account-1")
+    try await readsNeedTheCurrentAccount(service, query: query, accountID: "account-1")
     await session.signIn(.apple)
-    try await searchNeedsTheCurrentAccount(service, query: query, accountID: "another-account")
+    try await readsNeedTheCurrentAccount(service, query: query, accountID: "another-account")
+    try await standaloneOptionsUseTheExistingAccountTransport(service)
     try await pagesPreserveCopiesBasicLandsAndCursors(service, query: query)
     try await refusalsPreserveTheirFieldAndMessage(service, query: query)
     try await browseRepliesAreNotSearchPages(service, query: query)
@@ -24,7 +25,7 @@ enum CollectionSearchServiceTests {
     print("Collection search transport unit checks passed.")
   }
 
-  private static func searchNeedsTheCurrentAccount(
+  private static func readsNeedTheCurrentAccount(
     _ service: SessionCollectionService, query: CollectionSearchQuery, accountID: String
   ) async throws {
     AuthHTTPStub.reply = { _ in preconditionFailure("A mismatched session cannot make a request") }
@@ -32,6 +33,38 @@ enum CollectionSearchServiceTests {
       _ = try await service.search(accountID: accountID, query: query, cursor: nil)
       preconditionFailure("Collection search requires the current account")
     } catch SessionFailure.unauthenticated {}
+    do {
+      _ = try await service.searchOptions(accountID: accountID)
+      preconditionFailure("Collection search options require the current account")
+    } catch SessionFailure.unauthenticated {}
+  }
+
+  private static func standaloneOptionsUseTheExistingAccountTransport(
+    _ service: SessionCollectionService
+  ) async throws {
+    let data = Data(
+      """
+      {"decks":[{"deck_id":"deck","name":"Atraxa","commander_art_crop_uri":null,"role":null}],
+       "user_tags":["Trade binder"],
+       "user_tag_details":[{"user_tag_id":"tag","name":"Trade binder","copy_count":0}]}
+      """.utf8)
+    AuthHTTPStub.reply = { request in
+      precondition(request.httpMethod == "GET" && request.httpBody == nil)
+      precondition(request.url?.path == "/api/v1/collection/search-options")
+      precondition(request.url?.query == nil)
+      precondition(request.value(forHTTPHeaderField: "Authorization") == "Bearer access")
+      return (200, data)
+    }
+    let options = try await service.searchOptions(accountID: "account-1")
+    precondition(options.decks.map(\.deckID) == ["deck"])
+    precondition(options.userTags == ["Trade binder"])
+    precondition(options.userTagDetails.map(\.copyCount) == [0])
+    AuthHTTPStub.reply = { _ in (503, Data(#"{"error":{"code":"unavailable","field":null}}"#.utf8))
+    }
+    do {
+      _ = try await service.searchOptions(accountID: "account-1")
+      preconditionFailure("An unavailable options read is not an empty options result")
+    } catch CollectionFailure.unavailable {}
   }
 
   private static func pagesPreserveCopiesBasicLandsAndCursors(
