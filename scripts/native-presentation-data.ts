@@ -1,3 +1,4 @@
+import { Buffer } from "node:buffer";
 import {
   aspectRatios,
   gradients,
@@ -21,6 +22,26 @@ const dictionary = (values: Record<string, string>) =>
     .map(([key, value]) => `${quoted(key)}: ${quoted(value)}`)
     .join(", ") +
   "]";
+
+const collectionSearchBuild = await Bun.build({
+  entrypoints: [
+    `${import.meta.dir}/../apps/mobile/src/collection/native-collection-search-entry.ts`,
+  ],
+  target: "browser",
+  format: "iife",
+  minify: true,
+});
+const [collectionSearchBundle] = collectionSearchBuild.outputs;
+if (
+  !collectionSearchBuild.success ||
+  !collectionSearchBundle ||
+  collectionSearchBuild.outputs.length !== 1
+) {
+  throw new Error("Expected one Collection search compiler bundle.");
+}
+const collectionSearchBase64 = Buffer.from(
+  await collectionSearchBundle.arrayBuffer(),
+).toString("base64");
 
 console.log("import Foundation\n\nenum PresentationData {");
 for (const [name, values] of Object.entries({
@@ -88,4 +109,7 @@ for (const name of ["foilSheen", "etchedSheen", "setArtScrim"] as const) {
     `  static let ${name}: [NativeSheenStop] = [${stops.join(", ")}]`,
   );
 }
+console.log(
+  `  static let collectionSearchJavaScript: String = String(decoding: Data(base64Encoded: "${collectionSearchBase64}")!, as: UTF8.self)`,
+);
 console.log("}");
