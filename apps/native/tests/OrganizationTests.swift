@@ -103,7 +103,11 @@ func runOrganizationTests() async throws {
   await late.value
   precondition(controller.presentation.copyID == nil && controller.presentation.tags.isEmpty)
   precondition(invalidations == 6)
-  try await restoredUserTagsRequireAFreshCopyBeforeChangingItsLinks(fixture: fixture, copy: copy)
+  let (copyWithDeletedTag, otherCopy) = try untaggedCopies(fixture: fixture)
+  await aLateProtectionRereadCannotReplaceTheCurrentCopy(
+    copy: copy, original: copyWithDeletedTag, otherCopy: otherCopy)
+  await restoredUserTagsRequireAFreshCopyBeforeChangingItsLinks(
+    copy: copy, copyWithDeletedTag: copyWithDeletedTag, otherCopy: otherCopy)
   await aUserTagCreatedElsewhereRefreshesThePickerWithoutAttaching(copy, listRefreshed: false)
   await aUserTagCreatedElsewhereRefreshesThePickerWithoutAttaching(copy, listRefreshed: true)
   print(
@@ -142,38 +146,158 @@ private func aUserTagCreatedElsewhereRefreshesThePickerWithoutAttaching(
   precondition(remote.lastUserTagChange == nil)
 }
 
-@MainActor
-private func restoredUserTagsRequireAFreshCopyBeforeChangingItsLinks(
-  fixture: Data, copy: CollectionCopy
-) async throws {
-  let restored = copy.userTags[0]
+private func untaggedCopies(fixture: Data) throws -> (CollectionCopy, CollectionCopy) {
   guard var untagged = try JSONSerialization.jsonObject(with: fixture) as? [String: Any] else {
     preconditionFailure("Expected a copy fixture")
   }
-  untagged["user_tags"] = [] as [String]
+  untagged["user_tags"] = [String]()
+  untagged["protected"] = false
   let copyWithDeletedTag = try JSONDecoder().decode(
     CollectionCopy.self, from: JSONSerialization.data(withJSONObject: untagged))
+  untagged["copy_id"] = "10000000-0000-4000-8000-000000000002"
+  let otherCopy = try JSONDecoder().decode(
+    CollectionCopy.self, from: JSONSerialization.data(withJSONObject: untagged))
+  return (copyWithDeletedTag, otherCopy)
+}
+
+@MainActor
+private func takeCopyRequest(
+  _ remote: CollectionRemote, _ expected: String
+) async -> CheckedContinuation<CollectionCopy, Error> {
+  let clock = ContinuousClock()
+  let deadline = clock.now + .seconds(3)
+  while clock.now < deadline {
+    if let reply = remote.pendingCopy {
+      remote.pendingCopy = nil
+      return reply
+    }
+    try? await clock.sleep(for: .milliseconds(1))
+  }
+  preconditionFailure("Missing copy request: \(expected)")
+}
+
+@MainActor
+private func restoredUserTagsRequireAFreshCopyBeforeChangingItsLinks(
+  copy: CollectionCopy, copyWithDeletedTag: CollectionCopy, otherCopy: CollectionCopy
+) async {
+  let restored = copy.userTags[0]
+  let collectionRemote = CollectionRemote()
+  collectionRemote.copies = [copyWithDeletedTag]
+  let collection = CollectionController(api: collectionRemote)
   let remote = OrganizationRemote()
   remote.tags = []
   remote.deleted = [
     UserTagSummary(userTagID: restored.userTagID, name: restored.name, copyCount: 1)
   ]
   let picker = OrganizationController(api: remote)
+  collection.onCopyChange = { [weak picker] in picker?.reconcile($0, accountID: $1) }
+  var reread: Task<Void, Never>?
+  picker.onMutation = {
+    reread = collection.invalidateOrganization()
+    precondition(
+      collection.presentation.copy == nil && collection.presentation.copies.isEmpty,
+      "Post-mutation invalidation must clear snapshots before scheduling the reread")
+  }
+  collection.setAccount("owner")
   picker.setAccount("owner")
-  await picker.open(copyWithDeletedTag)
+  await collection.reload()
+  await collection.open(copy.copyID)
+  await picker.open(collection.presentation.copy!)
 
+  collectionRemote.suspendCopy = true
+  let staleRead = Task { await collection.reload() }
+  let staleReply = await takeCopyRequest(collectionRemote, "before restore")
   await picker.restore(userTagID: restored.userTagID)
-  precondition(picker.presentation.copyID == copy.copyID)
+  guard let restoreRead = reread else { preconditionFailure("Expected a restore reread") }
+  let restoreReply = await takeCopyRequest(collectionRemote, "after restore")
+  precondition(
+    collection.presentation.copy == nil && collection.presentation.copies.isEmpty,
+    "A delayed post-mutation reread must not show the previous copy or browse snapshot")
+  precondition(collection.presentation.selectedCopyID == copy.copyID)
+  precondition(collection.presentation.state == .loading)
   precondition(picker.presentation.tags.first?.userTagID == restored.userTagID)
-  picker.reconcile(copy, accountID: "other")
+  precondition(!picker.presentation.canChangeUserTags)
   await picker.toggle(userTagID: restored.userTagID)
   precondition(remote.lastUserTagChange == nil)
 
-  picker.reconcile(copy, accountID: "owner")
-  precondition(picker.presentation.selectedUserTagIDs?.contains(restored.userTagID) == true)
+  restoreReply.resume(throwing: CollectionFailure.unavailable)
+  await restoreRead.value
+  precondition(
+    collection.presentation.copy == nil && collection.presentation.state == .failed,
+    "A failed post-mutation reread must not retain the previous copy")
+  picker.reconcile(copy, accountID: "other")
+  precondition(
+    !picker.presentation.canChangeUserTags, "Organizer must reject another account's copy")
   await picker.toggle(userTagID: restored.userTagID)
+  precondition(remote.lastUserTagChange == nil)
+
+  staleReply.resume(returning: copyWithDeletedTag)
+  await staleRead.value
+  precondition(collection.presentation.copy == nil)
+  precondition(!picker.presentation.canChangeUserTags)
+
+  let retry = Task { await collection.open(copy.copyID) }
+  let retryReply = await takeCopyRequest(collectionRemote, "retry after restore")
+  precondition(collection.presentation.copy == nil, "Reopening must not use an invalidated copy")
+  precondition(!picker.presentation.canChangeUserTags)
+  retryReply.resume(returning: otherCopy)
+  await retry.value
+  precondition(collection.presentation.copy == nil, "A reply for another copy must not load")
+  precondition(!picker.presentation.canChangeUserTags)
+
+  collectionRemote.suspendCopy = false
+  collectionRemote.copies = [copy]
+  await collection.reload()
+  precondition(collection.presentation.copy?.protected == true)
+  precondition(picker.presentation.selectedUserTagIDs == [restored.userTagID])
+  precondition(picker.presentation.canChangeUserTags)
+  await picker.toggle(userTagID: restored.userTagID)
+  await reread?.value
   precondition(remote.lastUserTagChange?.accountID == "owner")
   precondition(remote.lastUserTagChange?.copyID == copy.copyID)
   precondition(remote.lastUserTagChange?.userTagID == restored.userTagID)
   precondition(remote.lastUserTagChange?.tagged == false)
+}
+
+@MainActor
+private func aLateProtectionRereadCannotReplaceTheCurrentCopy(
+  copy: CollectionCopy, original: CollectionCopy, otherCopy: CollectionCopy
+) async {
+  for (nextAccount, nextCopy) in [("other", original), ("owner", otherCopy)] {
+    let collectionRemote = CollectionRemote()
+    collectionRemote.copies = [original]
+    let collection = CollectionController(api: collectionRemote)
+    let remote = OrganizationRemote()
+    let picker = OrganizationController(api: remote)
+    collection.onCopyChange = { [weak picker] in picker?.reconcile($0, accountID: $1) }
+    var reread: Task<Void, Never>?
+    picker.onMutation = { reread = collection.invalidateOrganization() }
+    collection.setAccount("owner")
+    picker.setAccount("owner")
+    await collection.open(copy.copyID)
+    await picker.open(collection.presentation.copy!)
+
+    collectionRemote.suspendCopy = true
+    await picker.protect(collection.presentation.copy!)
+    guard let reread else { preconditionFailure("Expected a protection reread") }
+    precondition(remote.protectedCopyID == copy.copyID && remote.protectedValue == true)
+    let protectionReply = await takeCopyRequest(collectionRemote, "after protection")
+    precondition(
+      collection.presentation.copy == nil && !picker.presentation.canChangeUserTags,
+      "A delayed protection reread must not keep the previous copy or editable user tags")
+
+    collection.setAccount(nextAccount)
+    picker.setAccount(nextAccount)
+    collectionRemote.suspendCopy = false
+    collectionRemote.copies = [nextCopy]
+    await collection.open(nextCopy.copyID)
+    await picker.open(collection.presentation.copy!)
+    protectionReply.resume(returning: copy)
+    await reread.value
+
+    precondition(
+      collection.presentation.copy == nextCopy,
+      "A late protection reread must not replace a newer account or copy selection")
+    precondition(picker.presentation.selectedUserTagIDs == [])
+  }
 }

@@ -53,6 +53,7 @@ final class CollectionController {
   private var copyCache: [String: CollectionCopy] = [:]
   private(set) var presentation = CollectionPresentation()
   var onChange: (() -> Void)?
+  var onCopyChange: ((CollectionCopy, String) -> Void)?
 
   init(api: any CollectionService) { self.api = api }
 
@@ -77,6 +78,23 @@ final class CollectionController {
     return true
   }
 
+  @discardableResult
+  func invalidateOrganization() -> Task<Void, Never>? {
+    guard accountID != nil else { return nil }
+    generation += 1
+    let operation = generation
+    copyCache.removeAll()
+    presentation.copy = nil
+    presentation.copies.removeAll()
+    presentation.state = .loading
+    presentation.refreshing = true
+    onChange?()
+    return Task {
+      guard operation == generation else { return }
+      await reload()
+    }
+  }
+
   func reload() async {
     guard let accountID else { return }
     generation += 1
@@ -88,13 +106,16 @@ final class CollectionController {
     }
     presentation.refreshing = true
     onChange?()
+    var refreshedCopy: CollectionCopy?
     do {
       if let copyID {
         let copy = try await api.copy(accountID: accountID, copyID: copyID)
         guard operation == generation else { return }
+        guard copy.copyID == copyID else { throw CollectionFailure.unavailable }
         copyCache[copyID] = copy
         presentation.copy = copy
         presentation.state = .loaded
+        refreshedCopy = copy
       } else {
         let copies = try await api.browse(accountID: accountID)
         guard operation == generation else { return }
@@ -129,6 +150,7 @@ final class CollectionController {
       }
     }
     presentation.refreshing = false
+    if let refreshedCopy { onCopyChange?(refreshedCopy, accountID) }
     onChange?()
   }
 
