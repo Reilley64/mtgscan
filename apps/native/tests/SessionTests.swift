@@ -74,6 +74,7 @@ struct SessionTests {
     try await runCatalogServiceTests()
     try await runCollectionServiceTests()
     try await CollectionSearchServiceTests.run()
+    try CollectionCompilerTests.compilesGeneratedQueryAndMapsRefusedChip()
     try await SetsTests.run()
     try await runSetsServiceTests()
     let keychain = MemoryKeychain()

@@ -38,11 +38,16 @@ func runCollectionServiceTests() async throws {
     preconditionFailure("A signed-out session cannot supply a collection credential")
   } catch SessionFailure.unauthenticated {}
 
+  // The direct transport cases must not start a background browse through the earlier binding.
+  session.onAccountChange = nil
   for (status, state) in [(401, CollectionState.refused), (403, .refused), (503, .failed)] {
     AuthHTTPStub.reply = { _ in (status, Data("upstream-private-body".utf8)) }
     let direct = CollectionController(api: SessionCollectionService(session: session, api: api))
     direct.setAccount("account-1")
     await session.signIn(.apple)
+    precondition(
+      collection.presentation.state == .signedOut,
+      "Direct transport cases must not schedule a second browse through the earlier binding")
     await direct.reload()
     precondition(direct.presentation.state == state)
     await session.signOut()
