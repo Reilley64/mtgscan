@@ -31,6 +31,12 @@ final class CollectionAPI {
       as: CollectionSearchPage.self)
   }
 
+  func searchOptions(accessToken: String) async throws -> CollectionSearchOptions {
+    try await read(
+      path: "api/v1/collection/search-options", accessToken: accessToken,
+      as: CollectionSearchOptions.self)
+  }
+
   func browse(accessToken: String) async throws -> [CollectionCopy] {
     try await read(
       path: "api/v1/collection/copies", accessToken: accessToken, as: BrowseResult.self
@@ -97,6 +103,12 @@ final class SessionCollectionService: CollectionService {
   {
     try await session.withAccessToken(for: accountID) { token in
       try await api.search(query: query, cursor: cursor, accessToken: token)
+    }
+  }
+
+  func searchOptions(accountID: String) async throws -> CollectionSearchOptions {
+    try await session.withAccessToken(for: accountID) { token in
+      try await api.searchOptions(accessToken: token)
     }
   }
 
