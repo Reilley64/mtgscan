@@ -225,6 +225,8 @@ struct SessionTests {
       offline.presentation.message
         == "Signed out on this phone. Server sign-out could not be confirmed.")
     try await runServiceClientTests()
+    try await runOrganizationTests()
+    try await runOrganizationServiceTests()
     print(
       "Session unit checks passed: Apple/Google, restore, cancellation, refresh rotation, refusal, outage, storage failure, sign-out race."
     )
