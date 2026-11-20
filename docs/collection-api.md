@@ -92,6 +92,9 @@ Older systems use a native material backdrop. Loading and error content reserve 
 
 This slice shows read-only metadata and USD prices.
 Search, filters, order controls, and pagination follow in MTGSCAN-283.
+The native app has a host-tested transport for the planned typed search contract.
+It encodes one `query` parameter on the copies route and reads pages and field refusals through the existing session.
+No screen calls it. The server still refuses query parameters until the search route and its reader capabilities land.
 Currency settings and consistent converted-price behavior follow in MTGSCAN-285.
 Copy actions and user-tag editing follow in MTGSCAN-286/301. Deck navigation follows in MTGSCAN-288.
 The scanner and gallery algorithms are unchanged.
