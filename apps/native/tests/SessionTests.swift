@@ -73,6 +73,7 @@ struct SessionTests {
     try await CatalogTests.run()
     try await runCatalogServiceTests()
     try await runCollectionServiceTests()
+    try await CollectionSearchServiceTests.run()
     try await SetsTests.run()
     try await runSetsServiceTests()
     let keychain = MemoryKeychain()

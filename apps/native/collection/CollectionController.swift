@@ -5,6 +5,7 @@ enum CollectionFailure: Error {
   case forbidden
   case notFound
   case unavailable
+  case query(code: String, field: String?, message: String?)
 }
 
 @MainActor
