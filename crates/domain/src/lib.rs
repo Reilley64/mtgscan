@@ -1,4 +1,5 @@
 pub mod collection;
+pub mod collection_query;
 pub mod sets;
 
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]
