@@ -1,0 +1,70 @@
+name: Migration runner TLS probe
+
+on:
+  pull_request:
+    types: [opened]
+    branches: [main]
+    paths:
+      - .github/workflows/mtgscan-runner-tls-probe.yml
+
+permissions:
+  contents: read
+
+jobs:
+  probe:
+    if: >-
+      github.repository == 'Reilley64/mtgscan' &&
+      github.event.pull_request.head.repo.full_name == github.repository &&
+      github.head_ref == 'chore/mtgscan-538-runner-tls-probe' &&
+      github.event.pull_request.draft && github.run_attempt == 1
+    runs-on: ubuntu-latest
+    timeout-minutes: 2
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          persist-credentials: false
+      - name: Verify direct PostgreSQL TLS without logging in
+        shell: bash
+        env:
+          SUPABASE_PROJECT_REF: ${{ vars.SUPABASE_PROJECT_REF }}
+        run: |
+          if [[ "$SUPABASE_PROJECT_REF" != gjzecqwkruixdousbual ]]; then
+            echo 'The project ref does not match the approved probe target.' >&2
+            exit 1
+          fi
+
+          # Supabase CLI v2.120.0 production roots (2021 and 2025).
+          ca="$GITHUB_WORKSPACE/.github/certs/mtgscan-runner-probe-ca.pem"
+          digest=6ecd239038a7db063a6619b71742372ecfe06c0b0ec12a9993fee4445bf0d4d6
+          if ! printf '%s  %s\n' "$digest" "$ca" | sha256sum -c - >/dev/null 2>&1; then
+            echo 'The pinned CA bundle is missing or invalid.' >&2
+            exit 1
+          fi
+
+          host="db.${SUPABASE_PROJECT_REF}.supabase.co"
+          diagnostics=$(mktemp)
+          trap 'rm -f "$diagnostics"' EXIT
+          if timeout --kill-after=2s 12s openssl s_client -starttls postgres -brief \
+              -connect "$host:5432" -servername "$host" -verify_hostname "$host" \
+              -verify_return_error -CAfile "$ca" -no-CApath -no-CAstore \
+              </dev/null >/dev/null 2>"$diagnostics"; then
+            if grep -qx 'Verification: OK' "$diagnostics"; then
+              echo 'Direct TLS certificate and hostname verified; no PostgreSQL login or SQL.'
+              exit 0
+            fi
+            echo 'The TLS client did not confirm certificate verification.' >&2
+          else
+            case "$?" in
+              124|137) echo 'The single direct TLS probe timed out.' >&2 ;;
+              *)
+                if grep -qiE 'network is unreachable|no route to host|connection refused|name or service not known|temporary failure in name resolution|no address associated' "$diagnostics"; then
+                  echo 'The runner could not reach or resolve the direct endpoint.' >&2
+                elif grep -qi 'certificate verify failed' "$diagnostics"; then
+                  echo 'The direct endpoint failed certificate verification.' >&2
+                else
+                  echo 'The direct TLS handshake failed without a verified certificate.' >&2
+                fi
+                ;;
+            esac
+          fi
+          exit 1
