@@ -1,5 +1,6 @@
 pub mod collection;
 pub mod collection_query;
+pub mod organization;
 pub mod sets;
 
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]
@@ -38,10 +39,15 @@ impl Caller {
         self.client_id.as_deref()
     }
 
-    pub fn native_account(self) -> Result<String, Refusal> {
+    pub fn require_user_actor(&self) -> Result<(), Refusal> {
         if self.client_id.is_some() {
             return Err(Refusal::McpTokenForbidden);
         }
+        Ok(())
+    }
+
+    pub fn native_account(self) -> Result<String, Refusal> {
+        self.require_user_actor()?;
         Ok(self.user_id)
     }
 }

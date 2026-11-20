@@ -1,5 +1,6 @@
 pub mod catalog;
 pub mod collection;
+pub mod organization;
 pub mod sets;
 
 use mtgscan_domain::{Caller, Refusal};
