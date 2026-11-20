@@ -32,6 +32,13 @@ for (const [name, values] of Object.entries({
 })) {
   console.log(`  static let ${name}: [String: String] = ${dictionary(values)}`);
 }
+for (const [name, values] of Object.entries({
+  finishOrder: finishLabels,
+  conditionOrder: conditionLabels,
+  languageOrder: languageNames,
+})) {
+  console.log(`  static let ${name}: [String] = [${Object.keys(values).map(quoted).join(", ")}]`);
+}
 console.log("  static let symbols: [String: NativeCardSymbol] = [");
 for (const [token, symbol] of cardSymbols) {
   const circle = Array.isArray(symbol.circle)

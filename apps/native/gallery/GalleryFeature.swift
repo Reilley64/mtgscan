@@ -5,6 +5,9 @@ final class GalleryFeature {
   private let controller: GalleryController
   private let accessToken: () async throws -> String
   private var signedIn = false
+  var scannerReady: Bool { controller.presentation.isReady }
+  var onScannerReadinessChange: (() -> Void)?
+  private var lastScannerReady = false
   private var task: Task<Void, Never>?
   lazy var view = GalleryStatus(
     onRetry: { [weak self] in self?.check() },
@@ -62,5 +65,11 @@ final class GalleryFeature {
     await controller.check(accessToken: token, allowsCellular: allowsCellular)
   }
 
-  private func display() { view.display(controller.presentation, signedIn: signedIn) }
+  private func display() {
+    view.display(controller.presentation, signedIn: signedIn)
+    if lastScannerReady != scannerReady {
+      lastScannerReady = scannerReady
+      onScannerReadinessChange?()
+    }
+  }
 }

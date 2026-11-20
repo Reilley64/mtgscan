@@ -20,6 +20,16 @@ xcrun swiftc -warnings-as-errors apps/native/TestAppIdleTimer.swift apps/native/
 "$unit/tests"
 """
 
+[tasks.native-scan-unit]
+run = """
+set -eu
+unit=$(mktemp -d "${TMPDIR:-/tmp}/mtgscan-scan-unit.XXXXXX")
+trap 'rm -rf "$unit"' EXIT
+core=apps/mobile/modules/card-recognizer/ios/Recognizer
+xcrun swiftc -warnings-as-errors -strict-concurrency=complete -swift-version 6 "$core/GalleryPrinting.swift" "$core/Recognition.swift" "$core/CardNameIndex.swift" apps/native/scan/AutomaticCapture.swift apps/native/scan/ScanReview.swift apps/native/scan/ScanCapture.swift apps/native/scan/ScanChoices.swift apps/native/scan/tests/*.swift -o "$unit/tests"
+"$unit/tests"
+"""
+
 [tasks.native-gallery-unit]
 run = """
 set -eu

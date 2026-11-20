@@ -14,6 +14,8 @@ final class SearchField: UIStackView {
 
   required init(coder: NSCoder) { fatalError() }
 
+  func focus() { input.becomeFirstResponder() }
+
   func show(_ value: String) {
     if !input.isFirstResponder { input.text = value }
   }
