@@ -3,6 +3,8 @@ mod credentials;
 pub mod catalog;
 pub mod collection;
 pub mod collection_contract;
+pub mod organization;
+mod organization_contract;
 pub mod sets;
 mod sets_contract;
 
