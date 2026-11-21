@@ -31,13 +31,15 @@ enum CardQuadDetector {
 
   static func detect(
     pixelBuffer: CVPixelBuffer,
-    displayOrientation: CGImagePropertyOrientation
+    displayOrientation: CGImagePropertyOrientation,
+    intrinsicMatrix: simd_float3x3?
   ) -> Output {
     var output = Output()
     guard let transform = OrientationTransform(
       displayOrientation: displayOrientation,
       bufferWidth: Double(CVPixelBufferGetWidth(pixelBuffer)),
-      bufferHeight: Double(CVPixelBufferGetHeight(pixelBuffer))
+      bufferHeight: Double(CVPixelBufferGetHeight(pixelBuffer)),
+      bufferIntrinsicMatrix: intrinsicMatrix.map(simd_double3x3.init)
     ) else {
       output.failure = .unsupportedFrame
       return output
@@ -116,11 +118,7 @@ enum CardQuadDetector {
         output.edgeSupportMin = supportMin
         break
       }
-      let metrics = CardQuadGeometry.metrics(
-        corners,
-        width: transform.orientedWidth,
-        height: transform.orientedHeight
-      )
+      let metrics = CardQuadGeometry.metrics(corners, in: transform)
       output.refined = corners.map { normalized($0, transform) }
       output.areaRatio = metrics.areaRatio
       output.aspectRatio = metrics.aspectRatio

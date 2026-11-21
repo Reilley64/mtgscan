@@ -140,12 +140,30 @@ _Avoid_: Rectangle detector
 The four corners of a detected card. The Scan tab draws it in magenta, and the recognizer straightens the photo along it.
 _Avoid_: Guide
 
+**Photo refinement**:
+After automatic capture takes the photo, the card detector moves the held-still outline by the camera motion between its analyzed frame and the photo, and refines it on the photo with the edge refiner. A size check and a motion check refuse a refined outline that could be on the inner frame. On a refusal, the result is the moved outline. The recognizer straightens the photo along the result, the photo outline.
+
+**Held-still outline**:
+The card outline of the detection sample that automatic capture took the photo for. It is in fractions of the analyzed frame.
+
+**Photo outline**:
+The card outline that the recognizer straightens the photo along. Photo refinement makes it from the held-still outline. When photo refinement cannot run, it is the held-still outline.
+
+**Card aspect**:
+The card's width over its height, 63:88. The card detector checks the aspect of an outline on the card, with the camera's intrinsic matrix, so a tilted card keeps its aspect. A frame with no intrinsic matrix checks the aspect in the frame.
+
+**Inside outline**:
+A card outline with a side more than 1 mm inside the card edge. On a black-bordered card it is often the inner frame. A training crop of an inside outline loses the border and can lose the collector line.
+
 **Automatic capture**:
 The scanner takes one photo when a detected card holds still for 400 ms. It re-arms when the card leaves for 1 second or a different card takes its place.
 _Avoid_: Auto-scan, shutter
 
 **Scanner evidence pack**:
 The committed real crops, simulated scans, expected results, and phone runs that the recognition release gates replay. Simulated scans are synthetic phone photos rendered from Scryfall images. A held-out run removes each true card printing from the gallery, to show that the recognizer abstains when the right printing is missing.
+
+**Detector replay**:
+A release gate on the Mac for the card detector. It runs the shipped detector code on synthetic frames with known corners, on the branch and on the merge base in the same run. It fails when the branch misses a pass bar, such as more inside outlines than the merge base.
 
 **Training crop**:
 The straightened image of the one card in a scan. After the scan batch commit saves the scan, the app uploads the crop with its evidence record. The evidence record is what the scanner read and decided, which card printing the user saved, and how the user changed or confirmed it. mtgscan stores training crops with no link to the user's account, so a training crop cannot be removed after it uploads.

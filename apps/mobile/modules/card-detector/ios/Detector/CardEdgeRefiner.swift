@@ -44,6 +44,7 @@ enum CardEdgeRefiner {
   static let peakSearchPixels = 3
   static let inlierTolerance = 2.0
   static let linesPerEdge = 5
+  static let oppositeEdgeShiftMax = 0.02
 
   enum Outcome {
     case refined(
@@ -86,13 +87,10 @@ enum CardEdgeRefiner {
   static func refine(
     proposal: [SIMD2<Double>],
     plane: LumaPlane,
-    transform: OrientationTransform
+    transform: OrientationTransform,
+    searchFraction: Double = searchFraction
   ) -> Outcome {
-    let proposalMetrics = CardQuadGeometry.metrics(
-      proposal,
-      width: transform.orientedWidth,
-      height: transform.orientedHeight
-    )
+    let proposalMetrics = CardQuadGeometry.metrics(proposal, in: transform)
     let searchRadius = min(
       maximumSearchPixels,
       max(minimumSearchPixels, Int((searchFraction * proposalMetrics.shortSide).rounded()))
@@ -134,6 +132,7 @@ enum CardEdgeRefiner {
             let fits = [top, right, bottom, left]
             let signs = Set(fits.map(\.sign).filter { $0 != 0.0 })
             guard signs.count <= 1,
+                  !movesOppositeEdgesApart(fits, shortSide: proposalMetrics.shortSide),
                   let corners = quadrilateral(fits.map(\.line), transform: transform)
             else {
               continue
@@ -164,6 +163,13 @@ enum CardEdgeRefiner {
     )
   }
 
+  private static func movesOppositeEdgesApart(_ fits: [EdgeFit], shortSide: Double) -> Bool {
+    let limit = oppositeEdgeShiftMax * shortSide
+    return [(fits[0].shift, fits[2].shift), (fits[1].shift, fits[3].shift)].contains { first, second in
+      min(first, second) < -limit && max(first, second) > limit
+    }
+  }
+
   private static func quadrilateral(
     _ lines: [EdgeLine],
     transform: OrientationTransform
@@ -181,13 +187,7 @@ enum CardEdgeRefiner {
       height: transform.orientedHeight
     ),
       CardQuadGeometry.isNondegenerateConvex(corners, minimumEdge: 1.0),
-      CardQuadGeometry.isCardShaped(
-        CardQuadGeometry.metrics(
-          corners,
-          width: transform.orientedWidth,
-          height: transform.orientedHeight
-        )
-      )
+      CardQuadGeometry.isCardShaped(CardQuadGeometry.metrics(corners, in: transform))
     else {
       return nil
     }

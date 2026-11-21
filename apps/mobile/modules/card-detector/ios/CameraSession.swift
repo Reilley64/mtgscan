@@ -1,6 +1,7 @@
 import AVFoundation
 import CoreMedia
 import ImageIO
+import os
 import simd
 
 enum PhotoFailure: String, Error {
@@ -24,10 +25,25 @@ struct CapturedPhoto: Sendable {
   let times: PhotoTimes
 }
 
+private struct AnalyzedFrame: @unchecked Sendable {
+  let pixelBuffer: CVPixelBuffer
+  let intrinsicMatrix: simd_float3x3?
+  let time: CMTime
+}
+
+private struct TakenPhoto: Sendable {
+  let url: URL
+  let time: CMTime
+  let width: Int
+  let height: Int
+  let times: PhotoTimes
+}
+
 final class CameraSession: NSObject, @unchecked Sendable {
   static let displayOrientation = CGImagePropertyOrientation.right
   static let analysisInterval = 0.19
   static let videoDimensions = (width: Int32(1280), height: Int32(720))
+  private static let log = Logger(subsystem: "dev.reilley.mtgscan", category: "card-detector")
 
   let session = AVCaptureSession()
   private let onSample: @Sendable (DetectionSample) -> Void
@@ -38,6 +54,8 @@ final class CameraSession: NSObject, @unchecked Sendable {
   private var configured = false
   private var lastAnalyzedAt = CMTime.invalid
   private var photoCaptures: [Int64: PhotoCapture] = [:]
+  private let keptFramesLock = NSLock()
+  private var keptFrames = KeptFrames<AnalyzedFrame>()
 
   init(onSample: @escaping @Sendable (DetectionSample) -> Void) {
     self.onSample = onSample
@@ -90,15 +108,45 @@ final class CameraSession: NSObject, @unchecked Sendable {
         settings.isShutterSoundSuppressionEnabled = true
       }
       let id = settings.uniqueID
-      let capture = PhotoCapture(outline: outline, times: times) { [weak self] result in
+      let frame = keptFramesLock.withLock { keptFrames.frame(withOutline: outline) }
+      let capture = PhotoCapture(times: times) { [weak self] result in
         if let self {
           sessionQueue.async { self.photoCaptures[id] = nil }
         }
-        completion(result)
+        completion(result.map { photo in
+          CapturedPhoto(
+            url: photo.url,
+            outline: Self.photoOutline(photo, frame: frame, heldStill: outline),
+            width: photo.width,
+            height: photo.height,
+            times: photo.times
+          )
+        })
       }
       photoCaptures[id] = capture
       photoOutput.capturePhoto(with: settings, delegate: capture)
     }
+  }
+
+  private static func photoOutline(_ photo: TakenPhoto, frame: AnalyzedFrame?, heldStill: [SIMD2<Double>]) -> [SIMD2<Double>] {
+    guard let frame else {
+      log.info("photo outline: held still, no analyzed frame with this outline")
+      return heldStill
+    }
+    let startedAt = ProcessInfo.processInfo.systemUptime
+    let result = PhotoOutline.refine(
+      photo: photo.url,
+      frame: frame.pixelBuffer,
+      frameOrientation: displayOrientation,
+      frameIntrinsicMatrix: frame.intrinsicMatrix,
+      heldStill: heldStill
+    )
+    let durationMs = CardQuadDetector.elapsedMilliseconds(since: startedAt)
+    let photoAfterFrameMs = (photo.time - frame.time).seconds * 1_000.0
+    log.info(
+      "photo outline: \(result.outcome.rawValue, privacy: .public) in \(durationMs, format: .fixed(precision: 1), privacy: .public) ms, photo \(photoAfterFrameMs, format: .fixed(precision: 0), privacy: .public) ms after the frame"
+    )
+    return result.outline
   }
 
   static func backCamera() -> AVCaptureDevice? {
@@ -139,11 +187,17 @@ final class CameraSession: NSObject, @unchecked Sendable {
     ]
     videoOutput.alwaysDiscardsLateVideoFrames = true
     videoOutput.setSampleBufferDelegate(self, queue: analysisQueue)
+    if let connection = videoOutput.connection(with: .video), connection.isCameraIntrinsicMatrixDeliverySupported {
+      connection.isCameraIntrinsicMatrixDeliveryEnabled = true
+    }
     photoOutput.maxPhotoDimensions = photoDimensions
     photoOutput.maxPhotoQualityPrioritization = .balanced
     if let connection = photoOutput.connection(with: .video), connection.isVideoRotationAngleSupported(90) {
       connection.videoRotationAngle = 90
     }
+    Self.log.info(
+      "camera: zero shutter lag supported \(self.photoOutput.isZeroShutterLagSupported, privacy: .public), enabled \(self.photoOutput.isZeroShutterLagEnabled, privacy: .public); geometric distortion correction supported \(device.isGeometricDistortionCorrectionSupported, privacy: .public), enabled \(device.isGeometricDistortionCorrectionEnabled, privacy: .public); photo \(photoDimensions.width, privacy: .public) x \(photoDimensions.height, privacy: .public)"
+    )
     configured = true
     return true
   }
@@ -207,29 +261,43 @@ extension CameraSession: AVCaptureVideoDataOutputSampleBufferDelegate {
       onSample(DetectionSample(failure: .unreadableFrame, sampledAtMs: sampledAtMs))
       return
     }
+    let intrinsicMatrix = Self.intrinsicMatrix(of: sampleBuffer)
     let startedAt = ProcessInfo.processInfo.systemUptime
-    let output = CardQuadDetector.detect(pixelBuffer: pixelBuffer, displayOrientation: Self.displayOrientation)
+    let output = CardQuadDetector.detect(
+      pixelBuffer: pixelBuffer,
+      displayOrientation: Self.displayOrientation,
+      intrinsicMatrix: intrinsicMatrix
+    )
     let sample = DetectionSample(
       output: output,
       transform: transform,
       nativeDurationMs: CardQuadDetector.elapsedMilliseconds(since: startedAt),
       sampledAtMs: sampledAtMs
     )
+    if let outline = sample.corners, let copy = copiedPlanes(of: pixelBuffer) {
+      let frame = AnalyzedFrame(pixelBuffer: copy, intrinsicMatrix: intrinsicMatrix, time: time)
+      keptFramesLock.withLock { keptFrames.keep(frame, outline: outline, seconds: time.seconds) }
+    }
     onSample(sample)
+  }
+
+  private static func intrinsicMatrix(of sampleBuffer: CMSampleBuffer) -> simd_float3x3? {
+    guard let data = CMGetAttachment(
+      sampleBuffer,
+      key: kCMSampleBufferAttachmentKey_CameraIntrinsicMatrix,
+      attachmentModeOut: nil
+    ) as? Data, data.count == MemoryLayout<simd_float3x3>.size else {
+      return nil
+    }
+    return data.withUnsafeBytes { $0.loadUnaligned(as: simd_float3x3.self) }
   }
 }
 
 private final class PhotoCapture: NSObject, AVCapturePhotoCaptureDelegate, @unchecked Sendable {
-  private let outline: [SIMD2<Double>]
   private var times: PhotoTimes
-  private let completion: @Sendable (Result<CapturedPhoto, PhotoFailure>) -> Void
+  private let completion: @Sendable (Result<TakenPhoto, PhotoFailure>) -> Void
 
-  init(
-    outline: [SIMD2<Double>],
-    times: PhotoTimes,
-    completion: @escaping @Sendable (Result<CapturedPhoto, PhotoFailure>) -> Void
-  ) {
-    self.outline = outline
+  init(times: PhotoTimes, completion: @escaping @Sendable (Result<TakenPhoto, PhotoFailure>) -> Void) {
     self.times = times
     self.completion = completion
   }
@@ -247,9 +315,9 @@ private final class PhotoCapture: NSObject, AVCapturePhotoCaptureDelegate, @unch
     }
     times.savedAt = CameraSession.wallClockMs()
     let dimensions = photo.resolvedSettings.photoDimensions
-    completion(.success(CapturedPhoto(
+    completion(.success(TakenPhoto(
       url: url,
-      outline: outline,
+      time: photo.timestamp,
       width: Int(dimensions.width),
       height: Int(dimensions.height),
       times: times
